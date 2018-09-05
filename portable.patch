@@ -1,0 +1,572 @@
+From 4290ff3ccaa8f3774e7d381bafd0ec8b07e1a445 Mon Sep 17 00:00:00 2001
+From: Fedor <fedor@mail.ru>
+Date: Sun, 2 Sep 2018 21:04:59 +0300
+Subject: [PATCH] portable
+
+---
+ application/palemoon/components/nsBrowserGlue.js   |  9 +++-
+ .../palemoon/components/preferences/advanced.js    | 28 ++++++++++
+ .../components/shell/nsIWindowsShellService.idl    |  3 ++
+ .../components/shell/nsWindowsShellService.cpp     | 56 +++++++++++++++++++
+ .../palemoon/installer/windows/nsis/installer.nsi  | 37 ++++++++++++-
+ .../en-US/chrome/browser/shellservice.properties   |  2 +
+ .../locales/en-US/installer/custom.properties      |  2 +
+ dom/system/OSFileConstants.cpp                     |  4 +-
+ toolkit/mozapps/installer/windows/nsis/common.nsh  |  5 ++
+ toolkit/profile/nsToolkitProfileService.cpp        | 15 +++---
+ toolkit/xre/nsAppRunner.cpp                        | 63 ++++++++++++++++++++--
+ toolkit/xre/nsAppRunner.h                          |  2 +-
+ 12 files changed, 210 insertions(+), 16 deletions(-)
+
+diff --git a/application/palemoon/components/nsBrowserGlue.js b/application/palemoon/components/nsBrowserGlue.js
+index 720d116..94eac13 100644
+--- a/application/palemoon/components/nsBrowserGlue.js
++++ b/application/palemoon/components/nsBrowserGlue.js
+@@ -17,6 +17,9 @@ Cu.import("resource://gre/modules/Services.jsm");
+ XPCOMUtils.defineLazyServiceGetter(this, "AlertsService",
+                                    "@mozilla.org/alerts-service;1", "nsIAlertsService");
+ 
++XPCOMUtils.defineLazyServiceGetter(this, "winShellService",
++                                   "@mozilla.org/browser/shell-service;1","nsIWindowsShellService");
++
+ // Define Lazy Module Getters
+ [
+   ["AddonManager", "resource://gre/modules/AddonManager.jsm"],
+@@ -600,7 +603,9 @@ BrowserGlue.prototype = {
+       } catch (ex) {
+         isDefaultError = true;
+       }
+-
++      //MYPAL PORTABLE CODE
++      let isPortable= winShellService.isPortableMode();
++      if (!isPortable) {
+       if (isDefault) {
+         let now = (Math.floor(Date.now() / 1000)).toString();
+         Services.prefs.setCharPref("browser.shell.mostRecentDateSetAsDefault", now);
+@@ -644,7 +649,7 @@ BrowserGlue.prototype = {
+           ShellService.shouldCheckDefaultBrowser = checkEveryTime.value;
+         }.bind(this), Ci.nsIThread.DISPATCH_NORMAL);
+       }
+-    }
++    }}
+   },
+ 
+   _onQuitRequest: function BG__onQuitRequest(aCancelQuit, aQuitType) {
+diff --git a/application/palemoon/components/preferences/advanced.js b/application/palemoon/components/preferences/advanced.js
+index 0803496..f935f21 100644
+--- a/application/palemoon/components/preferences/advanced.js
++++ b/application/palemoon/components/preferences/advanced.js
+@@ -10,6 +10,9 @@ Components.utils.import("resource://gre/modules/Services.jsm");
+ Components.utils.import("resource://gre/modules/LoadContextInfo.jsm");
+ Components.utils.import("resource://gre/modules/BrowserUtils.jsm");
+ 
++XPCOMUtils.defineLazyServiceGetter(this, "winShellSvc",
++                                   "@mozilla.org/browser/shell-service;1","nsIWindowsShellService");
++
+ var gAdvancedPane = {
+   _inited: false,
+ 
+@@ -719,6 +722,7 @@ var gAdvancedPane = {
+       document.getElementById("alwaysCheckDefault").disabled = true;
+       return;
+     }
++    if (winShellSvc.isPortableMode()) return;
+     let selectedIndex =
+       shellSvc.isDefaultBrowser(false, true) ? 1 : 0;
+     setDefaultPane.selectedIndex = selectedIndex;
+@@ -729,10 +733,33 @@ var gAdvancedPane = {
+    */
+   setDefaultBrowser: function()
+   {
++    //MYPAL PORTABLE CODE
+     let shellSvc = getShellService();
++    let sPortable;
+     if (!shellSvc)
+       return;
+     try {
++    isPortable = winShellSvc.isPortableMode();
++    if (isPortable) {
++          Components.utils.import("resource:///modules/RecentWindow.jsm");
++          var win = RecentWindow.getMostRecentBrowserWindow();
++          var brandBundle = win.document.getElementById("bundle_brand");
++          var shellBundle = win.document.getElementById("bundle_shell");
++
++          var brandShortName = brandBundle.getString("brandShortName");
++          var promptTitle = shellBundle.getString("PortablemodeTitle");
++          var promptMessage = shellBundle.getFormattedString("PortablemodeMessage",
++                                                              [brandShortName]);
++ //       var checkEveryTime = { value: shouldCheck };
++          var ps = Services.prompt;
++          var rv = ps.confirmEx(win, promptTitle, promptMessage,
++                                ps.STD_YES_NO_BUTTONS,
++                                null, null, null, null, { });//, checkboxLabel, checkEveryTime);
++          if (rv == 0) {
++	  winShellSvc.cancelPortableMode();
++          isPortable=28;
++          } else return;
++        }
+       let claimAllTypes = true;
+ #ifdef XP_WIN
+       // In Windows 8+, the UI for selecting default protocol is much
+@@ -750,6 +777,7 @@ var gAdvancedPane = {
+     let selectedIndex =
+       shellSvc.isDefaultBrowser(false, true) ? 1 : 0;
+     document.getElementById("setDefaultPane").selectedIndex = selectedIndex;
++    if (isPortable==28) Application.quit();
+   }
+ #endif
+ };
+diff --git a/application/palemoon/components/shell/nsIWindowsShellService.idl b/application/palemoon/components/shell/nsIWindowsShellService.idl
+index 57ed370..9bd23cb 100644
+--- a/application/palemoon/components/shell/nsIWindowsShellService.idl
++++ b/application/palemoon/components/shell/nsIWindowsShellService.idl
+@@ -8,6 +8,9 @@
+ [scriptable, uuid(f8a26b94-49e5-4441-8fbc-315e0b4f22ef)]
+ interface nsIWindowsShellService : nsIShellService
+ {
++    //MYPAL PORTABLE CODE
++    boolean isPortableMode();
++    void cancelPortableMode();
+     /**
+      * Provides the shell service an opportunity to do some Win7+ shortcut
+      * maintenance needed on initial startup of the browser.
+diff --git a/application/palemoon/components/shell/nsWindowsShellService.cpp b/application/palemoon/components/shell/nsWindowsShellService.cpp
+index c4039b9..a8623bc 100644
+--- a/application/palemoon/components/shell/nsWindowsShellService.cpp
++++ b/application/palemoon/components/shell/nsWindowsShellService.cpp
+@@ -402,6 +402,62 @@ nsWindowsShellService::IsDefaultBrowserVista(bool aCheckAllTypes,
+   return true;
+ }
+ 
++//MYPAL PORTABLE CODE
++NS_IMETHODIMP
++nsWindowsShellService::CancelPortableMode()
++{
++  nsresult rv;
++
++  nsCOMPtr<nsIFile> portmodemark;
++
++  rv = NS_GetSpecialDirectory(NS_OS_CURRENT_PROCESS_DIR,
++                              getter_AddRefs(portmodemark));
++  NS_ENSURE_SUCCESS(rv, rv);
++
++  rv = portmodemark->AppendNative(NS_LITERAL_CSTRING("pmprt.mod"));
++
++  NS_ENSURE_SUCCESS(rv, rv);
++
++  bool fileExists;
++  rv = portmodemark->Exists(&fileExists);
++
++  NS_ENSURE_SUCCESS(rv, rv);
++  if (fileExists)
++  portmodemark->Remove(false);
++
++  return NS_OK;
++}
++
++NS_IMETHODIMP
++nsWindowsShellService::IsPortableMode(bool* aIsPortable)
++{
++  nsresult rv;
++  *aIsPortable=false;
++
++  nsCOMPtr<nsIFile> portmodemark;
++
++  rv = NS_GetSpecialDirectory(NS_OS_CURRENT_PROCESS_DIR,
++                              getter_AddRefs(portmodemark));
++  NS_ENSURE_SUCCESS(rv, rv);
++
++  rv = portmodemark->AppendNative(NS_LITERAL_CSTRING("pmprt.mod"));
++
++  NS_ENSURE_SUCCESS(rv, rv);
++
++  bool fileExists;
++  rv = portmodemark->Exists(&fileExists);
++  NS_ENSURE_SUCCESS(rv, rv);
++  
++//  nsAutoString path1;
++//  rv = portmodemark->GetPath(path1);
++//  ::MessageBoxW(NULL,path1.get(),L"Teest",MB_OKCANCEL);
++
++  if (fileExists){
++  *aIsPortable=true;
++  }
++  return NS_OK;
++}
++
+ NS_IMETHODIMP
+ nsWindowsShellService::IsDefaultBrowser(bool aStartupCheck,
+                                         bool aForAllTypes,
+diff --git a/application/palemoon/installer/windows/nsis/installer.nsi b/application/palemoon/installer/windows/nsis/installer.nsi
+index f92e199..ea0b88a 100644
+--- a/application/palemoon/installer/windows/nsis/installer.nsi
++++ b/application/palemoon/installer/windows/nsis/installer.nsi
+@@ -40,6 +40,7 @@ Var AddDesktopSC
+ Var InstallMaintenanceService
+ Var PageName
+ Var PreventRebootRequired
++Var PrtChkb
+ 
+ ; By defining NO_STARTMENU_DIR an installer that doesn't provide an option for
+ ; an application's Start Menu PROGRAMS directory and doesn't define the
+@@ -294,6 +295,15 @@ Section "-Application" APP_IDX
+                       "$(ERROR_CREATE_DIRECTORY_PREFIX)" \
+                       "$(ERROR_CREATE_DIRECTORY_SUFFIX)"
+ 
++  ${If} $InstallType == ${INSTALLTYPE_PORTABLE}
++  ${If} $PrtChkb == 1
++    FileOpen $0 "$INSTDIR\browser\pmprt.mod" w
++    FileClose $0
++  ${Else}
++    FileOpen $0 "$INSTDIR\browser\pmundprt.mod" w
++    FileClose $0
++  ${EndIf}
++  ${Else}
+   ; Register DLLs
+   ; XXXrstrong - AccessibleMarshal.dll can be used by multiple applications but
+   ; is only registered for the last application installed. When the last
+@@ -578,6 +588,7 @@ Section "-Application" APP_IDX
+       ${EndIf}
+     ${EndUnless}
+   ${EndIf}
++  ${EndIf}
+ 
+ !ifdef MOZ_MAINTENANCE_SERVICE
+   ${If} $TmpVal == "HKLM"
+@@ -903,6 +914,12 @@ Function leaveOptions
+   ${MUI_INSTALLOPTIONS_READ} $R0 "options.ini" "Field 3" "State"
+   StrCmp $R0 "1" +1 +2
+   StrCpy $InstallType ${INSTALLTYPE_CUSTOM}
++  ${MUI_INSTALLOPTIONS_READ} $R0 "options.ini" "Field 6" "State"
++  StrCmp $R0 "1" +1 +2
++  StrCpy $InstallType ${INSTALLTYPE_PORTABLE}
++  ${MUI_INSTALLOPTIONS_READ} $R0 "options.ini" "Field 7" "State"
++  StrCmp $R0 "1" +1 +2
++  StrCpy $PrtChkb 1
+ 
+   ${LeaveOptionsCommon}
+ 
+@@ -1045,6 +1062,7 @@ Function preSummary
+   DeleteINISec "$PLUGINSDIR\summary.ini" "Field 4"
+ 
+   ; Check if it is possible to write to HKLM
++  ${If} $InstallType != ${INSTALLTYPE_PORTABLE}
+   ClearErrors
+   WriteRegStr HKLM "Software\Mozilla" "${BrandShortName}InstallerTest" "Write Test"
+   ${Unless} ${Errors}
+@@ -1091,6 +1109,7 @@ Function preSummary
+     WriteINIStr "$PLUGINSDIR\summary.ini" "Field $0" Left   "0"
+     WriteINIStr "$PLUGINSDIR\summary.ini" "Field $0" Right  "-1"
+   ${EndIf}
++  ${EndIf}
+ 
+   !insertmacro MUI_HEADER_TEXT "$(SUMMARY_PAGE_TITLE)" "$(SUMMARY_PAGE_SUBTITLE)"
+ 
+@@ -1183,7 +1202,7 @@ Function .onInit
+   !insertmacro InitInstallOptionsFile "components.ini"
+   !insertmacro InitInstallOptionsFile "summary.ini"
+ 
+-  WriteINIStr "$PLUGINSDIR\options.ini" "Settings" NumFields "5"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Settings" NumFields "7"
+ 
+   WriteINIStr "$PLUGINSDIR\options.ini" "Field 1" Type   "label"
+   WriteINIStr "$PLUGINSDIR\options.ini" "Field 1" Text   "$(OPTIONS_SUMMARY)"
+@@ -1209,6 +1228,14 @@ Function .onInit
+   WriteINIStr "$PLUGINSDIR\options.ini" "Field 3" Bottom "65"
+   WriteINIStr "$PLUGINSDIR\options.ini" "Field 3" State  "0"
+ 
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 6" Type   "RadioButton"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 6" Text   "$(OPTION_PORTABLE_RADIO)"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 6" Left   "0"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 6" Right  "-1"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 6" Top    "85"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 6" Bottom "95"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 6" State  "0"
++
+   WriteINIStr "$PLUGINSDIR\options.ini" "Field 4" Type   "label"
+   WriteINIStr "$PLUGINSDIR\options.ini" "Field 4" Text   "$(OPTION_STANDARD_DESC)"
+   WriteINIStr "$PLUGINSDIR\options.ini" "Field 4" Left   "15"
+@@ -1223,6 +1250,14 @@ Function .onInit
+   WriteINIStr "$PLUGINSDIR\options.ini" "Field 5" Top    "67"
+   WriteINIStr "$PLUGINSDIR\options.ini" "Field 5" Bottom "87"
+ 
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 7" Type   "checkbox"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 7" Text   "$(OPTION_PORTABLE_DESC)"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 7" Left   "15"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 7" Right  "-1"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 7" Top    "97"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 7" Bottom "117"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 7" State  "1"
++
+   ; Setup the shortcuts.ini file for the Custom Shortcuts Page
+   ; Don't offer to install the quick launch shortcut on Windows 7
+   ${If} ${AtLeastWin7}
+diff --git a/application/palemoon/locales/en-US/chrome/browser/shellservice.properties b/application/palemoon/locales/en-US/chrome/browser/shellservice.properties
+index d4f449f..534da1a 100644
+--- a/application/palemoon/locales/en-US/chrome/browser/shellservice.properties
++++ b/application/palemoon/locales/en-US/chrome/browser/shellservice.properties
+@@ -8,6 +8,8 @@ setDefaultBrowserTitle=Default Browser
+ setDefaultBrowserMessage=%S is not currently set as your default browser. Would you like to make it your default browser?
+ setDefaultBrowserDontAsk=Always perform this check when starting %S.
+ alreadyDefaultBrowser=%S is already set as your default browser.
++PortablemodeTitle=Portable Mode
++PortablemodeMessage=By pressing Yes you switch %S into standart non-portable mode, and browser will quit.
+ desktopBackgroundLeafNameWin=Desktop Background.bmp
+ DesktopBackgroundDownloading=Saving Picture…
+ DesktopBackgroundSet=Set Desktop Background
+diff --git a/application/palemoon/locales/en-US/installer/custom.properties b/application/palemoon/locales/en-US/installer/custom.properties
+index ef29b1e..6575467 100644
+--- a/application/palemoon/locales/en-US/installer/custom.properties
++++ b/application/palemoon/locales/en-US/installer/custom.properties
+@@ -75,6 +75,8 @@ OPTION_STANDARD_RADIO=&Standard
+ # Two lines
+ OPTION_CUSTOM_DESC=You may choose individual options to be installed. Recommended for experienced users.
+ OPTION_CUSTOM_RADIO=&Custom
++OPTION_PORTABLE_DESC=Such a portable, default browser feature disabled (no-remote).
++OPTION_PORTABLE_RADIO=&Portable
+ 
+ # LOCALIZATION NOTE:
+ # The following text replaces the Install button text on the summary page.
+diff --git a/dom/system/OSFileConstants.cpp b/dom/system/OSFileConstants.cpp
+index 86377e7..0a3b1cc 100644
+--- a/dom/system/OSFileConstants.cpp
++++ b/dom/system/OSFileConstants.cpp
+@@ -303,14 +303,14 @@ nsresult InitOSFileConstants()
+   // some platforms or in non-Firefox embeddings of Gecko).
+ 
+   GetPathToSpecialDir(NS_OS_TEMP_DIR, paths->tmpDir);
+-  GetPathToSpecialDir(NS_OS_HOME_DIR, paths->homeDir);
++/*  GetPathToSpecialDir(NS_OS_HOME_DIR, paths->homeDir);
+   GetPathToSpecialDir(NS_OS_DESKTOP_DIR, paths->desktopDir);
+   GetPathToSpecialDir(XRE_USER_APP_DATA_DIR, paths->userApplicationDataDir);
+ 
+ #if defined(XP_WIN)
+   GetPathToSpecialDir(NS_WIN_APPDATA_DIR, paths->winAppDataDir);
+   GetPathToSpecialDir(NS_WIN_PROGRAMS_DIR, paths->winStartMenuProgsDir);
+-#endif // defined(XP_WIN)
++#endif // defined(XP_WIN)*/
+ 
+ #if defined(XP_MACOSX)
+   GetPathToSpecialDir(NS_MAC_USER_LIB_DIR, paths->macUserLibDir);
+diff --git a/toolkit/mozapps/installer/windows/nsis/common.nsh b/toolkit/mozapps/installer/windows/nsis/common.nsh
+index 1def280..9a10c35 100755
+--- a/toolkit/mozapps/installer/windows/nsis/common.nsh
++++ b/toolkit/mozapps/installer/windows/nsis/common.nsh
+@@ -4972,6 +4972,10 @@
+   !define INSTALLTYPE_CUSTOM    2
+ !endif
+ 
++!ifndef INSTALLTYPE_PORTABLE
++  !define INSTALLTYPE_PORTABLE  3
++!endif
++
+ /**
+  * Checks whether to display the current page (e.g. if not performing a custom
+  * install don't display the custom pages).
+@@ -5654,6 +5658,7 @@
+       Push $R9
+ 
+       IntCmp $InstallType ${INSTALLTYPE_CUSTOM} end +1 +1
++      IntCmp $InstallType ${INSTALLTYPE_PORTABLE} end +1 +1
+       ${CanWriteToInstallDir} $R9
+       StrCmp "$R9" "false" end +1
+       ${CheckDiskSpace} $R9
+diff --git a/toolkit/profile/nsToolkitProfileService.cpp b/toolkit/profile/nsToolkitProfileService.cpp
+index 38b3a37..d31461d 100644
+--- a/toolkit/profile/nsToolkitProfileService.cpp
++++ b/toolkit/profile/nsToolkitProfileService.cpp
+@@ -112,7 +112,7 @@ public:
+ private:
+     friend class nsToolkitProfile;
+     friend class nsToolkitProfileFactory;
+-    friend nsresult NS_NewToolkitProfileService(nsIToolkitProfileService**);
++    friend nsresult NS_NewToolkitProfileService(nsIToolkitProfileService**,int);
+ 
+     nsToolkitProfileService() :
+         mDirty(false),
+@@ -126,7 +126,7 @@ private:
+         gService = nullptr;
+     }
+ 
+-    nsresult Init();
++    nsresult Init(int portable);
+ 
+     nsresult CreateTimesInternal(nsIFile *profileDir);
+ 
+@@ -382,8 +382,11 @@ NS_IMPL_ISUPPORTS(nsToolkitProfileService,
+                   nsIToolkitProfileService)
+ 
+ nsresult
+-nsToolkitProfileService::Init()
++nsToolkitProfileService::Init(int portable)
+ {
++    //MYPAL CODE
++    if(portable>0) return NS_OK;
++
+     NS_ASSERTION(gDirServiceProvider, "No dirserviceprovider!");
+     nsresult rv;
+ 
+@@ -1024,7 +1027,7 @@ nsToolkitProfileFactory::CreateInstance(nsISupports* aOuter, const nsID& aIID,
+     nsCOMPtr<nsIToolkitProfileService> profileService =
+         nsToolkitProfileService::gService;
+     if (!profileService) {
+-        nsresult rv = NS_NewToolkitProfileService(getter_AddRefs(profileService));
++        nsresult rv = NS_NewToolkitProfileService(getter_AddRefs(profileService),0);
+         if (NS_FAILED(rv))
+             return rv;
+     }
+@@ -1049,12 +1052,12 @@ NS_NewToolkitProfileFactory(nsIFactory* *aResult)
+ }
+ 
+ nsresult
+-NS_NewToolkitProfileService(nsIToolkitProfileService* *aResult)
++NS_NewToolkitProfileService(nsIToolkitProfileService* *aResult,int portable)
+ {
+     nsToolkitProfileService* profileService = new nsToolkitProfileService();
+     if (!profileService)
+         return NS_ERROR_OUT_OF_MEMORY;
+-    nsresult rv = profileService->Init();
++    nsresult rv = profileService->Init(portable);
+     if (NS_FAILED(rv)) {
+         NS_ERROR("nsToolkitProfileService::Init failed!");
+         delete profileService;
+diff --git a/toolkit/xre/nsAppRunner.cpp b/toolkit/xre/nsAppRunner.cpp
+index 37d0a4e..a8359ee 100644
+--- a/toolkit/xre/nsAppRunner.cpp
++++ b/toolkit/xre/nsAppRunner.cpp
+@@ -1920,7 +1920,7 @@ static nsAutoCString gResetOldProfileName;
+ // 6) display the profile-manager UI
+ static nsresult
+ SelectProfile(nsIProfileLock* *aResult, nsIToolkitProfileService* aProfileSvc, nsINativeAppSupport* aNative,
+-              bool* aStartOffline, nsACString* aProfileName)
++              bool* aStartOffline, nsACString* aProfileName,int prt)
+ {
+   StartupTimeline::Record(StartupTimeline::SELECT_PROFILE);
+ 
+@@ -1944,6 +1944,39 @@ SelectProfile(nsIProfileLock* *aResult, nsIToolkitProfileService* aProfileSvc, n
+     gDoMigration = true;
+     SaveToEnv("MOZ_RESET_PROFILE_RESTART=");
+   }
++  
++  //MYPAL PORTABLE CODE START
++  nsCOMPtr<nsIFile> lf;
++  if (prt>0) {
++  //lstrcmpW(L"Teest",L"Teest");
++
++  nsCOMPtr<nsIFile> exeFile;
++  rv = XRE_GetBinaryPath(gArgv[0], getter_AddRefs(exeFile));
++  rv = exeFile->GetParent(getter_AddRefs(lf));
++  lf->AppendNative(*aProfileName);
++
++//  nsAutoString path1;
++//  rv = lf->GetPath(path1);
++//  ::MessageBoxW(NULL,path1.get(),L"Teest",MB_OKCANCEL);
++
++  NS_ENSURE_SUCCESS(rv, rv);
++
++  nsCOMPtr<nsIProfileUnlocker> unlocker;
++
++  bool exists;
++   lf->Exists(&exists);
++   if (!exists) {
++       rv = lf->Create(nsIFile::DIRECTORY_TYPE, 0700);
++       NS_ENSURE_SUCCESS(rv, rv);
++   }
++
++    // If a profile path is specified directory on the command line, then
++    // assume that the temp directory is the same as the given directory.
++  rv = NS_LockProfilePath(lf, lf, getter_AddRefs(unlocker), aResult);
++  if (NS_SUCCEEDED(rv))
++    return rv;
++    return ProfileLockedDialog(lf, lf, unlocker, aNative, aResult);}
++  //MYPAL PORTABLE CODE END
+ 
+   // reset-profile and migration args need to be checked before any profiles are chosen below.
+   ar = CheckArg("reset-profile", true);
+@@ -1962,7 +1995,7 @@ SelectProfile(nsIProfileLock* *aResult, nsIToolkitProfileService* aProfileSvc, n
+     gDoMigration = true;
+   }
+ 
+-  nsCOMPtr<nsIFile> lf = GetFileFromEnv("XRE_PROFILE_PATH");
++  lf = GetFileFromEnv("XRE_PROFILE_PATH");
+   if (lf) {
+     nsCOMPtr<nsIFile> localDir =
+       GetFileFromEnv("XRE_PROFILE_LOCAL_PATH");
+@@ -2728,6 +2761,7 @@ public:
+   int XRE_main(int argc, char* argv[], const nsXREAppData* aAppData);
+   int XRE_mainInit(bool* aExitFlag);
+   int XRE_mainStartup(bool* aExitFlag);
++  int portable();
+   nsresult XRE_mainRun();
+ 
+   nsCOMPtr<nsINativeAppSupport> mNativeApp;
+@@ -2759,6 +2793,21 @@ public:
+ #endif
+ };
+ 
++//MYPAL CODE
++int XREMain::portable(){
++  bool portable;
++  nsCOMPtr<nsIFile> portmodemark;
++  mDirProvider.GetAppDir()->Clone(getter_AddRefs(portmodemark));
++  portmodemark->AppendNative(NS_LITERAL_CSTRING("pmprt.mod"));
++  portmodemark->Exists(&portable);
++  if (portable) return 1;
++  mDirProvider.GetAppDir()->Clone(getter_AddRefs(portmodemark));
++  portmodemark->AppendNative(NS_LITERAL_CSTRING("pmundprt.mod"));
++  portmodemark->Exists(&portable);
++  if (portable) return 2;
++  else return 0; 
++}
++
+ /*
+  * XRE_mainInit - Initial setup and command line parameter processing.
+  * Main() will exit early if either return value != 0 or if aExitFlag is
+@@ -3075,6 +3124,9 @@ XREMain::XRE_mainInit(bool* aExitFlag)
+   } else if (ar == ARG_FOUND) {
+     SaveToEnv("MOZ_NO_REMOTE=1");
+   }
++  //MYPAL CODE
++  //lstrcmpW(L"Teest",L"Teest");
++  if (portable()==1) SaveToEnv("MOZ_NO_REMOTE=1");
+ 
+   ar = CheckArg("new-instance", true);
+   if (ar == ARG_BAD) {
+@@ -3467,8 +3519,11 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
+     return 0;
+   }
+ #endif
++  //MYPAL CODE
++  int prt=portable();   
++  if (prt>0) mProfileName.Assign("\Profile");
+ 
+-  rv = NS_NewToolkitProfileService(getter_AddRefs(mProfileSvc));
++  rv = NS_NewToolkitProfileService(getter_AddRefs(mProfileSvc),prt);
+   if (rv == NS_ERROR_FILE_ACCESS_DENIED) {
+     PR_fprintf(PR_STDERR, "Error: Access was denied while trying to open files in " \
+                 "your profile directory.\n");
+@@ -3480,7 +3535,7 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
+   }
+ 
+   rv = SelectProfile(getter_AddRefs(mProfileLock), mProfileSvc, mNativeApp, &mStartOffline,
+-                      &mProfileName);
++                      &mProfileName,prt);
+   if (rv == NS_ERROR_LAUNCHED_CHILD_PROCESS ||
+       rv == NS_ERROR_ABORT) {
+     *aExitFlag = true;
+diff --git a/toolkit/xre/nsAppRunner.h b/toolkit/xre/nsAppRunner.h
+index b8d9553..03b2e9c 100644
+--- a/toolkit/xre/nsAppRunner.h
++++ b/toolkit/xre/nsAppRunner.h
+@@ -65,7 +65,7 @@ extern bool gIsGtest;
+ nsresult NS_CreateNativeAppSupport(nsINativeAppSupport* *aResult);
+ 
+ nsresult
+-NS_NewToolkitProfileService(nsIToolkitProfileService* *aResult);
++NS_NewToolkitProfileService(nsIToolkitProfileService* *aResult,int portable);
+ 
+ nsresult
+ NS_NewToolkitProfileFactory(nsIFactory* *aResult);
+-- 
+2.8.2.windows.1
+
