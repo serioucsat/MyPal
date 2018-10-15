@@ -1,0 +1,96 @@
+From 855974c5f52cf95f107ea22995f7c8e1fb3b8935 Mon Sep 17 00:00:00 2001
+From: Fedor <fedor@mail.ru>
+Date: Tue, 25 Sep 2018 01:10:37 +0300
+Subject: [PATCH] winxp_a
+
+---
+ widget/windows/mozwrlbase.h | 77 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 77 insertions(+)
+ create mode 100644 widget/windows/mozwrlbase.h
+
+diff --git a/widget/windows/mozwrlbase.h b/widget/windows/mozwrlbase.h
+new file mode 100644
+index 0000000..d82be8f
+--- /dev/null
++++ b/widget/windows/mozwrlbase.h
+@@ -0,0 +1,77 @@
++/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
++/* This Source Code Form is subject to the terms of the Mozilla Public
++ * License, v. 2.0. If a copy of the MPL was not distributed with this
++ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
++
++#pragma once
++
++/*
++ * Includes <wrl.h> and it's children. Defines imports needed by
++ * corewrappers.h in the case where windows.h has already been
++ * included w/WINVER < 0x600. Also ups WINVER/_WIN32_WINNT prior
++ * to including wrl.h. Mozilla's build currently has WINVER set to
++ * 0x502 for XP support.
++ */
++
++#if _WIN32_WINNT < 0x600
++
++#include <windows.h>
++
++VOID
++WINAPI
++ReleaseSRWLockExclusive(
++    _Inout_ PSRWLOCK SRWLock
++    );
++
++VOID
++WINAPI
++ReleaseSRWLockShared(
++    _Inout_ PSRWLOCK SRWLock
++    );
++
++BOOL
++WINAPI
++InitializeCriticalSectionEx(
++    _Out_ LPCRITICAL_SECTION lpCriticalSection,
++    _In_ DWORD dwSpinCount,
++    _In_ DWORD Flags
++    );
++
++VOID
++WINAPI
++InitializeSRWLock(
++    _Out_ PSRWLOCK SRWLock
++    );
++
++VOID
++WINAPI
++AcquireSRWLockExclusive(
++    _Inout_ PSRWLOCK SRWLock
++    );
++
++BOOLEAN
++WINAPI
++TryAcquireSRWLockExclusive(
++    _Inout_ PSRWLOCK SRWLock
++    );
++
++BOOLEAN
++WINAPI
++TryAcquireSRWLockShared(
++    _Inout_ PSRWLOCK SRWLock
++    );
++
++VOID
++WINAPI
++AcquireSRWLockShared(
++    _Inout_ PSRWLOCK SRWLock
++    );
++
++#undef WINVER
++#undef _WIN32_WINNT
++#define WINVER 0x600
++#define _WIN32_WINNT 0x600
++
++#endif // _WIN32_WINNT < 0x600
++
++#include <wrl.h>
+-- 
+2.8.2.windows.1
+

@@ -1,6 +1,6 @@
-From 88a911123bef69b18f529cb9dfc9f917e6d33ab5 Mon Sep 17 00:00:00 2001
+From eb4e538a7b28b851b7e2e0b27649412123b26db4 Mon Sep 17 00:00:00 2001
 From: Fedor <fedor@mail.ru>
-Date: Sun, 2 Sep 2018 19:59:17 +0300
+Date: Tue, 25 Sep 2018 00:58:06 +0300
 Subject: [PATCH] winxp
 
 ---
@@ -8,6 +8,8 @@ Subject: [PATCH] winxp
  application/basilisk/config/mozconfigs/win32/debug |   1 +
  application/basilisk/installer/Makefile.in         |   3 +
  application/basilisk/installer/package-manifest.in |   4 +
+ .../basilisk/installer/windows/nsis/defines.nsi.in |   4 +-
+ .../basilisk/installer/windows/nsis/installer.nsi  |   2 +-
  application/palemoon/app/Makefile.in               |   6 -
  application/palemoon/app/splash.rc                 |   2 -
  .../palemoon/installer/windows/nsis/defines.nsi.in |   4 +-
@@ -34,7 +36,7 @@ Subject: [PATCH] winxp
  gfx/thebes/gfxWindowsPlatform.h                    |   8 +
  hal/windows/WindowsBattery.cpp                     | 141 ++++--
  image/decoders/icon/win/nsIconChannel.cpp          |  53 +-
- ipc/chromium/src/base/process_util_win.cc          |  37 ++
+ ipc/chromium/src/base/process_util_win.cc          |  61 ++-
  ipc/glue/WindowsMessageLoop.cpp                    |   2 +-
  ipc/mscom/MainThreadRuntime.cpp                    |  14 +-
  js/src/jsutil.cpp                                  |   2 +-
@@ -42,6 +44,7 @@ Subject: [PATCH] winxp
  js/src/threading/windows/ConditionVariable.cpp     | 333 ++++++++++++-
  js/src/threading/windows/MutexImpl.cpp             |  47 +-
  js/src/threading/windows/MutexPlatformData.h       |   2 +-
+ layout/style/nsMediaFeatures.cpp                   |   2 +
  memory/mozjemalloc/jemalloc.c                      |  21 +-
  mfbt/ThreadLocal.h                                 |  38 +-
  mfbt/WindowsVersion.h                              |  35 ++
@@ -51,6 +54,7 @@ Subject: [PATCH] winxp
  toolkit/components/alerts/nsAlertsService.h        |  17 +
  toolkit/library/libxul.mk                          |  20 +
  toolkit/mozapps/installer/windows/nsis/common.nsh  |   2 +-
+ toolkit/themes/windows/global/global.css           |   8 +-
  toolkit/xre/nsAppRunner.cpp                        |  20 +-
  toolkit/xre/nsEmbedFunctions.cpp                   |  24 +-
  widget/GfxInfoBase.cpp                             |  12 +-
@@ -64,7 +68,6 @@ Subject: [PATCH] winxp
  widget/windows/WinTaskbar.cpp                      |  52 +-
  widget/windows/WinUtils.cpp                        |  62 ++-
  widget/windows/WindowsUIUtils.cpp                  |   3 +-
- widget/windows/mozwrlbase.h                        |  77 +++
  widget/windows/nsDataObj.cpp                       |   3 +-
  widget/windows/nsFilePicker.cpp                    | 542 ++++++++++++++++++++-
  widget/windows/nsFilePicker.h                      |  37 +-
@@ -82,8 +85,7 @@ Subject: [PATCH] winxp
  xpcom/io/SpecialSystemDirectory.cpp                |  41 +-
  xpcom/io/SpecialSystemDirectory.h                  |   3 +
  xpcom/io/nsLocalFileWin.cpp                        |  13 +-
- 78 files changed, 2641 insertions(+), 388 deletions(-)
- create mode 100644 widget/windows/mozwrlbase.h
+ 81 files changed, 2573 insertions(+), 419 deletions(-)
 
 diff --git a/application/basilisk/config/mozconfigs/win32/common-opt b/application/basilisk/config/mozconfigs/win32/common-opt
 index 816c892..d43a987 100644
@@ -138,6 +140,36 @@ index c446d36..bef7e07 100644
  #endif # MOZ_ANGLE_RENDERER
  
  ; [Browser Chrome Files]
+diff --git a/application/basilisk/installer/windows/nsis/defines.nsi.in b/application/basilisk/installer/windows/nsis/defines.nsi.in
+index 5ad9b79..d7a3dee 100644
+--- a/application/basilisk/installer/windows/nsis/defines.nsi.in
++++ b/application/basilisk/installer/windows/nsis/defines.nsi.in
+@@ -60,10 +60,10 @@
+ #ifdef HAVE_64BIT_BUILD
+ !define HAVE_64BIT_BUILD
+ !define ARCH "x64"
+-!define MinSupportedVer "Microsoft Windows 7 x64"
++!define MinSupportedVer "Microsoft Windows XP x64"
+ #else
+ !define ARCH "x86"
+-!define MinSupportedVer "Microsoft Windows 7"
++!define MinSupportedVer "Microsoft Windows XP"
+ #endif
+ 
+ !define MinSupportedCPU "SSE2"
+diff --git a/application/basilisk/installer/windows/nsis/installer.nsi b/application/basilisk/installer/windows/nsis/installer.nsi
+index 994c092..4c95179 100644
+--- a/application/basilisk/installer/windows/nsis/installer.nsi
++++ b/application/basilisk/installer/windows/nsis/installer.nsi
+@@ -1143,7 +1143,7 @@ Function .onInit
+   System::Call "kernel32::IsProcessorFeaturePresent(i 10)i .R7"
+ 
+   ; Windows NT 6.0 and lower are not supported on any architecture.
+-  ${Unless} ${AtLeastWin7}
++  ${Unless} ${AtLeastWinXP}
+     ${If} "$R7" == "0"
+       strCpy $R7 "$(WARN_MIN_SUPPORTED_OSVER_CPU_MSG)"
+     ${Else}
 diff --git a/application/palemoon/app/Makefile.in b/application/palemoon/app/Makefile.in
 index c0f0121..9d6fa1f 100644
 --- a/application/palemoon/app/Makefile.in
@@ -252,10 +284,10 @@ index 778e8c4..91c2d8d 100644
        }
  #endif
 diff --git a/dom/media/MediaManager.cpp b/dom/media/MediaManager.cpp
-index ba6b4cd..f978d3c 100644
+index baaf454..a7841c0 100644
 --- a/dom/media/MediaManager.cpp
 +++ b/dom/media/MediaManager.cpp
-@@ -1842,18 +1842,20 @@ MediaManager::GetNonE10sParent()
+@@ -1841,18 +1841,20 @@ MediaManager::GetNonE10sParent()
  MediaManager::StartupInit()
  {
  #ifdef WIN32
@@ -288,7 +320,7 @@ index ba6b4cd..f978d3c 100644
    }
  #endif
  }
-@@ -2117,11 +2119,19 @@ if (privileged) {
+@@ -2092,11 +2094,19 @@ MediaManager::GetUserMedia(nsPIDOMWindowInner* aWindow,
        case MediaSourceEnum::Application:
        case MediaSourceEnum::Window:
          // Deny screensharing request if support is disabled, or
@@ -605,7 +637,7 @@ index d6e9810..e6ceeaf 100644
      // If GDI synthetic italic is wanted, force the lfItalic field to true
      if (aUseGDIFakeItalic) {
 diff --git a/gfx/thebes/gfxGDIFontList.cpp b/gfx/thebes/gfxGDIFontList.cpp
-index cc047ef..d80c493 100644
+index f65334f..214b5c7 100644
 --- a/gfx/thebes/gfxGDIFontList.cpp
 +++ b/gfx/thebes/gfxGDIFontList.cpp
 @@ -37,6 +37,11 @@ using namespace mozilla;
@@ -657,7 +689,7 @@ index cc047ef..d80c493 100644
  }
  
  #define MISSING_GLYPH 0x1F // glyph index returned for missing characters
-@@ -862,8 +879,15 @@ gfxGDIFontList::MakePlatformFont(const nsAString& aFontName,
+@@ -860,8 +877,15 @@ gfxGDIFontList::MakePlatformFont(const nsAString& aFontName,
          gfxWindowsFontType(isCFF ? GFX_FONT_TYPE_PS_OPENTYPE : GFX_FONT_TYPE_TRUETYPE) /*type*/,
          aStyle, w, aStretch, winUserFontData, false);
  
@@ -690,7 +722,7 @@ index 60fb292..ffb513d 100644
      static gfxWindowsFontType DetermineFontType(const NEWTEXTMETRICW& metrics, 
                                                  DWORD fontType)
 diff --git a/gfx/thebes/gfxWindowsPlatform.cpp b/gfx/thebes/gfxWindowsPlatform.cpp
-index a988859..8adb2df 100755
+index b1ede7a..2417219 100755
 --- a/gfx/thebes/gfxWindowsPlatform.cpp
 +++ b/gfx/thebes/gfxWindowsPlatform.cpp
 @@ -146,6 +146,9 @@ public:
@@ -735,7 +767,7 @@ index a988859..8adb2df 100755
    // DWrite is only supported on Windows 7 with the platform update and higher.
    // We check this by seeing if D2D1 support is available.
    if (!Factory::SupportsD2D1()) {
-@@ -977,6 +991,26 @@ gfxWindowsPlatform::GetPlatformCMSOutputProfile(void* &mem, size_t &mem_size)
+@@ -973,6 +987,26 @@ gfxWindowsPlatform::GetPlatformCMSOutputProfile(void* &mem, size_t &mem_size)
  #endif // _WIN32
  }
  
@@ -762,7 +794,7 @@ index a988859..8adb2df 100755
  void
  gfxWindowsPlatform::GetDLLVersion(char16ptr_t aDLLPath, nsAString& aVersion)
  {
-@@ -1120,7 +1154,14 @@ gfxWindowsPlatform::FontsPrefsChanged(const char *aPref)
+@@ -1116,7 +1150,14 @@ gfxWindowsPlatform::FontsPrefsChanged(const char *aPref)
  
      gfxPlatform::FontsPrefsChanged(aPref);
  
@@ -778,7 +810,7 @@ index a988859..8adb2df 100755
          SetupClearTypeParams();
      } else {
          clearTextFontCaches = false;
-@@ -1368,13 +1409,17 @@ gfxWindowsPlatform::InitializeD3D9Config()
+@@ -1364,13 +1405,17 @@ gfxWindowsPlatform::InitializeD3D9Config()
      return;
    }
  
@@ -802,7 +834,7 @@ index a988859..8adb2df 100755
    }
  
    nsCString message;
-@@ -1545,6 +1590,11 @@ gfxWindowsPlatform::InitializeD2DConfig()
+@@ -1533,6 +1578,11 @@ gfxWindowsPlatform::InitializeD2DConfig()
                            NS_LITERAL_CSTRING("FEATURE_FAILURE_D2D_D3D11_COMP"));
      return;
    }
@@ -814,7 +846,7 @@ index a988859..8adb2df 100755
  
    d2d1.SetDefaultFromPref(
      gfxPrefs::GetDirect2DDisabledPrefName(),
-@@ -1633,12 +1683,14 @@ gfxWindowsPlatform::InitGPUProcessSupport()
+@@ -1621,12 +1671,14 @@ gfxWindowsPlatform::InitGPUProcessSupport()
        "Not using GPU Process since D3D11 is unavailable",
        NS_LITERAL_CSTRING("FEATURE_FAILURE_NO_D3D11"));
    } else if (!IsWin7SP1OrLater()) {
@@ -833,7 +865,7 @@ index a988859..8adb2df 100755
        NS_LITERAL_CSTRING("FEATURE_FAILURE_OLD_WINDOWS"));
    } else if (!IsWin8OrLater()) {
      // Windows 7 SP1 can have DXGI 1.2 only via the Platform Update, so we
-@@ -1661,6 +1713,10 @@ gfxWindowsPlatform::InitGPUProcessSupport()
+@@ -1649,6 +1701,10 @@ gfxWindowsPlatform::InitGPUProcessSupport()
  bool
  gfxWindowsPlatform::DwmCompositionEnabled()
  {
@@ -1130,13 +1162,38 @@ index 0468062..9ddcbbc 100644
  
    return rv;
 diff --git a/ipc/chromium/src/base/process_util_win.cc b/ipc/chromium/src/base/process_util_win.cc
-index f22f721..12fbc23 100644
+index fa9b86a..e99f808 100644
 --- a/ipc/chromium/src/base/process_util_win.cc
 +++ b/ipc/chromium/src/base/process_util_win.cc
-@@ -297,6 +297,43 @@ bool LaunchApp(const std::wstring& cmdline,
+@@ -297,34 +297,43 @@ bool LaunchApp(const std::wstring& cmdline,
    startup_info.wShowWindow = start_hidden ? SW_HIDE : SW_SHOW;
  
    LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList = NULL;
+-
+-  // setup our handle array first - if we end up with no handles that can
+-  // be inherited we can avoid trying to do the ThreadAttributeList dance...
+-  HANDLE handlesToInherit[2];
+-  int handleCount = 0;
+-  HANDLE stdOut = ::GetStdHandle(STD_OUTPUT_HANDLE);
+-  HANDLE stdErr = ::GetStdHandle(STD_ERROR_HANDLE);
+-
+-  if (IsInheritableHandle(stdOut))
+-    handlesToInherit[handleCount++] = stdOut;
+-  if (stdErr != stdOut && IsInheritableHandle(stdErr))
+-    handlesToInherit[handleCount++] = stdErr;
+-
+-  if (handleCount) {
+-    lpAttributeList = CreateThreadAttributeList(handlesToInherit, handleCount);
+-    if (lpAttributeList) {
+-      // it's safe to inherit handles, so arrange for that...
+-      startup_info.cb = sizeof(startup_info_ex);
+-      startup_info.dwFlags |= STARTF_USESTDHANDLES;
+-      startup_info.hStdOutput = stdOut;
+-      startup_info.hStdError = stdErr;
+-      startup_info.hStdInput = INVALID_HANDLE_VALUE;
+-      startup_info_ex.lpAttributeList = lpAttributeList;
+-      dwCreationFlags |= EXTENDED_STARTUPINFO_PRESENT;
+-      bInheritHandles = TRUE;
 +  // Don't even bother trying pre-Vista...
 +  if (mozilla::IsVistaOrLater()) {
 +    // setup our handle array first - if we end up with no handles that can
@@ -1164,7 +1221,7 @@ index f22f721..12fbc23 100644
 +        dwCreationFlags |= EXTENDED_STARTUPINFO_PRESENT;
 +        bInheritHandles = TRUE;
 +      }
-+    }
+     }
 +  } else if (PR_GetEnv("MOZ_WIN_INHERIT_STD_HANDLES_PRE_VISTA")) {
 +    // Even if we can't limit what gets inherited, we sometimes want to inherit
 +    // stdout/err for testing purposes.
@@ -1173,10 +1230,11 @@ index f22f721..12fbc23 100644
 +    startup_info.hStdError = ::GetStdHandle(STD_ERROR_HANDLE);
 +    startup_info.hStdInput = INVALID_HANDLE_VALUE;
 +    bInheritHandles = TRUE;
-+  }
- 
+   }
+-
    PROCESS_INFORMATION process_info;
    BOOL createdOK = CreateProcess(NULL,
+                      const_cast<wchar_t*>(cmdline.c_str()), NULL, NULL,
 diff --git a/ipc/glue/WindowsMessageLoop.cpp b/ipc/glue/WindowsMessageLoop.cpp
 index 8f3471e..8057ee2 100644
 --- a/ipc/glue/WindowsMessageLoop.cpp
@@ -1742,6 +1800,19 @@ index 1d741c5..fbe7fc8 100644
  };
  
  #endif // platform_win_MutexPlatformData_h
+diff --git a/layout/style/nsMediaFeatures.cpp b/layout/style/nsMediaFeatures.cpp
+index 854236e..e07170c 100644
+--- a/layout/style/nsMediaFeatures.cpp
++++ b/layout/style/nsMediaFeatures.cpp
+@@ -70,6 +70,8 @@ struct OperatingSystemVersionInfo {
+ 
+ // Os version identities used in the -moz-os-version media query.
+ const OperatingSystemVersionInfo osVersionStrings[] = {
++  { LookAndFeel::eOperatingSystemVersion_WindowsXP,     L"windows-xp" },
++  { LookAndFeel::eOperatingSystemVersion_WindowsVista,  L"windows-vista" },
+   { LookAndFeel::eOperatingSystemVersion_Windows7,      L"windows-win7" },
+   { LookAndFeel::eOperatingSystemVersion_Windows8,      L"windows-win8" },
+   { LookAndFeel::eOperatingSystemVersion_Windows10,     L"windows-win10" }
 diff --git a/memory/mozjemalloc/jemalloc.c b/memory/mozjemalloc/jemalloc.c
 index c0c189a..c842f23 100644
 --- a/memory/mozjemalloc/jemalloc.c
@@ -2047,7 +2118,7 @@ index 683c220..6743cc9 100644
  }
  
 diff --git a/old-configure.in b/old-configure.in
-index d403053..7b6ad53 100644
+index 96bb934..cb63c9b 100644
 --- a/old-configure.in
 +++ b/old-configure.in
 @@ -161,7 +161,7 @@ dnl ========================================================
@@ -2179,7 +2250,7 @@ index d403053..7b6ad53 100644
    fi
  fi # MOZ_ANGLE_RENDERER
  
-@@ -5117,6 +5195,9 @@ AC_SUBST(MOZ_D3D_CPU_SUFFIX)
+@@ -5121,6 +5199,9 @@ AC_SUBST(MOZ_D3D_CPU_SUFFIX)
  AC_SUBST(MOZ_HAS_WINSDK_WITH_D3D)
  AC_SUBST(MOZ_D3DCOMPILER_VISTA_DLL)
  AC_SUBST(MOZ_D3DCOMPILER_VISTA_DLL_PATH)
@@ -2190,10 +2261,10 @@ index d403053..7b6ad53 100644
  AC_SUBST(MOZ_ANDROID_APPLICATION_CLASS)
  AC_SUBST(MOZ_ANDROID_BROWSER_INTENT_CLASS)
 diff --git a/toolkit/components/alerts/nsAlertsService.cpp b/toolkit/components/alerts/nsAlertsService.cpp
-index dd67ad9..35418dd 100644
+index 73dbb26..3cd90a7 100644
 --- a/toolkit/components/alerts/nsAlertsService.cpp
 +++ b/toolkit/components/alerts/nsAlertsService.cpp
-@@ -22,10 +22,6 @@
+@@ -21,10 +21,6 @@
  #include "nsIFaviconService.h"
  #endif // MOZ_PLACES
  
@@ -2204,7 +2275,7 @@ index dd67ad9..35418dd 100644
  using namespace mozilla;
  
  using mozilla::dom::ContentChild;
-@@ -158,12 +154,23 @@ bool nsAlertsService::ShouldShowAlert()
+@@ -157,12 +153,23 @@ bool nsAlertsService::ShouldShowAlert()
    bool result = true;
  
  #ifdef XP_WIN
@@ -2304,8 +2375,34 @@ index 846718d..1def280 100755
          MessageBox MB_OK|MB_ICONSTOP "$R9"
          ; Nothing initialized so no need to call OnEndCommon
          Quit
+diff --git a/toolkit/themes/windows/global/global.css b/toolkit/themes/windows/global/global.css
+index 6b6a21c..2c5a15c 100644
+--- a/toolkit/themes/windows/global/global.css
++++ b/toolkit/themes/windows/global/global.css
+@@ -351,7 +351,9 @@ popupnotificationcontent {
+   width: 20px;
+ }
+ 
+-@media (-moz-os-version: windows-win7) {
++@media (-moz-os-version: windows-xp),
++       (-moz-os-version: windows-vista),
++       (-moz-os-version: windows-win7) {
+   .close-icon {
+     -moz-image-region: rect(0, 16px, 16px, 0);
+   }
+@@ -385,7 +387,9 @@ popupnotificationcontent {
+     -moz-image-region: rect(0, 120px, 40px, 80px);
+   }
+ 
+-  @media (-moz-os-version: windows-win7) {
++@media (-moz-os-version: windows-xp),
++       (-moz-os-version: windows-vista),
++       (-moz-os-version: windows-win7) {
+     .close-icon {
+       -moz-image-region: rect(0, 32px, 32px, 0);
+     }
 diff --git a/toolkit/xre/nsAppRunner.cpp b/toolkit/xre/nsAppRunner.cpp
-index 40f9ead..37d0a4e 100644
+index 59a72c4..9392881 100644
 --- a/toolkit/xre/nsAppRunner.cpp
 +++ b/toolkit/xre/nsAppRunner.cpp
 @@ -99,6 +99,7 @@
@@ -3014,89 +3111,6 @@ index 1c270b5..520475a 100644
  #include "nsServiceManagerUtils.h"
  
  #include "WindowsUIUtils.h"
-diff --git a/widget/windows/mozwrlbase.h b/widget/windows/mozwrlbase.h
-new file mode 100644
-index 0000000..d82be8f
---- /dev/null
-+++ b/widget/windows/mozwrlbase.h
-@@ -0,0 +1,77 @@
-+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-+/* This Source Code Form is subject to the terms of the Mozilla Public
-+ * License, v. 2.0. If a copy of the MPL was not distributed with this
-+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-+
-+#pragma once
-+
-+/*
-+ * Includes <wrl.h> and it's children. Defines imports needed by
-+ * corewrappers.h in the case where windows.h has already been
-+ * included w/WINVER < 0x600. Also ups WINVER/_WIN32_WINNT prior
-+ * to including wrl.h. Mozilla's build currently has WINVER set to
-+ * 0x502 for XP support.
-+ */
-+
-+#if _WIN32_WINNT < 0x600
-+
-+#include <windows.h>
-+
-+VOID
-+WINAPI
-+ReleaseSRWLockExclusive(
-+    _Inout_ PSRWLOCK SRWLock
-+    );
-+
-+VOID
-+WINAPI
-+ReleaseSRWLockShared(
-+    _Inout_ PSRWLOCK SRWLock
-+    );
-+
-+BOOL
-+WINAPI
-+InitializeCriticalSectionEx(
-+    _Out_ LPCRITICAL_SECTION lpCriticalSection,
-+    _In_ DWORD dwSpinCount,
-+    _In_ DWORD Flags
-+    );
-+
-+VOID
-+WINAPI
-+InitializeSRWLock(
-+    _Out_ PSRWLOCK SRWLock
-+    );
-+
-+VOID
-+WINAPI
-+AcquireSRWLockExclusive(
-+    _Inout_ PSRWLOCK SRWLock
-+    );
-+
-+BOOLEAN
-+WINAPI
-+TryAcquireSRWLockExclusive(
-+    _Inout_ PSRWLOCK SRWLock
-+    );
-+
-+BOOLEAN
-+WINAPI
-+TryAcquireSRWLockShared(
-+    _Inout_ PSRWLOCK SRWLock
-+    );
-+
-+VOID
-+WINAPI
-+AcquireSRWLockShared(
-+    _Inout_ PSRWLOCK SRWLock
-+    );
-+
-+#undef WINVER
-+#undef _WIN32_WINNT
-+#define WINVER 0x600
-+#define _WIN32_WINNT 0x600
-+
-+#endif // _WIN32_WINNT < 0x600
-+
-+#include <wrl.h>
 diff --git a/widget/windows/nsDataObj.cpp b/widget/windows/nsDataObj.cpp
 index 977a87c..64a455b 100644
 --- a/widget/windows/nsDataObj.cpp
@@ -3834,10 +3848,10 @@ index 740f07a..90d8c15 100644
 +
  #endif // nsFilePicker_h__
 diff --git a/widget/windows/nsLookAndFeel.cpp b/widget/windows/nsLookAndFeel.cpp
-index 97f81ab..dbb01cc 100644
+index a907622..e803d84 100644
 --- a/widget/windows/nsLookAndFeel.cpp
 +++ b/widget/windows/nsLookAndFeel.cpp
-@@ -32,8 +32,12 @@ nsLookAndFeel::GetOperatingSystemVersion()
+@@ -31,8 +31,12 @@ nsLookAndFeel::GetOperatingSystemVersion()
      version = eOperatingSystemVersion_Windows10;
    } else if (IsWin8OrLater()) {
      version = eOperatingSystemVersion_Windows8;
@@ -3851,7 +3865,7 @@ index 97f81ab..dbb01cc 100644
    }
  
    return version;
-@@ -179,7 +183,8 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
+@@ -176,7 +180,8 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
        idx = COLOR_HIGHLIGHT;
        break;
      case eColorID__moz_menubarhovertext:
@@ -3861,7 +3875,7 @@ index 97f81ab..dbb01cc 100644
          idx = nsUXThemeData::sFlatMenus ?
                  COLOR_HIGHLIGHTTEXT :
                  COLOR_MENUTEXT;
-@@ -187,7 +192,8 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
+@@ -184,7 +189,8 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
        }
        // Fall through
      case eColorID__moz_menuhovertext:
@@ -3871,7 +3885,7 @@ index 97f81ab..dbb01cc 100644
          res = ::GetColorFromTheme(eUXMenu,
                                    MENU_POPUPITEM, MPI_HOT, TMT_TEXTCOLOR, aColor);
          if (NS_SUCCEEDED(res))
-@@ -279,7 +285,7 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
+@@ -276,7 +282,7 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
        aColor = NS_RGB(0, 0, 0);
        return NS_OK;
      case eColorID__moz_win_mediatext:
@@ -3880,7 +3894,7 @@ index 97f81ab..dbb01cc 100644
          res = ::GetColorFromTheme(eUXMediaToolbar,
                                    TP_BUTTON, TS_NORMAL, TMT_TEXTCOLOR, aColor);
          if (NS_SUCCEEDED(res))
-@@ -289,7 +295,8 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
+@@ -286,7 +292,8 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
        idx = COLOR_WINDOWTEXT;
        break;
      case eColorID__moz_win_communicationstext:
@@ -4828,7 +4842,7 @@ index fdd1588..53a6c98 100644
  #define TABLET_ROTATE_GESTURE_ENABLE    0x02000000
  
 diff --git a/widget/windows/nsWindow.cpp b/widget/windows/nsWindow.cpp
-index b2bb59b..a8923f7 100644
+index 122d186..8c88d88 100644
 --- a/widget/windows/nsWindow.cpp
 +++ b/widget/windows/nsWindow.cpp
 @@ -266,7 +266,8 @@ LONG            nsWindow::sLastMouseDownTime      = 0L;
@@ -4841,7 +4855,7 @@ index b2bb59b..a8923f7 100644
  
  TriStateBool nsWindow::sHasBogusPopupsDropShadowOnMultiMonitor = TRI_UNKNOWN;
  
-@@ -782,7 +783,7 @@ nsWindow::Create(nsIWidget* aParent,
+@@ -789,7 +790,7 @@ nsWindow::Create(nsIWidget* aParent,
        parent = nullptr;
      }
  
@@ -4850,7 +4864,7 @@ index b2bb59b..a8923f7 100644
          HasBogusPopupsDropShadowOnMultiMonitor()) {
        extendedStyle |= WS_EX_COMPOSITED;
      }
-@@ -907,13 +908,20 @@ nsWindow::Create(nsIWidget* aParent,
+@@ -914,13 +915,20 @@ nsWindow::Create(nsIWidget* aParent,
    mDefaultIMC.Init(this);
    IMEHandler::InitInputContext(this, mInputContext);
  
@@ -4876,7 +4890,7 @@ index b2bb59b..a8923f7 100644
    }
  
    // Query for command button metric data for rendering the titlebar. We
-@@ -1639,10 +1647,9 @@ bool nsWindow::IsVisible() const
+@@ -1646,10 +1654,9 @@ bool nsWindow::IsVisible() const
  
  // XP and Vista visual styles sometimes require window clipping regions to be applied for proper
  // transparency. These routines are called on size and move operations.
@@ -4888,7 +4902,7 @@ index b2bb59b..a8923f7 100644
        (mWindowType == eWindowType_popup && !IsPopupWithTitleBar() &&
         (mPopupType == ePopupTypeTooltip || mPopupType == ePopupTypePanel))) {
      SetWindowRgn(mWnd, nullptr, false);
-@@ -1656,7 +1663,7 @@ void nsWindow::SetThemeRegion()
+@@ -1663,7 +1670,7 @@ void nsWindow::SetThemeRegion()
    // so default constants are used for part and state. At some point we might need part and
    // state values from nsNativeThemeWin's GetThemePartAndState, but currently windows that
    // change shape based on state haven't come up.
@@ -4897,7 +4911,7 @@ index b2bb59b..a8923f7 100644
        (mWindowType == eWindowType_popup && !IsPopupWithTitleBar() &&
         (mPopupType == ePopupTypeTooltip || mPopupType == ePopupTypePanel))) {
      HRGN hRgn = nullptr;
-@@ -2073,7 +2080,13 @@ nsWindow::SetSizeMode(nsSizeMode aMode)
+@@ -2080,7 +2087,13 @@ nsWindow::SetSizeMode(nsSizeMode aMode)
          break;
  
        case nsSizeMode_Minimized :
@@ -4912,7 +4926,7 @@ index b2bb59b..a8923f7 100644
          break;
  
        default :
-@@ -5815,6 +5828,12 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
+@@ -5818,6 +5831,12 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
      case WM_SYSCOMMAND:
      {
        WPARAM filteredWParam = (wParam &0xFFF0);
@@ -4925,7 +4939,7 @@ index b2bb59b..a8923f7 100644
        if (mSizeMode == nsSizeMode_Fullscreen &&
            filteredWParam == SC_RESTORE &&
            GetCurrentShowCmd(mWnd) != SW_SHOWMINIMIZED) {
-@@ -6432,6 +6451,14 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS* wp)
+@@ -6435,6 +6454,14 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS* wp)
      else
        mSizeMode = nsSizeMode_Normal;
  
@@ -4940,7 +4954,7 @@ index b2bb59b..a8923f7 100644
  #ifdef WINSTATE_DEBUG_OUTPUT
      switch (mSizeMode) {
        case nsSizeMode_Normal:
-@@ -6552,6 +6579,31 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS* wp)
+@@ -6555,6 +6582,31 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS* wp)
    }
  }
  
@@ -4994,7 +5008,7 @@ index 199500e..248978b 100644
    // Always use the helper method to read this property.  See bug 603793.
    static TriStateBool   sHasBogusPopupsDropShadowOnMultiMonitor;
 diff --git a/xpcom/build/XPCOMInit.cpp b/xpcom/build/XPCOMInit.cpp
-index e8ee582..a404fcc 100644
+index b89f51a..2ee1788 100644
 --- a/xpcom/build/XPCOMInit.cpp
 +++ b/xpcom/build/XPCOMInit.cpp
 @@ -111,6 +111,7 @@ extern nsresult nsStringInputStreamConstructor(nsISupports*, REFNSIID, void**);
@@ -5005,7 +5019,7 @@ index e8ee582..a404fcc 100644
  #include "nsWindowsRegKey.h"
  #endif
  
-@@ -581,6 +582,8 @@ NS_InitXPCOM2(nsIServiceManager** aResult,
+@@ -583,6 +584,8 @@ NS_InitXPCOM2(nsIServiceManager** aResult,
  
    NS_StartupLocalFile();
  
