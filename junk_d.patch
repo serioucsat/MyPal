@@ -1,0 +1,3742 @@
+From 6ad29433705626e7c1464752e5b3c6acbef61a4b Mon Sep 17 00:00:00 2001
+From: Fedor <fedor@mail.ru>
+Date: Fri, 7 Sep 2018 10:02:27 +0300
+Subject: [PATCH] junk_d
+
+---
+ .../basilisk/base/content/browser-captivePortal.js |  257 ----
+ .../basilisk/docs/DirectoryLinksProvider.rst       |  278 -----
+ .../basilisk/modules/DirectoryLinksProvider.jsm    | 1255 --------------------
+ netwerk/base/CaptivePortalService.cpp              |  366 ------
+ netwerk/base/CaptivePortalService.h                |   70 --
+ netwerk/base/nsICaptivePortalService.idl           |   59 -
+ .../CaptivePortalDetectComponents.manifest         |    2 -
+ toolkit/components/captivedetect/captivedetect.js  |  476 --------
+ toolkit/components/captivedetect/moz.build         |   19 -
+ .../captivedetect/nsICaptivePortalDetector.idl     |   53 -
+ .../captivedetect/test/unit/.eslintrc.js           |    7 -
+ .../captivedetect/test/unit/head_setprefs.js       |   49 -
+ .../captivedetect/test/unit/test_abort.js          |   53 -
+ .../test/unit/test_abort_during_user_login.js      |   66 -
+ .../test/unit/test_abort_ongoing_request.js        |   72 --
+ .../test/unit/test_abort_pending_request.js        |   71 --
+ .../test/unit/test_captive_portal_found.js         |   67 --
+ .../test/unit/test_captive_portal_found_303.js     |   74 --
+ .../test/unit/test_captive_portal_not_found.js     |   52 -
+ .../test/unit/test_captive_portal_not_found_404.js |   49 -
+ .../test/unit/test_multiple_requests.js            |   83 --
+ .../captivedetect/test/unit/test_user_cancel.js    |   54 -
+ .../captivedetect/test/unit/xpcshell.ini           |   15 -
+ 23 files changed, 3547 deletions(-)
+ delete mode 100644 application/basilisk/base/content/browser-captivePortal.js
+ delete mode 100644 application/basilisk/docs/DirectoryLinksProvider.rst
+ delete mode 100644 application/basilisk/modules/DirectoryLinksProvider.jsm
+ delete mode 100644 netwerk/base/CaptivePortalService.cpp
+ delete mode 100644 netwerk/base/CaptivePortalService.h
+ delete mode 100644 netwerk/base/nsICaptivePortalService.idl
+ delete mode 100644 toolkit/components/captivedetect/CaptivePortalDetectComponents.manifest
+ delete mode 100644 toolkit/components/captivedetect/captivedetect.js
+ delete mode 100644 toolkit/components/captivedetect/moz.build
+ delete mode 100644 toolkit/components/captivedetect/nsICaptivePortalDetector.idl
+ delete mode 100644 toolkit/components/captivedetect/test/unit/.eslintrc.js
+ delete mode 100644 toolkit/components/captivedetect/test/unit/head_setprefs.js
+ delete mode 100644 toolkit/components/captivedetect/test/unit/test_abort.js
+ delete mode 100644 toolkit/components/captivedetect/test/unit/test_abort_during_user_login.js
+ delete mode 100644 toolkit/components/captivedetect/test/unit/test_abort_ongoing_request.js
+ delete mode 100644 toolkit/components/captivedetect/test/unit/test_abort_pending_request.js
+ delete mode 100644 toolkit/components/captivedetect/test/unit/test_captive_portal_found.js
+ delete mode 100644 toolkit/components/captivedetect/test/unit/test_captive_portal_found_303.js
+ delete mode 100644 toolkit/components/captivedetect/test/unit/test_captive_portal_not_found.js
+ delete mode 100644 toolkit/components/captivedetect/test/unit/test_captive_portal_not_found_404.js
+ delete mode 100644 toolkit/components/captivedetect/test/unit/test_multiple_requests.js
+ delete mode 100644 toolkit/components/captivedetect/test/unit/test_user_cancel.js
+ delete mode 100644 toolkit/components/captivedetect/test/unit/xpcshell.ini
+
+diff --git a/application/basilisk/base/content/browser-captivePortal.js b/application/basilisk/base/content/browser-captivePortal.js
+deleted file mode 100644
+index c2e45c4..0000000
+--- a/application/basilisk/base/content/browser-captivePortal.js
++++ /dev/null
+@@ -1,257 +0,0 @@
+-/* This Source Code Form is subject to the terms of the Mozilla Public
+- * License, v. 2.0. If a copy of the MPL was not distributed with this
+- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+-
+-XPCOMUtils.defineLazyServiceGetter(this, "cps",
+-                                   "@mozilla.org/network/captive-portal-service;1",
+-                                   "nsICaptivePortalService");
+-
+-var CaptivePortalWatcher = {
+-  /**
+-   * This constant is chosen to be large enough for a portal recheck to complete,
+-   * and small enough that the delay in opening a tab isn't too noticeable.
+-   * Please see comments for _delayedCaptivePortalDetected for more details.
+-   */
+-  PORTAL_RECHECK_DELAY_MS: Preferences.get("captivedetect.portalRecheckDelayMS", 500),
+-
+-  // This is the value used to identify the captive portal notification.
+-  PORTAL_NOTIFICATION_VALUE: "captive-portal-detected",
+-
+-  // This holds a weak reference to the captive portal tab so that we
+-  // don't leak it if the user closes it.
+-  _captivePortalTab: null,
+-
+-  /**
+-   * If a portal is detected when we don't have focus, we first wait for focus
+-   * and then add the tab if, after a recheck, the portal is still active. This
+-   * is set to true while we wait so that in the unlikely event that we receive
+-   * another notification while waiting, we don't do things twice.
+-   */
+-  _delayedCaptivePortalDetectedInProgress: false,
+-
+-  // In the situation above, this is set to true while we wait for the recheck.
+-  // This flag exists so that tests can appropriately simulate a recheck.
+-  _waitingForRecheck: false,
+-
+-  get _captivePortalNotification() {
+-    let nb = document.getElementById("high-priority-global-notificationbox");
+-    return nb.getNotificationWithValue(this.PORTAL_NOTIFICATION_VALUE);
+-  },
+-
+-  get canonicalURL() {
+-    return Services.prefs.getCharPref("captivedetect.canonicalURL");
+-  },
+-
+-  get _browserBundle() {
+-    delete this._browserBundle;
+-    return this._browserBundle =
+-      Services.strings.createBundle("chrome://browser/locale/browser.properties");
+-  },
+-
+-  init() {
+-    Services.obs.addObserver(this, "captive-portal-login", false);
+-    Services.obs.addObserver(this, "captive-portal-login-abort", false);
+-    Services.obs.addObserver(this, "captive-portal-login-success", false);
+-
+-    if (cps.state == cps.LOCKED_PORTAL) {
+-      // A captive portal has already been detected.
+-      this._captivePortalDetected();
+-
+-      // Automatically open a captive portal tab if there's no other browser window.
+-      let windows = Services.wm.getEnumerator("navigator:browser");
+-      if (windows.getNext() == window && !windows.hasMoreElements()) {
+-        this.ensureCaptivePortalTab();
+-      }
+-    }
+-
+-    cps.recheckCaptivePortal();
+-  },
+-
+-  uninit() {
+-    Services.obs.removeObserver(this, "captive-portal-login");
+-    Services.obs.removeObserver(this, "captive-portal-login-abort");
+-    Services.obs.removeObserver(this, "captive-portal-login-success");
+-
+-
+-    if (this._delayedCaptivePortalDetectedInProgress) {
+-      Services.obs.removeObserver(this, "xul-window-visible");
+-    }
+-  },
+-
+-  observe(aSubject, aTopic, aData) {
+-    switch (aTopic) {
+-      case "captive-portal-login":
+-        this._captivePortalDetected();
+-        break;
+-      case "captive-portal-login-abort":
+-      case "captive-portal-login-success":
+-        this._captivePortalGone();
+-        break;
+-      case "xul-window-visible":
+-        this._delayedCaptivePortalDetected();
+-        break;
+-    }
+-  },
+-
+-  _captivePortalDetected() {
+-    if (this._delayedCaptivePortalDetectedInProgress) {
+-      return;
+-    }
+-
+-    let win = RecentWindow.getMostRecentBrowserWindow();
+-    // If no browser window has focus, open and show the tab when we regain focus.
+-    // This is so that if a different application was focused, when the user
+-    // (re-)focuses a browser window, we open the tab immediately in that window
+-    // so they can log in before continuing to browse.
+-    if (win != Services.ww.activeWindow) {
+-      this._delayedCaptivePortalDetectedInProgress = true;
+-      Services.obs.addObserver(this, "xul-window-visible", false);
+-    }
+-
+-    this._showNotification();
+-  },
+-
+-  /**
+-   * Called after we regain focus if we detect a portal while a browser window
+-   * doesn't have focus. Triggers a portal recheck to reaffirm state, and adds
+-   * the tab if needed after a short delay to allow the recheck to complete.
+-   */
+-  _delayedCaptivePortalDetected() {
+-    if (!this._delayedCaptivePortalDetectedInProgress) {
+-      return;
+-    }
+-
+-    let win = RecentWindow.getMostRecentBrowserWindow();
+-    if (win != Services.ww.activeWindow) {
+-      // The window that got focused was not a browser window.
+-      return;
+-    }
+-    Services.obs.removeObserver(this, "xul-window-visible");
+-    this._delayedCaptivePortalDetectedInProgress = false;
+-
+-    if (win != window) {
+-      // Some other browser window got focus, we don't have to do anything.
+-      return;
+-    }
+-    // Trigger a portal recheck. The user may have logged into the portal via
+-    // another client, or changed networks.
+-    cps.recheckCaptivePortal();
+-    this._waitingForRecheck = true;
+-    let requestTime = Date.now();
+-
+-    let self = this;
+-    Services.obs.addObserver(function observer() {
+-      let time = Date.now() - requestTime;
+-      Services.obs.removeObserver(observer, "captive-portal-check-complete");
+-      self._waitingForRecheck = false;
+-      if (cps.state != cps.LOCKED_PORTAL) {
+-        // We're free of the portal!
+-        return;
+-      }
+-
+-      if (time <= self.PORTAL_RECHECK_DELAY_MS) {
+-        // The amount of time elapsed since we requested a recheck (i.e. since
+-        // the browser window was focused) was small enough that we can add and
+-        // focus a tab with the login page with no noticeable delay.
+-        self.ensureCaptivePortalTab();
+-      }
+-    }, "captive-portal-check-complete", false);
+-  },
+-
+-  _captivePortalGone() {
+-    if (this._delayedCaptivePortalDetectedInProgress) {
+-      Services.obs.removeObserver(this, "xul-window-visible");
+-      this._delayedCaptivePortalDetectedInProgress = false;
+-    }
+-
+-    this._removeNotification();
+-  },
+-
+-  handleEvent(aEvent) {
+-    if (aEvent.type != "TabSelect" || !this._captivePortalTab || !this._captivePortalNotification) {
+-      return;
+-    }
+-
+-    let tab = this._captivePortalTab.get();
+-    let n = this._captivePortalNotification;
+-    if (!tab || !n) {
+-      return;
+-    }
+-
+-    let doc = tab.ownerDocument;
+-    let button = n.querySelector("button.notification-button");
+-    if (doc.defaultView.gBrowser.selectedTab == tab) {
+-      button.style.visibility = "hidden";
+-    } else {
+-      button.style.visibility = "visible";
+-    }
+-  },
+-
+-  _showNotification() {
+-    let buttons = [
+-      {
+-        label: this._browserBundle.GetStringFromName("captivePortal.showLoginPage"),
+-        callback: () => {
+-          this.ensureCaptivePortalTab();
+-
+-          // Returning true prevents the notification from closing.
+-          return true;
+-        },
+-        isDefault: true,
+-      },
+-    ];
+-
+-    let message = this._browserBundle.GetStringFromName("captivePortal.infoMessage2");
+-
+-    let closeHandler = (aEventName) => {
+-      if (aEventName != "removed") {
+-        return;
+-      }
+-      gBrowser.tabContainer.removeEventListener("TabSelect", this);
+-    };
+-
+-    let nb = document.getElementById("high-priority-global-notificationbox");
+-    nb.appendNotification(message, this.PORTAL_NOTIFICATION_VALUE, "",
+-                          nb.PRIORITY_INFO_MEDIUM, buttons, closeHandler);
+-
+-    gBrowser.tabContainer.addEventListener("TabSelect", this);
+-  },
+-
+-  _removeNotification() {
+-    let n = this._captivePortalNotification;
+-    if (!n || !n.parentNode) {
+-      return;
+-    }
+-    n.close();
+-  },
+-
+-  ensureCaptivePortalTab() {
+-    let tab;
+-    if (this._captivePortalTab) {
+-      tab = this._captivePortalTab.get();
+-    }
+-
+-    // If the tab is gone or going, we need to open a new one.
+-    if (!tab || tab.closing || !tab.parentNode) {
+-      tab = gBrowser.addTab(this.canonicalURL, { ownerTab: gBrowser.selectedTab });
+-      this._captivePortalTab = Cu.getWeakReference(tab);
+-    }
+-
+-    gBrowser.selectedTab = tab;
+-
+-    let canonicalURI = makeURI(this.canonicalURL);
+-
+-    // When we are no longer captive, close the tab if it's at the canonical URL.
+-    let tabCloser = () => {
+-      Services.obs.removeObserver(tabCloser, "captive-portal-login-abort");
+-      Services.obs.removeObserver(tabCloser, "captive-portal-login-success");
+-      if (!tab || tab.closing || !tab.parentNode || !tab.linkedBrowser ||
+-          !tab.linkedBrowser.currentURI.equalsExceptRef(canonicalURI)) {
+-        return;
+-      }
+-      gBrowser.removeTab(tab);
+-    }
+-    Services.obs.addObserver(tabCloser, "captive-portal-login-abort", false);
+-    Services.obs.addObserver(tabCloser, "captive-portal-login-success", false);
+-  },
+-};
+diff --git a/application/basilisk/docs/DirectoryLinksProvider.rst b/application/basilisk/docs/DirectoryLinksProvider.rst
+deleted file mode 100644
+index c6f55c3..0000000
+--- a/application/basilisk/docs/DirectoryLinksProvider.rst
++++ /dev/null
+@@ -1,278 +0,0 @@
+-=============================================
+-Directory Links Architecture and Data Formats
+-=============================================
+-
+-Directory links are enhancements to the new tab experience that combine content
+-Firefox already knows about from user browsing with external content. There are
+-3 kinds of links:
+-
+-- directory links fill in additional tiles on the new tab page if there would
+-  have been empty tiles because the user has a clean profile or cleared history
+-- suggested links are shown if certain triggering criteria matches the user's
+-  browsing behavior, i.e., if the user has a top site that matches one of
+-  several possible sites. E.g., only show a sports suggestion if the user has a
+-  sport site as a top site
+-- enhanced links replace a matching user's visible history tile from the same
+-  site but only the visual aspects: title, image, and rollover image
+-
+-To power the above features, DirectoryLinksProvider module downloads, at most
+-once per 24 hours, the directory source links as JSON with enough data for
+-Firefox to determine what should be shown or not. This module also handles
+-reporting back data about the tiles via asynchronous pings that don't return
+-data from the server.
+-
+-For the directory source and ping endpoints, the default preference values point
+-to Mozilla key-pinned servers with encryption. No cookies are set by the servers
+-and Firefox enforces this by making anonymous requests.
+-
+-- default directory source endpoint:
+-  https://tiles.services.mozilla.com/v3/links/fetch/%LOCALE%/%CHANNEL%
+-- default directory ping endpoint: https://tiles.services.mozilla.com/v3/links/
+-
+-
+-Preferences
+-===========
+-
+-There are two main preferences that control downloading links and reporting
+-metrics.
+-
+-``browser.newtabpage.directory.source``
+----------------------------------------
+-
+-This endpoint tells Firefox where to download directory source file as a GET
+-request. It should return JSON of the appropriate format containing the relevant
+-links data. The value can be a data URI, e.g., an empty JSON object effectively
+-turns off remote downloading: ``data:text/plain,{}``
+-
+-The preference value will have %LOCALE% and %CHANNEL% replaced by the
+-appropriate values for the build of Firefox, e.g.,
+-
+-- directory source endpoint:
+-  https://tiles.services.mozilla.com/v3/links/fetch/en-US/release
+-
+-``browser.newtabpage.directory.ping``
+--------------------------------------
+-
+-This endpoint tells Firefox where to report Tiles metrics as a POST request. The
+-data is sent as a JSON blob. Setting it to empty effectively turns off reporting
+-of Tiles data.
+-
+-A path segment will be appended to the endpoint of "view" or "click" depending
+-on the type of ping, e.g.,
+-
+-- ``view`` ping endpoint: https://tiles.services.mozilla.com/v3/links/view
+-- ``click`` ping endpoint: https://tiles.services.mozilla.com/v3/links/click
+-
+-
+-Data Flow
+-=========
+-
+-When Firefox starts, it checks for a cached directory source file. If one
+-exists, it checks for its timestamp to determine if a new file should be
+-downloaded.
+-
+-If a directory source file needs to be downloaded, a GET request is made then
+-cacheed and unpacked the JSON into the different types of links. Various checks
+-filter out invalid links, e.g., those with http-hosted images or those that
+-don't fit the allowed suggestions.
+-
+-When a new tab page is built, DirectoryLinksProvider module provides additional
+-link data that is combined with history link data to determine which links can
+-be displayed or not.
+-
+-When a new tab page is shown, a ``view`` ping is sent with relevant tiles data.
+-Similarly, when the user clicks on various parts of tiles (to load the page,
+-pin, block, etc.), a ``click`` ping is sent with similar data. Both of these can
+-trigger downloading of fresh directory source links if 24 hours have elapsed
+-since last download.
+-
+-Users can turn off the ping with in-new-tab-page controls.
+-
+-As the new tab page is rendered, any images for tiles are downloaded if not
+-already cached. The default servers hosting the images are Mozilla CDN that
+-don't use cookies: https://tiles.cdn.mozilla.net/ and Firefox enforces that the
+-images come from mozilla.net or data URIs when using the default directory
+-source.
+-
+-
+-Source JSON Format
+-==================
+-
+-Firefox expects links data in a JSON object with top level keys each providing
+-an array of tile objects. The keys correspond to the different types of links:
+-``directory``, ``suggested``, and ``enhanced``.
+-
+-Example
+--------
+-
+-Below is an example directory source file::
+-
+-  {
+-      "directory": [
+-          {
+-              "bgColor": "",
+-              "directoryId": 498,
+-              "enhancedImageURI": "https://tiles.cdn.mozilla.net/images/d11ba0b3095bb19d8092cd29be9cbb9e197671ea.28088.png",
+-              "imageURI": "https://tiles.cdn.mozilla.net/images/1332a68badf11e3f7f69bf7364e79c0a7e2753bc.5316.png",
+-              "title": "Mozilla Community",
+-              "type": "affiliate",
+-              "url": "http://contribute.mozilla.org/"
+-          }
+-      ],
+-      "enhanced": [
+-          {
+-              "bgColor": "",
+-              "directoryId": 776,
+-              "enhancedImageURI": "https://tiles.cdn.mozilla.net/images/44a14fc405cebc299ead86514dff0e3735c8cf65.10814.png",
+-              "imageURI": "https://tiles.cdn.mozilla.net/images/20e24aa2219ec7542cc8cf0fd79f0c81e16ebeac.11859.png",
+-              "title": "TurboTax",
+-              "type": "sponsored",
+-              "url": "https://turbotax.intuit.com/"
+-          }
+-      ],
+-      "suggested": [
+-          {
+-              "adgroup_name": "open-source browser",
+-              "bgColor": "#cae1f4",
+-              "check_inadjacency": true,
+-              "directoryId": 702,
+-              "explanation": "Suggested for %1$S enthusiasts who visit sites like %2$S",
+-              "frecent_sites": [
+-                  "addons.mozilla.org",
+-                  "air.mozilla.org",
+-                  "blog.mozilla.org",
+-                  "bugzilla.mozilla.org",
+-                  "developer.mozilla.org",
+-                  "etherpad.mozilla.org",
+-                  "hacks.mozilla.org",
+-                  "hg.mozilla.org",
+-                  "mozilla.org",
+-                  "planet.mozilla.org",
+-                  "quality.mozilla.org",
+-                  "support.mozilla.org",
+-                  "treeherder.mozilla.org",
+-                  "wiki.mozilla.org"
+-              ],
+-              "frequency_caps": {"daily": 3, "total": 10},
+-              "imageURI": "https://tiles.cdn.mozilla.net/images/9ee2b265678f2775de2e4bf680df600b502e6038.3875.png",
+-              "time_limits": {"start": "2014-01-01T00:00:00.000Z", "end": "2014-02-01T00:00:00.000Z"},
+-              "title": "Thanks for testing!",
+-              "type": "affiliate",
+-              "url": "https://www.mozilla.com/firefox/tiles"
+-          }
+-      ]
+-  }
+-
+-Link Object
+------------
+-
+-Each link object has various values that Firefox uses to display a tile:
+-
+-- ``url`` - string url for the page to be loaded when the tile is clicked. Only
+-  https and http URLs are allowed.
+-- ``title`` - string that appears below the tile.
+-- ``type`` - string relationship of the link to Mozilla. Expected values:
+-  affiliate, organic, sponsored.
+-- ``imageURI`` - string url for the tile image to show. Only https and data URIs
+-  are allowed.
+-- ``enhancedImageURI`` - string url for the image to be shown before the user
+-  hovers. Only https and data URIs are allowed.
+-- ``bgColor`` - string css color for additional fill background color.
+-- ``directoryId`` - id of the tile to be used during ping reporting
+-
+-Suggested Link Object Extras
+-----------------------------
+-
+-A suggested link has additional values:
+-
+-- ``adgroup_name`` - string to override the hardcoded display name of the
+-  triggering set of sites in Firefox.
+-- ``check_inadjacency`` - boolean if true prevents the suggested link from being
+-  shown if the new tab page is showing a site from an inadjacency list.
+-- ``explanation`` - string to override the default explanation that appears
+-  below a Suggested Tile. %1$S is replaced by the triggering adgroup name and
+-  %2$S is replaced by the triggering site.
+-- ``frecent_sites`` - array of strings of the sites that can trigger showing a
+-  Suggested Tile if the user has the site in one of the top 100 most-frecent
+-  pages.
+-- ``frequency_caps`` - an object consisting of daily and total frequency caps
+-  that limit the number of times a Suggested Tile can be shown in the new tab
+-  per day and overall.
+-- ``time_limits`` - an object consisting of start and end timestamps specifying
+-  when a Suggested Tile may start and has to stop showing in the newtab.
+-  The timestamp is expected in ISO_8601 format: '2014-01-10T20:00:00.000Z'
+-
+-The inadjacency list is packaged with Firefox as base64-encoded 1-way-hashed
+-sites that tend to have adult, gambling, alcohol, drug, and similar content.
+-Its location: chrome://browser/content/newtab/newTab.inadjacent.json
+-
+-The preapproved arrays follow a policy for determining what topic grouping is
+-allowed as well as the composition of a grouping. The topics are broad
+-uncontroversial categories, e.g., Mobile Phone, News, Technology, Video Game,
+-Web Development. There are at least 5 sites within a grouping, and as many
+-popular sites relevant to the topic are included to avoid having one site be
+-clearly dominant. These requirements provide some deniability of which site
+-actually triggered a suggestion during ping reporting, so it's more difficult to
+-determine if a user has gone to a specific site.
+-
+-
+-Ping JSON Format
+-================
+-
+-Firefox reports back an action and the state of tiles on the new tab page based
+-on the user opening a new tab or clicking a tile. The top level keys of the
+-ping:
+-
+-- ``locale`` - string locale of the Firefox build
+-- ``tiles`` - array of tiles ping objects
+-
+-An additional key at the top level indicates which action triggered the ping.
+-The value associated to the action key is the 0-based index into the tiles array
+-of which tile triggered the action. Valid actions: block, click, pin, sponsored,
+-sponsored_link, unpin, view. E.g., if the second tile is being clicked, the ping
+-will have ``"click": 1``
+-
+-Example
+--------
+-
+-Below is an example ``click`` ping with 3 tiles: a pinned suggested tile
+-followed by a history tile and a directory tile. The first tile is being
+-blocked::
+-
+-  {
+-      "locale": "en-US",
+-      "tiles": [
+-          {
+-              "id": 702,
+-              "pin": 1,
+-              "past_impressions": {"total": 5, "daily": 1},
+-          },
+-          {},
+-          {
+-              "id": 498,
+-          }
+-      ],
+-      "block": 0
+-  }
+-
+-Tiles Ping Object
+------------------
+-
+-Each tile of the new tab page is reported back as part of the ping with some or
+-none of the following optional values:
+-
+-- ``id`` - id that was provided as part of the downloaded link object (for all
+-  types of links: directory, suggested, enhanced); not present if the tile was
+-  created from user behavior, e.g., visiting pages
+-- ``past_impressions`` - number of impressions (new tab "views") a suggested
+-  tile was shown before it was clicked, pinned or blocked. Where the "total"
+-  counter is the overall number of impressions accumulated prior to a click action,
+-  and "daily" counter is the number impressions occurred on same calendar day of
+-  a click. This infomration is submitted once per a suggested tile upon click,
+-  pin or block
+-- ``pinned`` - 1 if the tile is pinned; not present otherwise
+-- ``pos`` - integer position if the tile is not in the natural order, e.g., a
+-  pinned tile after an empty slot; not present otherwise
+-- ``score`` - integer truncated score based on the tile's frecency; not present
+-  if 0
+-- ``url`` - empty string if it's an enhanced tile; not present otherwise
+diff --git a/application/basilisk/modules/DirectoryLinksProvider.jsm b/application/basilisk/modules/DirectoryLinksProvider.jsm
+deleted file mode 100644
+index 1175640..0000000
+--- a/application/basilisk/modules/DirectoryLinksProvider.jsm
++++ /dev/null
+@@ -1,1255 +0,0 @@
+-/* This Source Code Form is subject to the terms of the Mozilla Public
+- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+-
+-"use strict";
+-
+-this.EXPORTED_SYMBOLS = ["DirectoryLinksProvider"];
+-
+-const Ci = Components.interfaces;
+-const Cc = Components.classes;
+-const Cu = Components.utils;
+-const ParserUtils =  Cc["@mozilla.org/parserutils;1"].getService(Ci.nsIParserUtils);
+-
+-Cu.importGlobalProperties(["XMLHttpRequest"]);
+-
+-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+-Cu.import("resource://gre/modules/Services.jsm");
+-Cu.import("resource://gre/modules/Task.jsm");
+-Cu.import("resource://gre/modules/Timer.jsm");
+-
+-XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
+-  "resource://gre/modules/NetUtil.jsm");
+-XPCOMUtils.defineLazyModuleGetter(this, "NewTabUtils",
+-  "resource://gre/modules/NewTabUtils.jsm");
+-XPCOMUtils.defineLazyModuleGetter(this, "OS",
+-  "resource://gre/modules/osfile.jsm")
+-XPCOMUtils.defineLazyModuleGetter(this, "Promise",
+-  "resource://gre/modules/Promise.jsm");
+-XPCOMUtils.defineLazyModuleGetter(this, "UpdateUtils",
+-  "resource://gre/modules/UpdateUtils.jsm");
+-XPCOMUtils.defineLazyServiceGetter(this, "eTLD",
+-  "@mozilla.org/network/effective-tld-service;1",
+-  "nsIEffectiveTLDService");
+-XPCOMUtils.defineLazyGetter(this, "gTextDecoder", () => {
+-  return new TextDecoder();
+-});
+-XPCOMUtils.defineLazyGetter(this, "gCryptoHash", function () {
+-  return Cc["@mozilla.org/security/hash;1"].createInstance(Ci.nsICryptoHash);
+-});
+-XPCOMUtils.defineLazyGetter(this, "gUnicodeConverter", function () {
+-  let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+-                    .createInstance(Ci.nsIScriptableUnicodeConverter);
+-  converter.charset = 'utf8';
+-  return converter;
+-});
+-
+-
+-// The filename where directory links are stored locally
+-const DIRECTORY_LINKS_FILE = "directoryLinks.json";
+-const DIRECTORY_LINKS_TYPE = "application/json";
+-
+-// The preference that tells whether to match the OS locale
+-const PREF_MATCH_OS_LOCALE = "intl.locale.matchOS";
+-
+-// The preference that tells what locale the user selected
+-const PREF_SELECTED_LOCALE = "general.useragent.locale";
+-
+-// The preference that tells where to obtain directory links
+-const PREF_DIRECTORY_SOURCE = "browser.newtabpage.directory.source";
+-
+-// The preference that tells where to send click/view pings
+-const PREF_DIRECTORY_PING = "browser.newtabpage.directory.ping";
+-
+-// The preference that tells if newtab is enhanced
+-const PREF_NEWTAB_ENHANCED = "browser.newtabpage.enhanced";
+-
+-// Only allow link urls that are http(s)
+-const ALLOWED_LINK_SCHEMES = new Set(["http", "https"]);
+-
+-// Only allow link image urls that are https or data
+-const ALLOWED_IMAGE_SCHEMES = new Set(["https", "data"]);
+-
+-// Only allow urls to Mozilla's CDN or empty (for data URIs)
+-const ALLOWED_URL_BASE = new Set(["mozilla.net", ""]);
+-
+-// The frecency of a directory link
+-const DIRECTORY_FRECENCY = 1000;
+-
+-// The frecency of a suggested link
+-const SUGGESTED_FRECENCY = Infinity;
+-
+-// The filename where frequency cap data stored locally
+-const FREQUENCY_CAP_FILE = "frequencyCap.json";
+-
+-// Default settings for daily and total frequency caps
+-const DEFAULT_DAILY_FREQUENCY_CAP = 3;
+-const DEFAULT_TOTAL_FREQUENCY_CAP = 10;
+-
+-// Default timeDelta to prune unused frequency cap objects
+-// currently set to 10 days in milliseconds
+-const DEFAULT_PRUNE_TIME_DELTA = 10*24*60*60*1000;
+-
+-// The min number of visible (not blocked) history tiles to have before showing suggested tiles
+-const MIN_VISIBLE_HISTORY_TILES = 8;
+-
+-// The max number of visible (not blocked) history tiles to test for inadjacency
+-const MAX_VISIBLE_HISTORY_TILES = 15;
+-
+-// Allowed ping actions remotely stored as columns: case-insensitive [a-z0-9_]
+-const PING_ACTIONS = ["block", "click", "pin", "sponsored", "sponsored_link", "unpin", "view"];
+-
+-// Location of inadjacent sites json
+-const INADJACENCY_SOURCE = "chrome://browser/content/newtab/newTab.inadjacent.json";
+-
+-// Fake URL to keep track of last block of a suggested tile in the frequency cap object
+-const FAKE_SUGGESTED_BLOCK_URL = "ignore://suggested_block";
+-
+-// Time before suggested tile is allowed to play again after block - default to 1 day
+-const AFTER_SUGGESTED_BLOCK_DECAY_TIME = 24*60*60*1000;
+-
+-/**
+- * Singleton that serves as the provider of directory links.
+- * Directory links are a hard-coded set of links shown if a user's link
+- * inventory is empty.
+- */
+-var DirectoryLinksProvider = {
+-
+-  __linksURL: null,
+-
+-  _observers: new Set(),
+-
+-  // links download deferred, resolved upon download completion
+-  _downloadDeferred: null,
+-
+-  // download default interval is 24 hours in milliseconds
+-  _downloadIntervalMS: 86400000,
+-
+-  /**
+-   * A mapping from eTLD+1 to an enhanced link objects
+-   */
+-  _enhancedLinks: new Map(),
+-
+-  /**
+-   * A mapping from site to a list of suggested link objects
+-   */
+-  _suggestedLinks: new Map(),
+-
+-  /**
+-   * Frequency Cap object - maintains daily and total tile counts, and frequency cap settings
+-   */
+-  _frequencyCaps: {},
+-
+-  /**
+-   * A set of top sites that we can provide suggested links for
+-   */
+-  _topSitesWithSuggestedLinks: new Set(),
+-
+-  /**
+-   * lookup Set of inadjacent domains
+-   */
+-  _inadjacentSites: new Set(),
+-
+-  /**
+-   * This flag is set if there is a suggested tile configured to avoid
+-   * inadjacent sites in new tab
+-   */
+-  _avoidInadjacentSites: false,
+-
+-  /**
+-   * This flag is set if _avoidInadjacentSites is true and there is
+-   * an inadjacent site in the new tab
+-   */
+-  _newTabHasInadjacentSite: false,
+-
+-  get _observedPrefs() {
+-    return Object.freeze({
+-      enhanced: PREF_NEWTAB_ENHANCED,
+-      linksURL: PREF_DIRECTORY_SOURCE,
+-      matchOSLocale: PREF_MATCH_OS_LOCALE,
+-      prefSelectedLocale: PREF_SELECTED_LOCALE,
+-    });
+-  },
+-
+-  get _linksURL() {
+-    if (!this.__linksURL) {
+-      try {
+-        this.__linksURL = Services.prefs.getCharPref(this._observedPrefs["linksURL"]);
+-        this.__linksURLModified = Services.prefs.prefHasUserValue(this._observedPrefs["linksURL"]);
+-      }
+-      catch (e) {
+-        Cu.reportError("Error fetching directory links url from prefs: " + e);
+-      }
+-    }
+-    return this.__linksURL;
+-  },
+-
+-  /**
+-   * Gets the currently selected locale for display.
+-   * @return  the selected locale or "en-US" if none is selected
+-   */
+-  get locale() {
+-    let matchOS;
+-    try {
+-      matchOS = Services.prefs.getBoolPref(PREF_MATCH_OS_LOCALE);
+-    }
+-    catch (e) {}
+-
+-    if (matchOS) {
+-      return Services.locale.getLocaleComponentForUserAgent();
+-    }
+-
+-    try {
+-      let locale = Services.prefs.getComplexValue(PREF_SELECTED_LOCALE,
+-                                                  Ci.nsIPrefLocalizedString);
+-      if (locale) {
+-        return locale.data;
+-      }
+-    }
+-    catch (e) {}
+-
+-    try {
+-      return Services.prefs.getCharPref(PREF_SELECTED_LOCALE);
+-    }
+-    catch (e) {}
+-
+-    return "en-US";
+-  },
+-
+-  /**
+-   * Set appropriate default ping behavior controlled by enhanced pref
+-   */
+-  _setDefaultEnhanced: function DirectoryLinksProvider_setDefaultEnhanced() {
+-    if (!Services.prefs.prefHasUserValue(PREF_NEWTAB_ENHANCED)) {
+-      let enhanced = Services.prefs.getBoolPref(PREF_NEWTAB_ENHANCED);
+-      try {
+-        // Default to not enhanced if DNT is set to tell websites to not track
+-        if (Services.prefs.getBoolPref("privacy.donottrackheader.enabled")) {
+-          enhanced = false;
+-        }
+-      }
+-      catch (ex) {}
+-      Services.prefs.setBoolPref(PREF_NEWTAB_ENHANCED, enhanced);
+-    }
+-  },
+-
+-  observe: function DirectoryLinksProvider_observe(aSubject, aTopic, aData) {
+-    if (aTopic == "nsPref:changed") {
+-      switch (aData) {
+-        // Re-set the default in case the user clears the pref
+-        case this._observedPrefs.enhanced:
+-          this._setDefaultEnhanced();
+-          break;
+-
+-        case this._observedPrefs.linksURL:
+-          delete this.__linksURL;
+-          // fallthrough
+-
+-        // Force directory download on changes to fetch related prefs
+-        case this._observedPrefs.matchOSLocale:
+-        case this._observedPrefs.prefSelectedLocale:
+-          this._fetchAndCacheLinksIfNecessary(true);
+-          break;
+-      }
+-    }
+-  },
+-
+-  _addPrefsObserver: function DirectoryLinksProvider_addObserver() {
+-    for (let pref in this._observedPrefs) {
+-      let prefName = this._observedPrefs[pref];
+-      Services.prefs.addObserver(prefName, this, false);
+-    }
+-  },
+-
+-  _removePrefsObserver: function DirectoryLinksProvider_removeObserver() {
+-    for (let pref in this._observedPrefs) {
+-      let prefName = this._observedPrefs[pref];
+-      Services.prefs.removeObserver(prefName, this);
+-    }
+-  },
+-
+-  _cacheSuggestedLinks: function(link) {
+-    // Don't cache links that don't have the expected 'frecent_sites'
+-    if (!link.frecent_sites) {
+-      return;
+-    }
+-
+-    for (let suggestedSite of link.frecent_sites) {
+-      let suggestedMap = this._suggestedLinks.get(suggestedSite) || new Map();
+-      suggestedMap.set(link.url, link);
+-      this._setupStartEndTime(link);
+-      this._suggestedLinks.set(suggestedSite, suggestedMap);
+-    }
+-  },
+-
+-  _fetchAndCacheLinks: function DirectoryLinksProvider_fetchAndCacheLinks(uri) {
+-    // Replace with the same display locale used for selecting links data
+-    uri = uri.replace("%LOCALE%", this.locale);
+-    uri = uri.replace("%CHANNEL%", UpdateUtils.UpdateChannel);
+-
+-    return this._downloadJsonData(uri).then(json => {
+-      return OS.File.writeAtomic(this._directoryFilePath, json, {tmpPath: this._directoryFilePath + ".tmp"});
+-    });
+-  },
+-
+-  /**
+-   * Downloads a links with json content
+-   * @param download uri
+-   * @return promise resolved to json string, "{}" returned if status != 200
+-   */
+-  _downloadJsonData: function DirectoryLinksProvider__downloadJsonData(uri) {
+-    let deferred = Promise.defer();
+-    let xmlHttp = this._newXHR();
+-
+-    xmlHttp.onload = function(aResponse) {
+-      let json = this.responseText;
+-      if (this.status && this.status != 200) {
+-        json = "{}";
+-      }
+-      deferred.resolve(json);
+-    };
+-
+-    xmlHttp.onerror = function(e) {
+-      deferred.reject("Fetching " + uri + " results in error code: " + e.target.status);
+-    };
+-
+-    try {
+-      xmlHttp.open("GET", uri);
+-      // Override the type so XHR doesn't complain about not well-formed XML
+-      xmlHttp.overrideMimeType(DIRECTORY_LINKS_TYPE);
+-      // Set the appropriate request type for servers that require correct types
+-      xmlHttp.setRequestHeader("Content-Type", DIRECTORY_LINKS_TYPE);
+-      xmlHttp.send();
+-    } catch (e) {
+-      deferred.reject("Error fetching " + uri);
+-      Cu.reportError(e);
+-    }
+-    return deferred.promise;
+-  },
+-
+-  /**
+-   * Downloads directory links if needed
+-   * @return promise resolved immediately if no download needed, or upon completion
+-   */
+-  _fetchAndCacheLinksIfNecessary: function DirectoryLinksProvider_fetchAndCacheLinksIfNecessary(forceDownload=false) {
+-    if (this._downloadDeferred) {
+-      // fetching links already - just return the promise
+-      return this._downloadDeferred.promise;
+-    }
+-
+-    if (forceDownload || this._needsDownload) {
+-      this._downloadDeferred = Promise.defer();
+-      this._fetchAndCacheLinks(this._linksURL).then(() => {
+-        // the new file was successfully downloaded and cached, so update a timestamp
+-        this._lastDownloadMS = Date.now();
+-        this._downloadDeferred.resolve();
+-        this._downloadDeferred = null;
+-        this._callObservers("onManyLinksChanged")
+-      },
+-      error => {
+-        this._downloadDeferred.resolve();
+-        this._downloadDeferred = null;
+-        this._callObservers("onDownloadFail");
+-      });
+-      return this._downloadDeferred.promise;
+-    }
+-
+-    // download is not needed
+-    return Promise.resolve();
+-  },
+-
+-  /**
+-   * @return true if download is needed, false otherwise
+-   */
+-  get _needsDownload () {
+-    // fail if last download occured less then 24 hours ago
+-    if ((Date.now() - this._lastDownloadMS) > this._downloadIntervalMS) {
+-      return true;
+-    }
+-    return false;
+-  },
+-
+-  /**
+-   * Create a new XMLHttpRequest that is anonymous, i.e., doesn't send cookies
+-   */
+-  _newXHR() {
+-    return new XMLHttpRequest({mozAnon: true});
+-  },
+-
+-  /**
+-   * Reads directory links file and parses its content
+-   * @return a promise resolved to an object with keys 'directory' and 'suggested',
+-   *         each containing a valid list of links,
+-   *         or {'directory': [], 'suggested': []} if read or parse fails.
+-   */
+-  _readDirectoryLinksFile: function DirectoryLinksProvider_readDirectoryLinksFile() {
+-    let emptyOutput = {directory: [], suggested: [], enhanced: []};
+-    return OS.File.read(this._directoryFilePath).then(binaryData => {
+-      let output;
+-      try {
+-        let json = gTextDecoder.decode(binaryData);
+-        let linksObj = JSON.parse(json);
+-        output = {directory: linksObj.directory || [],
+-                  suggested: linksObj.suggested || [],
+-                  enhanced:  linksObj.enhanced  || []};
+-      }
+-      catch (e) {
+-        Cu.reportError(e);
+-      }
+-      return output || emptyOutput;
+-    },
+-    error => {
+-      Cu.reportError(error);
+-      return emptyOutput;
+-    });
+-  },
+-
+-  /**
+-   * Translates link.time_limits to UTC miliseconds and sets
+-   * link.startTime and link.endTime properties in link object
+-   */
+-  _setupStartEndTime: function DirectoryLinksProvider_setupStartEndTime(link) {
+-    // set start/end limits. Use ISO_8601 format: '2014-01-10T20:20:20.600Z'
+-    // (details here http://en.wikipedia.org/wiki/ISO_8601)
+-    // Note that if timezone is missing, FX will interpret as local time
+-    // meaning that the server can sepecify any time, but if the capmaign
+-    // needs to start at same time across multiple timezones, the server
+-    // omits timezone indicator
+-    if (!link.time_limits) {
+-      return;
+-    }
+-
+-    let parsedTime;
+-    if (link.time_limits.start) {
+-      parsedTime = Date.parse(link.time_limits.start);
+-      if (parsedTime && !isNaN(parsedTime)) {
+-        link.startTime = parsedTime;
+-      }
+-    }
+-    if (link.time_limits.end) {
+-      parsedTime = Date.parse(link.time_limits.end);
+-      if (parsedTime && !isNaN(parsedTime)) {
+-        link.endTime = parsedTime;
+-      }
+-    }
+-  },
+-
+-  /*
+-   * Handles campaign timeout
+-   */
+-  _onCampaignTimeout: function DirectoryLinksProvider_onCampaignTimeout() {
+-    // _campaignTimeoutID is invalid here, so just set it to null
+-    this._campaignTimeoutID = null;
+-    this._updateSuggestedTile();
+-  },
+-
+-  /*
+-   * Clears capmpaign timeout
+-   */
+-  _clearCampaignTimeout: function DirectoryLinksProvider_clearCampaignTimeout() {
+-    if (this._campaignTimeoutID) {
+-      clearTimeout(this._campaignTimeoutID);
+-      this._campaignTimeoutID = null;
+-    }
+-  },
+-
+-  /**
+-   * Setup capmpaign timeout to recompute suggested tiles upon
+-   * reaching soonest start or end time for the campaign
+-   * @param timeout in milliseconds
+-   */
+-  _setupCampaignTimeCheck: function DirectoryLinksProvider_setupCampaignTimeCheck(timeout) {
+-    // sanity check
+-    if (!timeout || timeout <= 0) {
+-      return;
+-    }
+-    this._clearCampaignTimeout();
+-    // setup next timeout
+-    this._campaignTimeoutID = setTimeout(this._onCampaignTimeout.bind(this), timeout);
+-  },
+-
+-  /**
+-   * Test link for campaign time limits: checks if link falls within start/end time
+-   * and returns an object containing a use flag and the timeoutDate milliseconds
+-   * when the link has to be re-checked for campaign start-ready or end-reach
+-   * @param link
+-   * @return object {use: true or false, timeoutDate: milliseconds or null}
+-   */
+-  _testLinkForCampaignTimeLimits: function DirectoryLinksProvider_testLinkForCampaignTimeLimits(link) {
+-    let currentTime = Date.now();
+-    // test for start time first
+-    if (link.startTime && link.startTime > currentTime) {
+-      // not yet ready for start
+-      return {use: false, timeoutDate: link.startTime};
+-    }
+-    // otherwise check for end time
+-    if (link.endTime) {
+-      // passed end time
+-      if (link.endTime <= currentTime) {
+-        return {use: false};
+-      }
+-      // otherwise link is still ok, but we need to set timeoutDate
+-      return {use: true, timeoutDate: link.endTime};
+-    }
+-    // if we are here, the link is ok and no timeoutDate needed
+-    return {use: true};
+-  },
+-
+-  /**
+-   * Handles block on suggested tile: updates fake block url with current timestamp
+-   */
+-  handleSuggestedTileBlock: function DirectoryLinksProvider_handleSuggestedTileBlock() {
+-    this._updateFrequencyCapSettings({url: FAKE_SUGGESTED_BLOCK_URL});
+-    this._writeFrequencyCapFile();
+-    this._updateSuggestedTile();
+-  },
+-
+-  /**
+-   * Checks if suggested tile is being blocked for the rest of "decay time"
+-   * @return True if blocked, false otherwise
+-   */
+-  _isSuggestedTileBlocked: function DirectoryLinksProvider__isSuggestedTileBlocked() {
+-    let capObject = this._frequencyCaps[FAKE_SUGGESTED_BLOCK_URL];
+-    if (!capObject || !capObject.lastUpdated) {
+-      // user never blocked suggested tile or lastUpdated is missing
+-      return false;
+-    }
+-    // otherwise, make sure that enough time passed after suggested tile was blocked
+-    return (capObject.lastUpdated + AFTER_SUGGESTED_BLOCK_DECAY_TIME) > Date.now();
+-  },
+-
+-  /**
+-   * Report some action on a newtab page (view, click)
+-   * @param sites Array of sites shown on newtab page
+-   * @param action String of the behavior to report
+-   * @param triggeringSiteIndex optional Int index of the site triggering action
+-   * @return download promise
+-   */
+-  reportSitesAction: function DirectoryLinksProvider_reportSitesAction(sites, action, triggeringSiteIndex) {
+-    // Check if the suggested tile was shown
+-    if (action == "view") {
+-      sites.slice(0, triggeringSiteIndex + 1).filter(s => s).forEach(site => {
+-        let {targetedSite, url} = site.link;
+-        if (targetedSite) {
+-          this._addFrequencyCapView(url);
+-        }
+-      });
+-    }
+-    // any click action on a suggested tile should stop that tile suggestion
+-    // click/block - user either removed a tile or went to a landing page
+-    // pin - tile turned into history tile, should no longer be suggested
+-    // unpin - the tile was pinned before, should not matter
+-    else {
+-      // suggested tile has targetedSite, or frecent_sites if it was pinned
+-      let {frecent_sites, targetedSite, url} = sites[triggeringSiteIndex].link;
+-      if (frecent_sites || targetedSite) {
+-        this._setFrequencyCapClick(url);
+-      }
+-    }
+-
+-    let newtabEnhanced = false;
+-    let pingEndPoint = "";
+-    try {
+-      newtabEnhanced = Services.prefs.getBoolPref(PREF_NEWTAB_ENHANCED);
+-      pingEndPoint = Services.prefs.getCharPref(PREF_DIRECTORY_PING);
+-    }
+-    catch (ex) {}
+-
+-    // Bug 1240245 - We no longer send pings, but frequency capping and fetching
+-    // tests depend on the following actions, so references to PING remain.
+-    let invalidAction = PING_ACTIONS.indexOf(action) == -1;
+-    if (!newtabEnhanced || pingEndPoint == "" || invalidAction) {
+-      return Promise.resolve();
+-    }
+-
+-    return Task.spawn(function* () {
+-      // since we updated views/clicks we need write _frequencyCaps to disk
+-      yield this._writeFrequencyCapFile();
+-      // Use this as an opportunity to potentially fetch new links
+-      yield this._fetchAndCacheLinksIfNecessary();
+-    }.bind(this));
+-  },
+-
+-  /**
+-   * Get the enhanced link object for a link (whether history or directory)
+-   */
+-  getEnhancedLink: function DirectoryLinksProvider_getEnhancedLink(link) {
+-    // Use the provided link if it's already enhanced
+-    return link.enhancedImageURI && link ? link :
+-           this._enhancedLinks.get(NewTabUtils.extractSite(link.url));
+-  },
+-
+-  /**
+-   * Check if a url's scheme is in a Set of allowed schemes and if the base
+-   * domain is allowed.
+-   * @param url to check
+-   * @param allowed Set of allowed schemes
+-   * @param checkBase boolean to check the base domain
+-   */
+-  isURLAllowed(url, allowed, checkBase) {
+-    // Assume no url is an allowed url
+-    if (!url) {
+-      return true;
+-    }
+-
+-    let scheme = "", base = "";
+-    try {
+-      // A malformed url will not be allowed
+-      let uri = Services.io.newURI(url, null, null);
+-      scheme = uri.scheme;
+-
+-      // URIs without base domains will be allowed
+-      base = Services.eTLD.getBaseDomain(uri);
+-    }
+-    catch (ex) {}
+-    // Require a scheme match and the base only if desired
+-    return allowed.has(scheme) && (!checkBase || ALLOWED_URL_BASE.has(base));
+-  },
+-
+-  _escapeChars(text) {
+-    let charMap = {
+-      '&': '&amp;',
+-      '<': '&lt;',
+-      '>': '&gt;',
+-      '"': '&quot;',
+-      "'": '&#039;'
+-    };
+-
+-    return text.replace(/[&<>"']/g, (character) => charMap[character]);
+-  },
+-
+-  /**
+-   * Gets the current set of directory links.
+-   * @param aCallback The function that the array of links is passed to.
+-   */
+-  getLinks: function DirectoryLinksProvider_getLinks(aCallback) {
+-    this._readDirectoryLinksFile().then(rawLinks => {
+-      // Reset the cache of suggested tiles and enhanced images for this new set of links
+-      this._enhancedLinks.clear();
+-      this._suggestedLinks.clear();
+-      this._clearCampaignTimeout();
+-      this._avoidInadjacentSites = false;
+-
+-      // Only check base domain for images when using the default pref
+-      let checkBase = !this.__linksURLModified;
+-      let validityFilter = function(link) {
+-        // Make sure the link url is allowed and images too if they exist
+-        return this.isURLAllowed(link.url, ALLOWED_LINK_SCHEMES, false) &&
+-               (!link.imageURI ||
+-                this.isURLAllowed(link.imageURI, ALLOWED_IMAGE_SCHEMES, checkBase)) &&
+-               (!link.enhancedImageURI ||
+-                this.isURLAllowed(link.enhancedImageURI, ALLOWED_IMAGE_SCHEMES, checkBase));
+-      }.bind(this);
+-
+-      rawLinks.suggested.filter(validityFilter).forEach((link, position) => {
+-        // Suggested sites must have an adgroup name.
+-        if (!link.adgroup_name) {
+-          return;
+-        }
+-
+-        let sanitizeFlags = ParserUtils.SanitizerCidEmbedsOnly |
+-          ParserUtils.SanitizerDropForms |
+-          ParserUtils.SanitizerDropNonCSSPresentation;
+-
+-        link.explanation = this._escapeChars(link.explanation ? ParserUtils.convertToPlainText(link.explanation, sanitizeFlags, 0) : "");
+-        link.targetedName = this._escapeChars(ParserUtils.convertToPlainText(link.adgroup_name, sanitizeFlags, 0));
+-        link.lastVisitDate = rawLinks.suggested.length - position;
+-        // check if link wants to avoid inadjacent sites
+-        if (link.check_inadjacency) {
+-          this._avoidInadjacentSites = true;
+-        }
+-
+-        // We cache suggested tiles here but do not push any of them in the links list yet.
+-        // The decision for which suggested tile to include will be made separately.
+-        this._cacheSuggestedLinks(link);
+-        this._updateFrequencyCapSettings(link);
+-      });
+-
+-      rawLinks.enhanced.filter(validityFilter).forEach((link, position) => {
+-        link.lastVisitDate = rawLinks.enhanced.length - position;
+-
+-        // Stash the enhanced image for the site
+-        if (link.enhancedImageURI) {
+-          this._enhancedLinks.set(NewTabUtils.extractSite(link.url), link);
+-        }
+-      });
+-
+-      let links = rawLinks.directory.filter(validityFilter).map((link, position) => {
+-        link.lastVisitDate = rawLinks.directory.length - position;
+-        link.frecency = DIRECTORY_FRECENCY;
+-        return link;
+-      });
+-
+-      // Allow for one link suggestion on top of the default directory links
+-      this.maxNumLinks = links.length + 1;
+-
+-      // prune frequency caps of outdated urls
+-      this._pruneFrequencyCapUrls();
+-      // write frequency caps object to disk asynchronously
+-      this._writeFrequencyCapFile();
+-
+-      return links;
+-    }).catch(ex => {
+-      Cu.reportError(ex);
+-      return [];
+-    }).then(links => {
+-      aCallback(links);
+-      this._populatePlacesLinks();
+-    });
+-  },
+-
+-  init: function DirectoryLinksProvider_init() {
+-    this._setDefaultEnhanced();
+-    this._addPrefsObserver();
+-    // setup directory file path and last download timestamp
+-    this._directoryFilePath = OS.Path.join(OS.Constants.Path.localProfileDir, DIRECTORY_LINKS_FILE);
+-    this._lastDownloadMS = 0;
+-
+-    // setup frequency cap file path
+-    this._frequencyCapFilePath = OS.Path.join(OS.Constants.Path.localProfileDir, FREQUENCY_CAP_FILE);
+-    // setup inadjacent sites URL
+-    this._inadjacentSitesUrl = INADJACENCY_SOURCE;
+-
+-    NewTabUtils.placesProvider.addObserver(this);
+-    NewTabUtils.links.addObserver(this);
+-
+-    return Task.spawn(function*() {
+-      // get the last modified time of the links file if it exists
+-      let doesFileExists = yield OS.File.exists(this._directoryFilePath);
+-      if (doesFileExists) {
+-        let fileInfo = yield OS.File.stat(this._directoryFilePath);
+-        this._lastDownloadMS = Date.parse(fileInfo.lastModificationDate);
+-      }
+-      // read frequency cap file
+-      yield this._readFrequencyCapFile();
+-      // fetch directory on startup without force
+-      yield this._fetchAndCacheLinksIfNecessary();
+-      // fecth inadjacent sites on startup
+-      yield this._loadInadjacentSites();
+-    }.bind(this));
+-  },
+-
+-  _handleManyLinksChanged: function() {
+-    this._topSitesWithSuggestedLinks.clear();
+-    this._suggestedLinks.forEach((suggestedLinks, site) => {
+-      if (NewTabUtils.isTopPlacesSite(site)) {
+-        this._topSitesWithSuggestedLinks.add(site);
+-      }
+-    });
+-    this._updateSuggestedTile();
+-  },
+-
+-  /**
+-   * Updates _topSitesWithSuggestedLinks based on the link that was changed.
+-   *
+-   * @return true if _topSitesWithSuggestedLinks was modified, false otherwise.
+-   */
+-  _handleLinkChanged: function(aLink) {
+-    let changedLinkSite = NewTabUtils.extractSite(aLink.url);
+-    let linkStored = this._topSitesWithSuggestedLinks.has(changedLinkSite);
+-
+-    if (!NewTabUtils.isTopPlacesSite(changedLinkSite) && linkStored) {
+-      this._topSitesWithSuggestedLinks.delete(changedLinkSite);
+-      return true;
+-    }
+-
+-    if (this._suggestedLinks.has(changedLinkSite) &&
+-        NewTabUtils.isTopPlacesSite(changedLinkSite) && !linkStored) {
+-      this._topSitesWithSuggestedLinks.add(changedLinkSite);
+-      return true;
+-    }
+-
+-    // always run _updateSuggestedTile if aLink is inadjacent
+-    // and there are tiles configured to avoid it
+-    if (this._avoidInadjacentSites && this._isInadjacentLink(aLink)) {
+-      return true;
+-    }
+-
+-    return false;
+-  },
+-
+-  _populatePlacesLinks: function () {
+-    NewTabUtils.links.populateProviderCache(NewTabUtils.placesProvider, () => {
+-      this._handleManyLinksChanged();
+-    });
+-  },
+-
+-  onDeleteURI: function(aProvider, aLink) {
+-    let {url} = aLink;
+-    // remove clicked flag for that url and
+-    // call observer upon disk write completion
+-    this._removeTileClick(url).then(() => {
+-      this._callObservers("onDeleteURI", url);
+-    });
+-  },
+-
+-  onClearHistory: function() {
+-    // remove all clicked flags and call observers upon file write
+-    this._removeAllTileClicks().then(() => {
+-      this._callObservers("onClearHistory");
+-    });
+-  },
+-
+-  onLinkChanged: function (aProvider, aLink) {
+-    // Make sure NewTabUtils.links handles the notification first.
+-    setTimeout(() => {
+-      if (this._handleLinkChanged(aLink) || this._shouldUpdateSuggestedTile()) {
+-        this._updateSuggestedTile();
+-      }
+-    }, 0);
+-  },
+-
+-  onManyLinksChanged: function () {
+-    // Make sure NewTabUtils.links handles the notification first.
+-    setTimeout(() => {
+-      this._handleManyLinksChanged();
+-    }, 0);
+-  },
+-
+-  _getCurrentTopSiteCount: function() {
+-    let visibleTopSiteCount = 0;
+-    let newTabLinks = NewTabUtils.links.getLinks();
+-    for (let link of newTabLinks.slice(0, MIN_VISIBLE_HISTORY_TILES)) {
+-      // compute visibleTopSiteCount for suggested tiles
+-      if (link && (link.type == "history" || link.type == "enhanced")) {
+-        visibleTopSiteCount++;
+-      }
+-    }
+-    // since newTabLinks are available, set _newTabHasInadjacentSite here
+-    // note that _shouldUpdateSuggestedTile is called by _updateSuggestedTile
+-    this._newTabHasInadjacentSite = this._avoidInadjacentSites && this._checkForInadjacentSites(newTabLinks);
+-
+-    return visibleTopSiteCount;
+-  },
+-
+-  _shouldUpdateSuggestedTile: function() {
+-    let sortedLinks = NewTabUtils.getProviderLinks(this);
+-
+-    let mostFrecentLink = {};
+-    if (sortedLinks && sortedLinks.length) {
+-      mostFrecentLink = sortedLinks[0]
+-    }
+-
+-    let currTopSiteCount = this._getCurrentTopSiteCount();
+-    if ((!mostFrecentLink.targetedSite && currTopSiteCount >= MIN_VISIBLE_HISTORY_TILES) ||
+-        (mostFrecentLink.targetedSite && currTopSiteCount < MIN_VISIBLE_HISTORY_TILES)) {
+-      // If mostFrecentLink has a targetedSite then mostFrecentLink is a suggested link.
+-      // If we have enough history links (8+) to show a suggested tile and we are not
+-      // already showing one, then we should update (to *attempt* to add a suggested tile).
+-      // OR if we don't have enough history to show a suggested tile (<8) and we are
+-      // currently showing one, we should update (to remove it).
+-      return true;
+-    }
+-
+-    return false;
+-  },
+-
+-  /**
+-   * Chooses and returns a suggested tile based on a user's top sites
+-   * that we have an available suggested tile for.
+-   *
+-   * @return the chosen suggested tile, or undefined if there isn't one
+-   */
+-  _updateSuggestedTile: function() {
+-    let sortedLinks = NewTabUtils.getProviderLinks(this);
+-
+-    if (!sortedLinks) {
+-      // If NewTabUtils.links.resetCache() is called before getting here,
+-      // sortedLinks may be undefined.
+-      return undefined;
+-    }
+-
+-    // Delete the current suggested tile, if one exists.
+-    let initialLength = sortedLinks.length;
+-    if (initialLength) {
+-      let mostFrecentLink = sortedLinks[0];
+-      if (mostFrecentLink.targetedSite) {
+-        this._callObservers("onLinkChanged", {
+-          url: mostFrecentLink.url,
+-          frecency: SUGGESTED_FRECENCY,
+-          lastVisitDate: mostFrecentLink.lastVisitDate,
+-          type: mostFrecentLink.type,
+-        }, 0, true);
+-      }
+-    }
+-
+-    if (this._topSitesWithSuggestedLinks.size == 0 ||
+-        !this._shouldUpdateSuggestedTile() ||
+-        this._isSuggestedTileBlocked()) {
+-      // There are no potential suggested links we can show or not
+-      // enough history for a suggested tile, or suggested tile was
+-      // recently blocked and wait time interval has not decayed yet
+-      return undefined;
+-    }
+-
+-    // Create a flat list of all possible links we can show as suggested.
+-    // Note that many top sites may map to the same suggested links, but we only
+-    // want to count each suggested link once (based on url), thus possibleLinks is a map
+-    // from url to suggestedLink. Thus, each link has an equal chance of being chosen at
+-    // random from flattenedLinks if it appears only once.
+-    let nextTimeout;
+-    let possibleLinks = new Map();
+-    let targetedSites = new Map();
+-    this._topSitesWithSuggestedLinks.forEach(topSiteWithSuggestedLink => {
+-      let suggestedLinksMap = this._suggestedLinks.get(topSiteWithSuggestedLink);
+-      suggestedLinksMap.forEach((suggestedLink, url) => {
+-        // Skip this link if we've shown it too many times already
+-        if (!this._testFrequencyCapLimits(url)) {
+-          return;
+-        }
+-
+-        // as we iterate suggestedLinks, check for campaign start/end
+-        // time limits, and set nextTimeout to the closest timestamp
+-        let {use, timeoutDate} = this._testLinkForCampaignTimeLimits(suggestedLink);
+-        // update nextTimeout is necessary
+-        if (timeoutDate && (!nextTimeout || nextTimeout > timeoutDate)) {
+-          nextTimeout = timeoutDate;
+-        }
+-        // Skip link if it falls outside campaign time limits
+-        if (!use) {
+-          return;
+-        }
+-
+-        // Skip link if it avoids inadjacent sites and newtab has one
+-        if (suggestedLink.check_inadjacency && this._newTabHasInadjacentSite) {
+-          return;
+-        }
+-
+-        possibleLinks.set(url, suggestedLink);
+-
+-        // Keep a map of URL to targeted sites. We later use this to show the user
+-        // what site they visited to trigger this suggestion.
+-        if (!targetedSites.get(url)) {
+-          targetedSites.set(url, []);
+-        }
+-        targetedSites.get(url).push(topSiteWithSuggestedLink);
+-      })
+-    });
+-
+-    // setup timeout check for starting or ending campaigns
+-    if (nextTimeout) {
+-      this._setupCampaignTimeCheck(nextTimeout - Date.now());
+-    }
+-
+-    // We might have run out of possible links to show
+-    let numLinks = possibleLinks.size;
+-    if (numLinks == 0) {
+-      return undefined;
+-    }
+-
+-    let flattenedLinks = [...possibleLinks.values()];
+-
+-    // Choose our suggested link at random
+-    let suggestedIndex = Math.floor(Math.random() * numLinks);
+-    let chosenSuggestedLink = flattenedLinks[suggestedIndex];
+-
+-    // Add the suggested link to the front with some extra values
+-    this._callObservers("onLinkChanged", Object.assign({
+-      frecency: SUGGESTED_FRECENCY,
+-
+-      // Choose the first site a user has visited as the target. In the future,
+-      // this should be the site with the highest frecency. However, we currently
+-      // store frecency by URL not by site.
+-      targetedSite: targetedSites.get(chosenSuggestedLink.url).length ?
+-        targetedSites.get(chosenSuggestedLink.url)[0] : null
+-    }, chosenSuggestedLink));
+-    return chosenSuggestedLink;
+-   },
+-
+-  /**
+-   * Loads inadjacent sites
+-   * @return a promise resolved when lookup Set for sites is built
+-   */
+-  _loadInadjacentSites: function DirectoryLinksProvider_loadInadjacentSites() {
+-    return this._downloadJsonData(this._inadjacentSitesUrl).then(jsonString => {
+-      let jsonObject = {};
+-      try {
+-        jsonObject = JSON.parse(jsonString);
+-      }
+-      catch (e) {
+-        Cu.reportError(e);
+-      }
+-
+-      this._inadjacentSites = new Set(jsonObject.domains);
+-    });
+-  },
+-
+-  /**
+-   * Genegrates hash suitable for looking up inadjacent site
+-   * @param value to hsh
+-   * @return hased value, base64-ed
+-   */
+-  _generateHash: function DirectoryLinksProvider_generateHash(value) {
+-    let byteArr = gUnicodeConverter.convertToByteArray(value);
+-    gCryptoHash.init(gCryptoHash.MD5);
+-    gCryptoHash.update(byteArr, byteArr.length);
+-    return gCryptoHash.finish(true);
+-  },
+-
+-  /**
+-   * Checks if link belongs to inadjacent domain
+-   * @param link to check
+-   * @return true for inadjacent domains, false otherwise
+-   */
+-  _isInadjacentLink: function DirectoryLinksProvider_isInadjacentLink(link) {
+-    let baseDomain = link.baseDomain || NewTabUtils.extractSite(link.url || "");
+-    if (!baseDomain) {
+-        return false;
+-    }
+-    // check if hashed domain is inadjacent
+-    return this._inadjacentSites.has(this._generateHash(baseDomain));
+-  },
+-
+-  /**
+-   * Checks if new tab has inadjacent site
+-   * @param new tab links (or nothing, in which case NewTabUtils.links.getLinks() is called
+-   * @return true if new tab shows has inadjacent site
+-   */
+-  _checkForInadjacentSites: function DirectoryLinksProvider_checkForInadjacentSites(newTabLink) {
+-    let links = newTabLink || NewTabUtils.links.getLinks();
+-    for (let link of links.slice(0, MAX_VISIBLE_HISTORY_TILES)) {
+-      // check links against inadjacent list - specifically include ALL link types
+-      if (this._isInadjacentLink(link)) {
+-        return true;
+-      }
+-    }
+-    return false;
+-  },
+-
+-  /**
+-   * Reads json file, parses its content, and returns resulting object
+-   * @param json file path
+-   * @param json object to return in case file read or parse fails
+-   * @return a promise resolved to a valid object or undefined upon error
+-   */
+-  _readJsonFile: Task.async(function* (filePath, nullObject) {
+-    let jsonObj;
+-    try {
+-      let binaryData = yield OS.File.read(filePath);
+-      let json = gTextDecoder.decode(binaryData);
+-      jsonObj = JSON.parse(json);
+-    }
+-    catch (e) {}
+-    return jsonObj || nullObject;
+-  }),
+-
+-  /**
+-   * Loads frequency cap object from file and parses its content
+-   * @return a promise resolved upon load completion
+-   *         on error or non-exstent file _frequencyCaps is set to empty object
+-   */
+-  _readFrequencyCapFile: Task.async(function* () {
+-    // set _frequencyCaps object to file's content or empty object
+-    this._frequencyCaps = yield this._readJsonFile(this._frequencyCapFilePath, {});
+-  }),
+-
+-  /**
+-   * Saves frequency cap object to file
+-   * @return a promise resolved upon file i/o completion
+-   */
+-  _writeFrequencyCapFile: function DirectoryLinksProvider_writeFrequencyCapFile() {
+-    let json = JSON.stringify(this._frequencyCaps || {});
+-    return OS.File.writeAtomic(this._frequencyCapFilePath, json, {tmpPath: this._frequencyCapFilePath + ".tmp"});
+-  },
+-
+-  /**
+-   * Clears frequency cap object and writes empty json to file
+-   * @return a promise resolved upon file i/o completion
+-   */
+-  _clearFrequencyCap: function DirectoryLinksProvider_clearFrequencyCap() {
+-    this._frequencyCaps = {};
+-    return this._writeFrequencyCapFile();
+-  },
+-
+-  /**
+-   * updates frequency cap configuration for a link
+-   */
+-  _updateFrequencyCapSettings: function DirectoryLinksProvider_updateFrequencyCapSettings(link) {
+-    let capsObject = this._frequencyCaps[link.url];
+-    if (!capsObject) {
+-      // create an object with empty counts
+-      capsObject = {
+-        dailyViews: 0,
+-        totalViews: 0,
+-        lastShownDate: 0,
+-      };
+-      this._frequencyCaps[link.url] = capsObject;
+-    }
+-    // set last updated timestamp
+-    capsObject.lastUpdated = Date.now();
+-    // check for link configuration
+-    if (link.frequency_caps) {
+-      capsObject.dailyCap = link.frequency_caps.daily || DEFAULT_DAILY_FREQUENCY_CAP;
+-      capsObject.totalCap = link.frequency_caps.total || DEFAULT_TOTAL_FREQUENCY_CAP;
+-    }
+-    else {
+-      // fallback to defaults
+-      capsObject.dailyCap = DEFAULT_DAILY_FREQUENCY_CAP;
+-      capsObject.totalCap = DEFAULT_TOTAL_FREQUENCY_CAP;
+-    }
+-  },
+-
+-  /**
+-   * Prunes frequency cap objects for outdated links
+-   * @param timeDetla milliseconds
+-   *        all cap objects with lastUpdated less than (now() - timeDelta)
+-   *        will be removed. This is done to remove frequency cap objects
+-   *        for unused tile urls
+-   */
+-  _pruneFrequencyCapUrls: function DirectoryLinksProvider_pruneFrequencyCapUrls(timeDelta = DEFAULT_PRUNE_TIME_DELTA) {
+-    let timeThreshold = Date.now() - timeDelta;
+-    Object.keys(this._frequencyCaps).forEach(url => {
+-      // remove url if it is not ignorable and wasn't updated for a while
+-      if (!url.startsWith("ignore") && this._frequencyCaps[url].lastUpdated <= timeThreshold) {
+-        delete this._frequencyCaps[url];
+-      }
+-    });
+-  },
+-
+-  /**
+-   * Checks if supplied timestamp happened today
+-   * @param timestamp in milliseconds
+-   * @return true if the timestamp was made today, false otherwise
+-   */
+-  _wasToday: function DirectoryLinksProvider_wasToday(timestamp) {
+-    let showOn = new Date(timestamp);
+-    let today = new Date();
+-    // call timestamps identical if both day and month are same
+-    return showOn.getDate() == today.getDate() &&
+-           showOn.getMonth() == today.getMonth() &&
+-           showOn.getYear() == today.getYear();
+-  },
+-
+-  /**
+-   * adds some number of views for a url
+-   * @param url String url of the suggested link
+-   */
+-  _addFrequencyCapView: function DirectoryLinksProvider_addFrequencyCapView(url) {
+-    let capObject = this._frequencyCaps[url];
+-    // sanity check
+-    if (!capObject) {
+-      return;
+-    }
+-
+-    // if the day is new: reset the daily counter and lastShownDate
+-    if (!this._wasToday(capObject.lastShownDate)) {
+-      capObject.dailyViews = 0;
+-      // update lastShownDate
+-      capObject.lastShownDate = Date.now();
+-    }
+-
+-    // bump both daily and total counters
+-    capObject.totalViews++;
+-    capObject.dailyViews++;
+-
+-    // if any of the caps is reached - update suggested tiles
+-    if (capObject.totalViews >= capObject.totalCap ||
+-        capObject.dailyViews >= capObject.dailyCap) {
+-      this._updateSuggestedTile();
+-    }
+-  },
+-
+-  /**
+-   * Sets clicked flag for link url
+-   * @param url String url of the suggested link
+-   */
+-  _setFrequencyCapClick(url) {
+-    let capObject = this._frequencyCaps[url];
+-    // sanity check
+-    if (!capObject) {
+-      return;
+-    }
+-    capObject.clicked = true;
+-    // and update suggested tiles, since current tile became invalid
+-    this._updateSuggestedTile();
+-  },
+-
+-  /**
+-   * Tests frequency cap limits for link url
+-   * @param url String url of the suggested link
+-   * @return true if link is viewable, false otherwise
+-   */
+-  _testFrequencyCapLimits: function DirectoryLinksProvider_testFrequencyCapLimits(url) {
+-    let capObject = this._frequencyCaps[url];
+-    // sanity check: if url is missing - do not show this tile
+-    if (!capObject) {
+-      return false;
+-    }
+-
+-    // check for clicked set or total views reached
+-    if (capObject.clicked || capObject.totalViews >= capObject.totalCap) {
+-      return false;
+-    }
+-
+-    // otherwise check if link is over daily views limit
+-    if (this._wasToday(capObject.lastShownDate) &&
+-        capObject.dailyViews >= capObject.dailyCap) {
+-      return false;
+-    }
+-
+-    // we passed all cap tests: return true
+-    return true;
+-  },
+-
+-  /**
+-   * Removes clicked flag from frequency cap entry for tile landing url
+-   * @param url String url of the suggested link
+-   * @return promise resolved upon disk write completion
+-   */
+-  _removeTileClick: function DirectoryLinksProvider_removeTileClick(url = "") {
+-    // remove trailing slash, to accomodate Places sending site urls ending with '/'
+-    let noTrailingSlashUrl = url.replace(/\/$/, "");
+-    let capObject = this._frequencyCaps[url] || this._frequencyCaps[noTrailingSlashUrl];
+-    // return resolved promise if capObject is not found
+-    if (!capObject) {
+-      return Promise.resolve();
+-    }
+-    // otherwise remove clicked flag
+-    delete capObject.clicked;
+-    return this._writeFrequencyCapFile();
+-  },
+-
+-  /**
+-   * Removes all clicked flags from frequency cap object
+-   * @return promise resolved upon disk write completion
+-   */
+-  _removeAllTileClicks: function DirectoryLinksProvider_removeAllTileClicks() {
+-    Object.keys(this._frequencyCaps).forEach(url => {
+-      delete this._frequencyCaps[url].clicked;
+-    });
+-    return this._writeFrequencyCapFile();
+-  },
+-
+-  /**
+-   * Return the object to its pre-init state
+-   */
+-  reset: function DirectoryLinksProvider_reset() {
+-    delete this.__linksURL;
+-    this._removePrefsObserver();
+-    this._removeObservers();
+-  },
+-
+-  addObserver: function DirectoryLinksProvider_addObserver(aObserver) {
+-    this._observers.add(aObserver);
+-  },
+-
+-  removeObserver: function DirectoryLinksProvider_removeObserver(aObserver) {
+-    this._observers.delete(aObserver);
+-  },
+-
+-  _callObservers(methodName, ...args) {
+-    for (let obs of this._observers) {
+-      if (typeof(obs[methodName]) == "function") {
+-        try {
+-          obs[methodName](this, ...args);
+-        } catch (err) {
+-          Cu.reportError(err);
+-        }
+-      }
+-    }
+-  },
+-
+-  _removeObservers: function() {
+-    this._observers.clear();
+-  }
+-};
+diff --git a/netwerk/base/CaptivePortalService.cpp b/netwerk/base/CaptivePortalService.cpp
+deleted file mode 100644
+index f97fb41..0000000
+--- a/netwerk/base/CaptivePortalService.cpp
++++ /dev/null
+@@ -1,366 +0,0 @@
+-/* This Source Code Form is subject to the terms of the Mozilla Public
+- * License, v. 2.0. If a copy of the MPL was not distributed with this
+- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+-
+-#include "mozilla/net/CaptivePortalService.h"
+-#include "mozilla/Services.h"
+-#include "mozilla/Preferences.h"
+-#include "nsIObserverService.h"
+-#include "nsServiceManagerUtils.h"
+-#include "nsXULAppAPI.h"
+-
+-static const char16_t kInterfaceName[] = u"captive-portal-inteface";
+-
+-static const char kOpenCaptivePortalLoginEvent[] = "captive-portal-login";
+-static const char kAbortCaptivePortalLoginEvent[] = "captive-portal-login-abort";
+-static const char kCaptivePortalLoginSuccessEvent[] = "captive-portal-login-success";
+-
+-static const uint32_t kDefaultInterval = 60*1000; // check every 60 seconds
+-
+-namespace mozilla {
+-namespace net {
+-
+-static LazyLogModule gCaptivePortalLog("CaptivePortalService");
+-#undef LOG
+-#define LOG(args) MOZ_LOG(gCaptivePortalLog, mozilla::LogLevel::Debug, args)
+-
+-NS_IMPL_ISUPPORTS(CaptivePortalService, nsICaptivePortalService, nsIObserver,
+-                  nsISupportsWeakReference, nsITimerCallback,
+-                  nsICaptivePortalCallback)
+-
+-CaptivePortalService::CaptivePortalService()
+-  : mState(UNKNOWN)
+-  , mStarted(false)
+-  , mInitialized(false)
+-  , mRequestInProgress(false)
+-  , mEverBeenCaptive(false)
+-  , mDelay(kDefaultInterval)
+-  , mSlackCount(0)
+-  , mMinInterval(kDefaultInterval)
+-  , mMaxInterval(25*kDefaultInterval)
+-  , mBackoffFactor(5.0)
+-{
+-  mLastChecked = TimeStamp::Now();
+-}
+-
+-CaptivePortalService::~CaptivePortalService()
+-{
+-  LOG(("CaptivePortalService::~CaptivePortalService isParentProcess:%d\n",
+-       XRE_GetProcessType() == GeckoProcessType_Default));
+-}
+-
+-nsresult
+-CaptivePortalService::PerformCheck()
+-{
+-  LOG(("CaptivePortalService::PerformCheck mRequestInProgress:%d mInitialized:%d mStarted:%d\n",
+-        mRequestInProgress, mInitialized, mStarted));
+-  // Don't issue another request if last one didn't complete
+-  if (mRequestInProgress || !mInitialized || !mStarted) {
+-    return NS_OK;
+-  }
+-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+-  nsresult rv;
+-  if (!mCaptivePortalDetector) {
+-    mCaptivePortalDetector =
+-      do_GetService("@mozilla.org/toolkit/captive-detector;1", &rv);
+-    if (NS_FAILED(rv)) {
+-        LOG(("Unable to get a captive portal detector\n"));
+-        return rv;
+-    }
+-  }
+-
+-  LOG(("CaptivePortalService::PerformCheck - Calling CheckCaptivePortal\n"));
+-  mRequestInProgress = true;
+-  mCaptivePortalDetector->CheckCaptivePortal(kInterfaceName, this);
+-  return NS_OK;
+-}
+-
+-nsresult
+-CaptivePortalService::RearmTimer()
+-{
+-  LOG(("CaptivePortalService::RearmTimer\n"));
+-  // Start a timer to recheck
+-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+-  if (mTimer) {
+-    mTimer->Cancel();
+-  }
+-
+-  // If we have successfully determined the state, and we have never detected
+-  // a captive portal, we don't need to keep polling, but will rely on events
+-  // to trigger detection.
+-  if (mState == NOT_CAPTIVE) {
+-    return NS_OK;
+-  }
+-
+-  if (!mTimer) {
+-    mTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
+-  }
+-
+-  if (mTimer && mDelay > 0) {
+-    LOG(("CaptivePortalService - Reloading timer with delay %u\n", mDelay));
+-    return mTimer->InitWithCallback(this, mDelay, nsITimer::TYPE_ONE_SHOT);
+-  }
+-
+-  return NS_OK;
+-}
+-
+-nsresult
+-CaptivePortalService::Initialize()
+-{
+-  if (mInitialized) {
+-    return NS_OK;
+-  }
+-  mInitialized = true;
+-
+-  // Only the main process service should actually do anything. The service in
+-  // the content process only mirrors the CP state in the main process.
+-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+-    return NS_OK;
+-  }
+-
+-  nsCOMPtr<nsIObserverService> observerService =
+-    mozilla::services::GetObserverService();
+-  if (observerService) {
+-    observerService->AddObserver(this, kOpenCaptivePortalLoginEvent, true);
+-    observerService->AddObserver(this, kAbortCaptivePortalLoginEvent, true);
+-    observerService->AddObserver(this, kCaptivePortalLoginSuccessEvent, true);
+-  }
+-
+-  LOG(("Initialized CaptivePortalService\n"));
+-  return NS_OK;
+-}
+-
+-nsresult
+-CaptivePortalService::Start()
+-{
+-  if (!mInitialized) {
+-    return NS_ERROR_NOT_INITIALIZED;
+-  }
+-
+-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+-    // Doesn't do anything if called in the content process.
+-    return NS_OK;
+-  }
+-
+-  if (mStarted) {
+-    return NS_OK;
+-  }
+-
+-  MOZ_ASSERT(mState == UNKNOWN, "Initial state should be UNKNOWN");
+-  mStarted = true;
+-  mEverBeenCaptive = false;
+-
+-  // Get the delay prefs
+-  Preferences::GetUint("network.captive-portal-service.minInterval", &mMinInterval);
+-  Preferences::GetUint("network.captive-portal-service.maxInterval", &mMaxInterval);
+-  Preferences::GetFloat("network.captive-portal-service.backoffFactor", &mBackoffFactor);
+-
+-  LOG(("CaptivePortalService::Start min:%u max:%u backoff:%.2f\n",
+-       mMinInterval, mMaxInterval, mBackoffFactor));
+-
+-  mSlackCount = 0;
+-  mDelay = mMinInterval;
+-
+-  // When Start is called, perform a check immediately
+-  PerformCheck();
+-  RearmTimer();
+-  return NS_OK;
+-}
+-
+-nsresult
+-CaptivePortalService::Stop()
+-{
+-  LOG(("CaptivePortalService::Stop\n"));
+-
+-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+-    // Doesn't do anything when called in the content process.
+-    return NS_OK;
+-  }
+-
+-  if (!mStarted) {
+-    return NS_OK;
+-  }
+-
+-  if (mTimer) {
+-    mTimer->Cancel();
+-  }
+-  mTimer = nullptr;
+-  mRequestInProgress = false;
+-  mStarted = false;
+-  if (mCaptivePortalDetector) {
+-    mCaptivePortalDetector->Abort(kInterfaceName);
+-  }
+-  mCaptivePortalDetector = nullptr;
+-
+-  // Clear the state in case anyone queries the state while detection is off.
+-  mState = UNKNOWN;
+-  return NS_OK;
+-}
+-
+-void
+-CaptivePortalService::SetStateInChild(int32_t aState)
+-{
+-  // This should only be called in the content process, from ContentChild.cpp
+-  // in order to mirror the captive portal state set in the chrome process.
+-  MOZ_ASSERT(XRE_GetProcessType() != GeckoProcessType_Default);
+-
+-  mState = aState;
+-  mLastChecked = TimeStamp::Now();
+-}
+-
+-//-----------------------------------------------------------------------------
+-// CaptivePortalService::nsICaptivePortalService
+-//-----------------------------------------------------------------------------
+-
+-NS_IMETHODIMP
+-CaptivePortalService::GetState(int32_t *aState)
+-{
+-  *aState = mState;
+-  return NS_OK;
+-}
+-
+-NS_IMETHODIMP
+-CaptivePortalService::RecheckCaptivePortal()
+-{
+-  LOG(("CaptivePortalService::RecheckCaptivePortal\n"));
+-
+-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+-    // Doesn't do anything if called in the content process.
+-    return NS_OK;
+-  }
+-
+-  // This is called for user activity. We need to reset the slack count,
+-  // so the checks continue to be quite frequent.
+-  mSlackCount = 0;
+-  mDelay = mMinInterval;
+-
+-  PerformCheck();
+-  RearmTimer();
+-  return NS_OK;
+-}
+-
+-NS_IMETHODIMP
+-CaptivePortalService::GetLastChecked(uint64_t *aLastChecked)
+-{
+-  double duration = (TimeStamp::Now() - mLastChecked).ToMilliseconds();
+-  *aLastChecked = static_cast<uint64_t>(duration);
+-  return NS_OK;
+-}
+-
+-//-----------------------------------------------------------------------------
+-// CaptivePortalService::nsITimer
+-// This callback gets called every mDelay miliseconds
+-// It issues a checkCaptivePortal operation if one isn't already in progress
+-//-----------------------------------------------------------------------------
+-NS_IMETHODIMP
+-CaptivePortalService::Notify(nsITimer *aTimer)
+-{
+-  LOG(("CaptivePortalService::Notify\n"));
+-  MOZ_ASSERT(aTimer == mTimer);
+-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+-
+-  PerformCheck();
+-
+-  // This is needed because we don't want to always make requests very often.
+-  // Every 10 checks, we the delay is increased mBackoffFactor times
+-  // to a maximum delay of mMaxInterval
+-  mSlackCount++;
+-  if (mSlackCount % 10 == 0) {
+-    mDelay = mDelay * mBackoffFactor;
+-  }
+-  if (mDelay > mMaxInterval) {
+-    mDelay = mMaxInterval;
+-  }
+-
+-  // Note - if mDelay is 0, the timer will not be rearmed.
+-  RearmTimer();
+-
+-  return NS_OK;
+-}
+-
+-//-----------------------------------------------------------------------------
+-// CaptivePortalService::nsIObserver
+-//-----------------------------------------------------------------------------
+-NS_IMETHODIMP
+-CaptivePortalService::Observe(nsISupports *aSubject,
+-                              const char * aTopic,
+-                              const char16_t * aData)
+-{
+-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+-    // Doesn't do anything if called in the content process.
+-    return NS_OK;
+-  }
+-
+-  LOG(("CaptivePortalService::Observe() topic=%s\n", aTopic));
+-  if (!strcmp(aTopic, kOpenCaptivePortalLoginEvent)) {
+-    // A redirect or altered content has been detected.
+-    // The user needs to log in. We are in a captive portal.
+-    mState = LOCKED_PORTAL;
+-    mLastChecked = TimeStamp::Now();
+-    mEverBeenCaptive = true;
+-  } else if (!strcmp(aTopic, kCaptivePortalLoginSuccessEvent)) {
+-    // The user has successfully logged in. We have connectivity.
+-    mState = UNLOCKED_PORTAL;
+-    mLastChecked = TimeStamp::Now();
+-    mSlackCount = 0;
+-    mDelay = mMinInterval;
+-
+-    RearmTimer();
+-  } else if (!strcmp(aTopic, kAbortCaptivePortalLoginEvent)) {
+-    // The login has been aborted
+-    mState = UNKNOWN;
+-    mLastChecked = TimeStamp::Now();
+-    mSlackCount = 0;
+-  }
+-
+-  // Send notification so that the captive portal state is mirrored in the
+-  // content process.
+-  nsCOMPtr<nsIObserverService> observerService = services::GetObserverService();
+-  if (observerService) {
+-    nsCOMPtr<nsICaptivePortalService> cps(this);
+-    observerService->NotifyObservers(cps, NS_IPC_CAPTIVE_PORTAL_SET_STATE, nullptr);
+-  }
+-
+-  return NS_OK;
+-}
+-
+-//-----------------------------------------------------------------------------
+-// CaptivePortalService::nsICaptivePortalCallback
+-//-----------------------------------------------------------------------------
+-NS_IMETHODIMP
+-CaptivePortalService::Prepare()
+-{
+-  LOG(("CaptivePortalService::Prepare\n"));
+-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+-  // XXX: Finish preparation shouldn't be called until dns and routing is available.
+-  if (mCaptivePortalDetector) {
+-    mCaptivePortalDetector->FinishPreparation(kInterfaceName);
+-  }
+-  return NS_OK;
+-}
+-
+-NS_IMETHODIMP
+-CaptivePortalService::Complete(bool success)
+-{
+-  LOG(("CaptivePortalService::Complete(success=%d) mState=%d\n", success, mState));
+-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+-  mLastChecked = TimeStamp::Now();
+-
+-  // Note: this callback gets called when:
+-  // 1. the request is completed, and content is valid (success == true)
+-  // 2. when the request is aborted or times out (success == false)
+-
+-  if (success) {
+-    if (mEverBeenCaptive) {
+-      mState = UNLOCKED_PORTAL;
+-    } else {
+-      mState = NOT_CAPTIVE;
+-    }
+-  }
+-
+-  mRequestInProgress = false;
+-  return NS_OK;
+-}
+-
+-} // namespace net
+-} // namespace mozilla
+diff --git a/netwerk/base/CaptivePortalService.h b/netwerk/base/CaptivePortalService.h
+deleted file mode 100644
+index dd15450..0000000
+--- a/netwerk/base/CaptivePortalService.h
++++ /dev/null
+@@ -1,70 +0,0 @@
+-/* This Source Code Form is subject to the terms of the Mozilla Public
+- * License, v. 2.0. If a copy of the MPL was not distributed with this
+- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+-
+-#ifndef CaptivePortalService_h_
+-#define CaptivePortalService_h_
+-
+-#include "nsICaptivePortalService.h"
+-#include "nsICaptivePortalDetector.h"
+-#include "nsIObserver.h"
+-#include "nsWeakReference.h"
+-#include "nsITimer.h"
+-#include "nsCOMArray.h"
+-#include "mozilla/TimeStamp.h"
+-
+-namespace mozilla {
+-namespace net {
+-
+-class CaptivePortalService
+-  : public nsICaptivePortalService
+-  , public nsIObserver
+-  , public nsSupportsWeakReference
+-  , public nsITimerCallback
+-  , public nsICaptivePortalCallback
+-{
+-public:
+-  NS_DECL_ISUPPORTS
+-  NS_DECL_NSICAPTIVEPORTALSERVICE
+-  NS_DECL_NSIOBSERVER
+-  NS_DECL_NSITIMERCALLBACK
+-  NS_DECL_NSICAPTIVEPORTALCALLBACK
+-
+-  CaptivePortalService();
+-  nsresult Initialize();
+-  nsresult Start();
+-  nsresult Stop();
+-
+-  // This method is only called in the content process, in order to mirror
+-  // the captive portal state in the parent process.
+-  void SetStateInChild(int32_t aState);
+-private:
+-  virtual ~CaptivePortalService();
+-  nsresult PerformCheck();
+-  nsresult RearmTimer();
+-
+-  nsCOMPtr<nsICaptivePortalDetector>    mCaptivePortalDetector;
+-  int32_t                               mState;
+-
+-  nsCOMPtr<nsITimer>                    mTimer;
+-  bool                                  mStarted;
+-  bool                                  mInitialized;
+-  bool                                  mRequestInProgress;
+-  bool                                  mEverBeenCaptive;
+-
+-  uint32_t                              mDelay;
+-  int32_t                               mSlackCount;
+-
+-  uint32_t                              mMinInterval;
+-  uint32_t                              mMaxInterval;
+-  float                                 mBackoffFactor;
+-
+-  // This holds a timestamp when the last time when the captive portal check
+-  // has changed state.
+-  mozilla::TimeStamp                    mLastChecked;
+-};
+-
+-} // namespace net
+-} // namespace mozilla
+-
+-#endif // CaptivePortalService_h_
+diff --git a/netwerk/base/nsICaptivePortalService.idl b/netwerk/base/nsICaptivePortalService.idl
+deleted file mode 100644
+index 94d9d6e..0000000
+--- a/netwerk/base/nsICaptivePortalService.idl
++++ /dev/null
+@@ -1,59 +0,0 @@
+-/* This Source Code Form is subject to the terms of the Mozilla Public
+- * License, v. 2.0. If a copy of the MPL was not distributed with this
+- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+-
+-#include "nsISupports.idl"
+-
+-[scriptable, uuid(b5fd5629-d04c-4138-9529-9311f291ecd4)]
+-interface nsICaptivePortalServiceCallback : nsISupports
+-{
+-  /**
+-   * Invoke callbacks after captive portal detection finished.
+-   */
+-  void complete(in bool success, in nsresult error);
+-};
+-
+-/**
+- * Service used for captive portal detection.
+- * The service is only active in the main process. It is also available in the
+- * content process, but only to mirror the captive portal state from the main
+- * process.
+- */
+-[scriptable, uuid(bdbe0555-fc3d-4f7b-9205-c309ceb2d641)]
+-interface nsICaptivePortalService : nsISupports
+-{
+-  const long UNKNOWN          = 0;
+-  const long NOT_CAPTIVE      = 1;
+-  const long UNLOCKED_PORTAL  = 2;
+-  const long LOCKED_PORTAL    = 3;
+-
+-  /**
+-   * Called from XPCOM to trigger a captive portal recheck.
+-   * A network request will only be performed if no other checks are currently
+-   * ongoing.
+-   * Will not do anything if called in the content process.
+-   */
+-  void recheckCaptivePortal();
+-
+-  /**
+-   * Returns the state of the captive portal.
+-   */
+-  readonly attribute long state;
+-
+-  /**
+-   * Returns the time difference between NOW and the last time a request was
+-   * completed in milliseconds.
+-   */
+-  readonly attribute unsigned long long lastChecked;
+-};
+-
+-%{C++
+-/**
+- * This observer notification will be emitted when the captive portal state
+- * changes. After receiving it, the ContentParent will send an IPC message
+- * to the ContentChild, which will set the state in the captive portal service
+- * in the child.
+- */
+-#define NS_IPC_CAPTIVE_PORTAL_SET_STATE "ipc:network:captive-portal-set-state"
+-
+-%}
+diff --git a/toolkit/components/captivedetect/CaptivePortalDetectComponents.manifest b/toolkit/components/captivedetect/CaptivePortalDetectComponents.manifest
+deleted file mode 100644
+index 490545c..0000000
+--- a/toolkit/components/captivedetect/CaptivePortalDetectComponents.manifest
++++ /dev/null
+@@ -1,2 +0,0 @@
+-component {d9cd00ba-aa4d-47b1-8792-b1fe0cd35060} captivedetect.js
+-contract @mozilla.org/toolkit/captive-detector;1 {d9cd00ba-aa4d-47b1-8792-b1fe0cd35060}
+diff --git a/toolkit/components/captivedetect/captivedetect.js b/toolkit/components/captivedetect/captivedetect.js
+deleted file mode 100644
+index 0e8c759..0000000
+--- a/toolkit/components/captivedetect/captivedetect.js
++++ /dev/null
+@@ -1,476 +0,0 @@
+-/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+-/* This Source Code Form is subject to the terms of the Mozilla Public
+- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+-
+-'use strict';
+-
+-const { classes: Cc, interfaces: Ci, results: Cr, utils: Cu } = Components;
+-
+-Cu.import('resource://gre/modules/XPCOMUtils.jsm');
+-Cu.import('resource://gre/modules/Services.jsm');
+-
+-XPCOMUtils.defineLazyServiceGetter(this, "gSysMsgr",
+-                                   "@mozilla.org/system-message-internal;1",
+-                                   "nsISystemMessagesInternal");
+-
+-const DEBUG = false; // set to true to show debug messages
+-
+-const kCAPTIVEPORTALDETECTOR_CONTRACTID = '@mozilla.org/toolkit/captive-detector;1';
+-const kCAPTIVEPORTALDETECTOR_CID        = Components.ID('{d9cd00ba-aa4d-47b1-8792-b1fe0cd35060}');
+-
+-const kOpenCaptivePortalLoginEvent = 'captive-portal-login';
+-const kAbortCaptivePortalLoginEvent = 'captive-portal-login-abort';
+-const kCaptivePortalLoginSuccessEvent = 'captive-portal-login-success';
+-const kCaptivePortalCheckComplete = 'captive-portal-check-complete';
+-
+-const kCaptivePortalSystemMessage = 'captive-portal';
+-
+-function URLFetcher(url, timeout) {
+-  let self = this;
+-  let xhr = Cc['@mozilla.org/xmlextras/xmlhttprequest;1']
+-              .createInstance(Ci.nsIXMLHttpRequest);
+-  xhr.open('GET', url, true);
+-  // Prevent the request from reading from the cache.
+-  xhr.channel.loadFlags |= Ci.nsIRequest.LOAD_BYPASS_CACHE;
+-  // Prevent the request from writing to the cache.
+-  xhr.channel.loadFlags |= Ci.nsIRequest.INHIBIT_CACHING;
+-  // Prevent privacy leaks
+-  xhr.channel.loadFlags |= Ci.nsIRequest.LOAD_ANONYMOUS;
+-  // The Cache-Control header is only interpreted by proxies and the
+-  // final destination. It does not help if a resource is already
+-  // cached locally.
+-  xhr.setRequestHeader("Cache-Control", "no-cache");
+-  // HTTP/1.0 servers might not implement Cache-Control and
+-  // might only implement Pragma: no-cache
+-  xhr.setRequestHeader("Pragma", "no-cache");
+-
+-  xhr.timeout = timeout;
+-  xhr.ontimeout = function () { self.ontimeout(); };
+-  xhr.onerror = function () { self.onerror(); };
+-  xhr.onreadystatechange = function(oEvent) {
+-    if (xhr.readyState === 4) {
+-      if (self._isAborted) {
+-        return;
+-      }
+-      if (xhr.status === 200) {
+-        self.onsuccess(xhr.responseText);
+-      } else if (xhr.status) {
+-        self.onredirectorerror(xhr.status);
+-      }
+-    }
+-  };
+-  xhr.send();
+-  this._xhr = xhr;
+-}
+-
+-URLFetcher.prototype = {
+-  _isAborted: false,
+-  ontimeout: function() {},
+-  onerror: function() {},
+-  abort: function() {
+-    if (!this._isAborted) {
+-      this._isAborted = true;
+-      this._xhr.abort();
+-    }
+-  },
+-}
+-
+-function LoginObserver(captivePortalDetector) {
+-  const LOGIN_OBSERVER_STATE_DETACHED = 0; /* Should not monitor network activity since no ongoing login procedure */
+-  const LOGIN_OBSERVER_STATE_IDLE = 1; /* No network activity currently, waiting for a longer enough idle period */
+-  const LOGIN_OBSERVER_STATE_BURST = 2; /* Network activity is detected, probably caused by a login procedure */
+-  const LOGIN_OBSERVER_STATE_VERIFY_NEEDED = 3; /* Verifing network accessiblity is required after a long enough idle */
+-  const LOGIN_OBSERVER_STATE_VERIFYING = 4; /* LoginObserver is probing if public network is available */
+-
+-  let state = LOGIN_OBSERVER_STATE_DETACHED;
+-
+-  let timer = Cc['@mozilla.org/timer;1'].createInstance(Ci.nsITimer);
+-  let activityDistributor = Cc['@mozilla.org/network/http-activity-distributor;1']
+-                              .getService(Ci.nsIHttpActivityDistributor);
+-  let urlFetcher = null;
+-
+-  let waitForNetworkActivity = false;
+-
+-  let pageCheckingDone = function pageCheckingDone() {
+-    if (state === LOGIN_OBSERVER_STATE_VERIFYING) {
+-      urlFetcher = null;
+-      // Finish polling the canonical site, switch back to idle state and
+-      // waiting for next burst
+-      state = LOGIN_OBSERVER_STATE_IDLE;
+-      timer.initWithCallback(observer,
+-                             captivePortalDetector._pollingTime,
+-                             timer.TYPE_ONE_SHOT);
+-    }
+-  };
+-
+-  let checkPageContent = function checkPageContent() {
+-    debug("checking if public network is available after the login procedure");
+-
+-    urlFetcher = new URLFetcher(captivePortalDetector._canonicalSiteURL,
+-                                captivePortalDetector._maxWaitingTime);
+-    urlFetcher.ontimeout = pageCheckingDone;
+-    urlFetcher.onerror = pageCheckingDone;
+-    urlFetcher.onsuccess = function (content) {
+-      if (captivePortalDetector.validateContent(content)) {
+-        urlFetcher = null;
+-        captivePortalDetector.executeCallback(true);
+-      } else {
+-        pageCheckingDone();
+-      }
+-    };
+-    urlFetcher.onredirectorerror = pageCheckingDone;
+-  };
+-
+-  // Public interface of LoginObserver
+-  let observer = {
+-    QueryInterface: XPCOMUtils.generateQI([Ci.nsIHttpActivityObserver,
+-                                           Ci.nsITimerCallback]),
+-
+-    attach: function attach() {
+-      if (state === LOGIN_OBSERVER_STATE_DETACHED) {
+-        activityDistributor.addObserver(this);
+-        state = LOGIN_OBSERVER_STATE_IDLE;
+-        timer.initWithCallback(this,
+-                               captivePortalDetector._pollingTime,
+-                               timer.TYPE_ONE_SHOT);
+-        debug('attach HttpObserver for login activity');
+-      }
+-    },
+-
+-    detach: function detach() {
+-      if (state !== LOGIN_OBSERVER_STATE_DETACHED) {
+-        if (urlFetcher) {
+-          urlFetcher.abort();
+-          urlFetcher = null;
+-        }
+-        activityDistributor.removeObserver(this);
+-        timer.cancel();
+-        state = LOGIN_OBSERVER_STATE_DETACHED;
+-        debug('detach HttpObserver for login activity');
+-      }
+-    },
+-
+-    /*
+-     * Treat all HTTP transactions as captive portal login activities.
+-     */
+-    observeActivity: function observeActivity(aHttpChannel, aActivityType,
+-                                              aActivitySubtype, aTimestamp,
+-                                              aExtraSizeData, aExtraStringData) {
+-      if (aActivityType === Ci.nsIHttpActivityObserver.ACTIVITY_TYPE_HTTP_TRANSACTION
+-          && aActivitySubtype === Ci.nsIHttpActivityObserver.ACTIVITY_SUBTYPE_RESPONSE_COMPLETE) {
+-        switch (state) {
+-          case LOGIN_OBSERVER_STATE_IDLE:
+-          case LOGIN_OBSERVER_STATE_VERIFY_NEEDED:
+-            state = LOGIN_OBSERVER_STATE_BURST;
+-            break;
+-          default:
+-            break;
+-        }
+-      }
+-    },
+-
+-    /*
+-     * Check if login activity is finished according to HTTP burst.
+-     */
+-    notify : function notify() {
+-      switch (state) {
+-        case LOGIN_OBSERVER_STATE_BURST:
+-          // Wait while network stays idle for a short period
+-          state = LOGIN_OBSERVER_STATE_VERIFY_NEEDED;
+-          // Fall though to start polling timer
+-        case LOGIN_OBSERVER_STATE_IDLE:
+-          if (waitForNetworkActivity) {
+-            timer.initWithCallback(this,
+-                                   captivePortalDetector._pollingTime,
+-                                   timer.TYPE_ONE_SHOT);
+-            break;
+-          }
+-          // if we don't need to wait for network activity, just fall through
+-          // to perform a captive portal check.
+-        case LOGIN_OBSERVER_STATE_VERIFY_NEEDED:
+-          // Polling the canonical website since network stays idle for a while
+-          state = LOGIN_OBSERVER_STATE_VERIFYING;
+-          checkPageContent();
+-          break;
+-
+-        default:
+-          break;
+-      }
+-    },
+-  };
+-
+-  return observer;
+-}
+-
+-function CaptivePortalDetector() {
+-  // Load preference
+-  this._canonicalSiteURL = null;
+-  this._canonicalSiteExpectedContent = null;
+-
+-  try {
+-    this._canonicalSiteURL =
+-      Services.prefs.getCharPref('captivedetect.canonicalURL');
+-    this._canonicalSiteExpectedContent =
+-      Services.prefs.getCharPref('captivedetect.canonicalContent');
+-  } catch (e) {
+-    debug('canonicalURL or canonicalContent not set.')
+-  }
+-
+-  this._maxWaitingTime =
+-    Services.prefs.getIntPref('captivedetect.maxWaitingTime');
+-  this._pollingTime =
+-    Services.prefs.getIntPref('captivedetect.pollingTime');
+-  this._maxRetryCount =
+-    Services.prefs.getIntPref('captivedetect.maxRetryCount');
+-  debug('Load Prefs {site=' + this._canonicalSiteURL + ',content='
+-        + this._canonicalSiteExpectedContent + ',time=' + this._maxWaitingTime
+-        + "max-retry=" + this._maxRetryCount + '}');
+-
+-  // Create HttpObserver for monitoring the login procedure
+-  this._loginObserver = LoginObserver(this);
+-
+-  this._nextRequestId = 0;
+-  this._runningRequest = null;
+-  this._requestQueue = []; // Maintain a progress table, store callbacks and the ongoing XHR
+-  this._interfaceNames = {}; // Maintain names of the requested network interfaces
+-
+-  debug('CaptiveProtalDetector initiated, waiting for network connection established');
+-}
+-
+-CaptivePortalDetector.prototype = {
+-  classID:   kCAPTIVEPORTALDETECTOR_CID,
+-  classInfo: XPCOMUtils.generateCI({classID: kCAPTIVEPORTALDETECTOR_CID,
+-                                    contractID: kCAPTIVEPORTALDETECTOR_CONTRACTID,
+-                                    classDescription: 'Captive Portal Detector',
+-                                    interfaces: [Ci.nsICaptivePortalDetector]}),
+-  QueryInterface: XPCOMUtils.generateQI([Ci.nsICaptivePortalDetector]),
+-
+-  // nsICaptivePortalDetector
+-  checkCaptivePortal: function checkCaptivePortal(aInterfaceName, aCallback) {
+-    if (!this._canonicalSiteURL) {
+-      throw Components.Exception('No canonical URL set up.');
+-    }
+-
+-    // Prevent multiple requests on a single network interface
+-    if (this._interfaceNames[aInterfaceName]) {
+-      throw Components.Exception('Do not allow multiple request on one interface: ' + aInterfaceName);
+-    }
+-
+-    let request = {interfaceName: aInterfaceName};
+-    if (aCallback) {
+-      let callback = aCallback.QueryInterface(Ci.nsICaptivePortalCallback);
+-      request['callback'] = callback;
+-      request['retryCount'] = 0;
+-    }
+-    this._addRequest(request);
+-  },
+-
+-  abort: function abort(aInterfaceName) {
+-    debug('abort for ' + aInterfaceName);
+-    this._removeRequest(aInterfaceName);
+-  },
+-
+-  finishPreparation: function finishPreparation(aInterfaceName) {
+-    debug('finish preparation phase for interface "' + aInterfaceName + '"');
+-    if (!this._runningRequest
+-        || this._runningRequest.interfaceName !== aInterfaceName) {
+-      debug('invalid finishPreparation for ' + aInterfaceName);
+-      throw Components.Exception('only first request is allowed to invoke |finishPreparation|');
+-    }
+-
+-    this._startDetection();
+-  },
+-
+-  cancelLogin: function cancelLogin(eventId) {
+-    debug('login canceled by user for request "' + eventId + '"');
+-    // Captive portal login procedure is canceled by user
+-    if (this._runningRequest && this._runningRequest.hasOwnProperty('eventId')) {
+-      let id = this._runningRequest.eventId;
+-      if (eventId === id) {
+-        this.executeCallback(false);
+-      }
+-    }
+-  },
+-
+-  _applyDetection: function _applyDetection() {
+-    debug('enter applyDetection('+ this._runningRequest.interfaceName + ')');
+-
+-    // Execute network interface preparation
+-    if (this._runningRequest.hasOwnProperty('callback')) {
+-      this._runningRequest.callback.prepare();
+-    } else {
+-      this._startDetection();
+-    }
+-  },
+-
+-  _startDetection: function _startDetection() {
+-    debug('startDetection {site=' + this._canonicalSiteURL + ',content='
+-          + this._canonicalSiteExpectedContent + ',time=' + this._maxWaitingTime + '}');
+-    let self = this;
+-
+-    let urlFetcher = new URLFetcher(this._canonicalSiteURL, this._maxWaitingTime);
+-
+-    let mayRetry = this._mayRetry.bind(this);
+-
+-    urlFetcher.ontimeout = mayRetry;
+-    urlFetcher.onerror = mayRetry;
+-    urlFetcher.onsuccess = function (content) {
+-      if (self.validateContent(content)) {
+-        self.executeCallback(true);
+-      } else {
+-        // Content of the canonical website has been overwrite
+-        self._startLogin();
+-      }
+-    };
+-    urlFetcher.onredirectorerror = function (status) {
+-      if (status >= 300 && status <= 399) {
+-        // The canonical website has been redirected to an unknown location
+-        self._startLogin();
+-      } else {
+-        mayRetry();
+-      }
+-    };
+-
+-    this._runningRequest['urlFetcher'] = urlFetcher;
+-  },
+-
+-  _startLogin: function _startLogin() {
+-    let id = this._allocateRequestId();
+-    let details = {
+-      type: kOpenCaptivePortalLoginEvent,
+-      id: id,
+-      url: this._canonicalSiteURL,
+-    };
+-    this._loginObserver.attach();
+-    this._runningRequest['eventId'] = id;
+-    this._sendEvent(kOpenCaptivePortalLoginEvent, details);
+-    gSysMsgr.broadcastMessage(kCaptivePortalSystemMessage, {});
+-  },
+-
+-  _mayRetry: function _mayRetry() {
+-    if (this._runningRequest.retryCount++ < this._maxRetryCount) {
+-      debug('retry-Detection: ' + this._runningRequest.retryCount + '/' + this._maxRetryCount);
+-      this._startDetection();
+-    } else {
+-      this.executeCallback(false);
+-    }
+-  },
+-
+-  executeCallback: function executeCallback(success) {
+-    if (this._runningRequest) {
+-      debug('callback executed');
+-      if (this._runningRequest.hasOwnProperty('callback')) {
+-        this._runningRequest.callback.complete(success);
+-      }
+-
+-      // Only when the request has a event id and |success| is true
+-      // do we need to notify the login-success event.
+-      if (this._runningRequest.hasOwnProperty('eventId') && success) {
+-        let details = {
+-          type: kCaptivePortalLoginSuccessEvent,
+-          id: this._runningRequest['eventId'],
+-        };
+-        this._sendEvent(kCaptivePortalLoginSuccessEvent, details);
+-      }
+-
+-      // Continue the following request
+-      this._runningRequest['complete'] = true;
+-      this._removeRequest(this._runningRequest.interfaceName);
+-    }
+-  },
+-
+-  _sendEvent: function _sendEvent(topic, details) {
+-    debug('sendEvent "' + JSON.stringify(details) + '"');
+-    Services.obs.notifyObservers(this,
+-                                 topic,
+-                                 JSON.stringify(details));
+-  },
+-
+-  validateContent: function validateContent(content) {
+-    debug('received content: ' + content);
+-    let valid = content === this._canonicalSiteExpectedContent;
+-    // We need a way to indicate that a check has been performed, and if we are
+-    // still in a captive portal.
+-    this._sendEvent(kCaptivePortalCheckComplete, !valid);
+-    return valid;
+-  },
+-
+-  _allocateRequestId: function _allocateRequestId() {
+-    let newId = this._nextRequestId++;
+-    return newId.toString();
+-  },
+-
+-  _runNextRequest: function _runNextRequest() {
+-    let nextRequest = this._requestQueue.shift();
+-    if (nextRequest) {
+-      this._runningRequest = nextRequest;
+-      this._applyDetection();
+-    }
+-  },
+-
+-  _addRequest: function _addRequest(request) {
+-    this._interfaceNames[request.interfaceName] = true;
+-    this._requestQueue.push(request);
+-    if (!this._runningRequest) {
+-      this._runNextRequest();
+-    }
+-  },
+-
+-  _removeRequest: function _removeRequest(aInterfaceName) {
+-    if (!this._interfaceNames[aInterfaceName]) {
+-      return;
+-    }
+-
+-    delete this._interfaceNames[aInterfaceName];
+-
+-    if (this._runningRequest
+-        && this._runningRequest.interfaceName === aInterfaceName) {
+-      this._loginObserver.detach();
+-
+-      if (!this._runningRequest.complete) {
+-        // Abort the user login procedure
+-        if (this._runningRequest.hasOwnProperty('eventId')) {
+-          let details = {
+-            type: kAbortCaptivePortalLoginEvent,
+-            id: this._runningRequest.eventId
+-          };
+-          this._sendEvent(kAbortCaptivePortalLoginEvent, details);
+-        }
+-
+-        // Abort the ongoing HTTP request
+-        if (this._runningRequest.hasOwnProperty('urlFetcher')) {
+-          this._runningRequest.urlFetcher.abort();
+-        }
+-      }
+-
+-      debug('remove running request');
+-      this._runningRequest = null;
+-
+-      // Continue next pending reqeust if the ongoing one has been aborted
+-      this._runNextRequest();
+-      return;
+-    }
+-
+-    // Check if a pending request has been aborted
+-    for (let i = 0; i < this._requestQueue.length; i++) {
+-      if (this._requestQueue[i].interfaceName == aInterfaceName) {
+-        this._requestQueue.splice(i, 1);
+-
+-        debug('remove pending request #' + i + ', remaining ' + this._requestQueue.length);
+-        break;
+-      }
+-    }
+-  },
+-};
+-
+-var debug;
+-if (DEBUG) {
+-  debug = function (s) {
+-    dump('-*- CaptivePortalDetector component: ' + s + '\n');
+-  };
+-} else {
+-  debug = function (s) {};
+-}
+-
+-this.NSGetFactory = XPCOMUtils.generateNSGetFactory([CaptivePortalDetector]);
+diff --git a/toolkit/components/captivedetect/moz.build b/toolkit/components/captivedetect/moz.build
+deleted file mode 100644
+index 3bb9cf5..0000000
+--- a/toolkit/components/captivedetect/moz.build
++++ /dev/null
+@@ -1,19 +0,0 @@
+-# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
+-# vim: set filetype=python:
+-# This Source Code Form is subject to the terms of the Mozilla Public
+-# License, v. 2.0. If a copy of the MPL was not distributed with this
+-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-
+-XPCSHELL_TESTS_MANIFESTS += ['test/unit/xpcshell.ini']
+-
+-XPIDL_SOURCES += [
+-    'nsICaptivePortalDetector.idl',
+-]
+-
+-XPIDL_MODULE = 'captivedetect'
+-
+-EXTRA_COMPONENTS += [
+-    'captivedetect.js',
+-    'CaptivePortalDetectComponents.manifest',
+-]
+-
+diff --git a/toolkit/components/captivedetect/nsICaptivePortalDetector.idl b/toolkit/components/captivedetect/nsICaptivePortalDetector.idl
+deleted file mode 100644
+index 6316854..0000000
+--- a/toolkit/components/captivedetect/nsICaptivePortalDetector.idl
++++ /dev/null
+@@ -1,53 +0,0 @@
+-/* -*- Mode: IDL; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+-/* This Source Code Form is subject to the terms of the Mozilla Public
+- * License, v. 2.0. If a copy of the MPL was not distributed with this
+- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+-
+-#include "nsISupports.idl"
+-
+-[scriptable, uuid(593fdeec-6284-4de8-b416-8e63cbdc695e)]
+-interface nsICaptivePortalCallback : nsISupports
+-{
+-  /**
+-   * Preparation for network interface before captive portal detection started.
+-   */
+-  void prepare();
+-
+-  /**
+-   * Invoke callbacks after captive portal detection finished.
+-   */
+-  void complete(in bool success);
+-};
+-
+-[scriptable, uuid(2f827c5a-f551-477f-af09-71adbfbd854a)]
+-interface nsICaptivePortalDetector : nsISupports
+-{
+-  /**
+-   * Perform captive portal detection on specific network interface.
+-   * @param ifname The name of network interface, exception will be thrwon
+-   *               if the same interface has unfinished request.
+-   * @param callback Callbacks when detection procedure starts and finishes.
+-   */
+-  void checkCaptivePortal(in wstring ifname,
+-                          in nsICaptivePortalCallback callback);
+-
+-  /**
+-   * Abort captive portal detection for specific network interface
+-   * due to system failure, callback will not be invoked.
+-   * @param ifname The name of network interface.
+-   */
+-  void abort(in wstring ifname);
+-
+-  /**
+-   * Cancel captive portal login procedure by user, callback will be invoked.
+-   * @param eventId Login event id provided in |captive-portal-login| event.
+-   */
+-  void cancelLogin(in wstring eventId);
+-
+-  /**
+-   * Notify prepare phase is finished, routing and dns must be ready for sending
+-   * out XMLHttpRequest. this is callback for CaptivePortalDetector API user.
+-   * @param ifname The name of network interface, must be unique.
+-   */
+-  void finishPreparation(in wstring ifname);
+-};
+diff --git a/toolkit/components/captivedetect/test/unit/.eslintrc.js b/toolkit/components/captivedetect/test/unit/.eslintrc.js
+deleted file mode 100644
+index d35787c..0000000
+--- a/toolkit/components/captivedetect/test/unit/.eslintrc.js
++++ /dev/null
+@@ -1,7 +0,0 @@
+-"use strict";
+-
+-module.exports = {
+-  "extends": [
+-    "../../../../../testing/xpcshell/xpcshell.eslintrc.js"
+-  ]
+-};
+diff --git a/toolkit/components/captivedetect/test/unit/head_setprefs.js b/toolkit/components/captivedetect/test/unit/head_setprefs.js
+deleted file mode 100644
+index bf621e3..0000000
+--- a/toolkit/components/captivedetect/test/unit/head_setprefs.js
++++ /dev/null
+@@ -1,49 +0,0 @@
+-/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+-/* This Source Code Form is subject to the terms of the Mozilla Public
+- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+-'use strict';
+-
+-var {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
+-
+-Cu.import('resource://gre/modules/XPCOMUtils.jsm');
+-Cu.import('resource://gre/modules/Services.jsm');
+-Cu.import('resource://testing-common/httpd.js');
+-
+-XPCOMUtils.defineLazyServiceGetter(this, 'gCaptivePortalDetector',
+-                                   '@mozilla.org/toolkit/captive-detector;1',
+-                                   'nsICaptivePortalDetector');
+-
+-const kCanonicalSitePath = '/canonicalSite.html';
+-const kCanonicalSiteContent = 'true';
+-const kPrefsCanonicalURL = 'captivedetect.canonicalURL';
+-const kPrefsCanonicalContent = 'captivedetect.canonicalContent';
+-const kPrefsMaxWaitingTime = 'captivedetect.maxWaitingTime';
+-const kPrefsPollingTime = 'captivedetect.pollingTime';
+-
+-var gServer;
+-var gServerURL;
+-
+-function setupPrefs() {
+-  let prefs = Components.classes["@mozilla.org/preferences-service;1"]
+-                .getService(Components.interfaces.nsIPrefService)
+-                .QueryInterface(Components.interfaces.nsIPrefBranch);
+-  prefs.setCharPref(kPrefsCanonicalURL, gServerURL + kCanonicalSitePath);
+-  prefs.setCharPref(kPrefsCanonicalContent, kCanonicalSiteContent);
+-  prefs.setIntPref(kPrefsMaxWaitingTime, 0);
+-  prefs.setIntPref(kPrefsPollingTime, 1);
+-}
+-
+-function run_captivedetect_test(xhr_handler, fakeUIResponse, testfun)
+-{
+-  gServer = new HttpServer();
+-  gServer.registerPathHandler(kCanonicalSitePath, xhr_handler);
+-  gServer.start(-1);
+-  gServerURL = 'http://localhost:' + gServer.identity.primaryPort;
+-
+-  setupPrefs();
+-
+-  fakeUIResponse();
+-
+-  testfun();
+-}
+diff --git a/toolkit/components/captivedetect/test/unit/test_abort.js b/toolkit/components/captivedetect/test/unit/test_abort.js
+deleted file mode 100644
+index f99805d..0000000
+--- a/toolkit/components/captivedetect/test/unit/test_abort.js
++++ /dev/null
+@@ -1,53 +0,0 @@
+-/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+-/* This Source Code Form is subject to the terms of the Mozilla Public
+- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+-'use strict';
+-
+-const kInterfaceName = 'wifi';
+-
+-var server;
+-var step = 0;
+-var loginFinished = false;
+-
+-function xhr_handler(metadata, response) {
+-  response.setStatusLine(metadata.httpVersion, 200, 'OK');
+-  response.setHeader('Cache-Control', 'no-cache', false);
+-  response.setHeader('Content-Type', 'text/plain', false);
+-  if (loginFinished) {
+-    response.write('true');
+-  } else {
+-    response.write('false');
+-  }
+-}
+-
+-function fakeUIResponse() {
+-  Services.obs.addObserver(function observe(subject, topic, data) {
+-    if (topic === 'captive-portal-login') {
+-      do_throw('should not receive captive-portal-login event');
+-    }
+-  }, 'captive-portal-login', false);
+-}
+-
+-function test_abort() {
+-  do_test_pending();
+-
+-  let callback = {
+-    QueryInterface: XPCOMUtils.generateQI([Ci.nsICaptivePortalCallback]),
+-    prepare: function prepare() {
+-      do_check_eq(++step, 1);
+-      gCaptivePortalDetector.finishPreparation(kInterfaceName);
+-    },
+-    complete: function complete(success) {
+-      do_throw('should not execute |complete| callback');
+-    },
+-  };
+-
+-  gCaptivePortalDetector.checkCaptivePortal(kInterfaceName, callback);
+-  gCaptivePortalDetector.abort(kInterfaceName);
+-  gServer.stop(do_test_finished);
+-}
+-
+-function run_test() {
+-  run_captivedetect_test(xhr_handler, fakeUIResponse, test_abort);
+-}
+diff --git a/toolkit/components/captivedetect/test/unit/test_abort_during_user_login.js b/toolkit/components/captivedetect/test/unit/test_abort_during_user_login.js
+deleted file mode 100644
+index ef98ac5..0000000
+--- a/toolkit/components/captivedetect/test/unit/test_abort_during_user_login.js
++++ /dev/null
+@@ -1,66 +0,0 @@
+-/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+-/* This Source Code Form is subject to the terms of the Mozilla Public
+- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+-'use strict';
+-
+-const kInterfaceName = 'wifi';
+-
+-var server;
+-var step = 0;
+-var loginFinished = false;
+-
+-function xhr_handler(metadata, response) {
+-  response.setStatusLine(metadata.httpVersion, 200, 'OK');
+-  response.setHeader('Cache-Control', 'no-cache', false);
+-  response.setHeader('Content-Type', 'text/plain', false);
+-  if (loginFinished) {
+-    response.write('true');
+-  } else {
+-    response.write('false');
+-  }
+-}
+-
+-function fakeUIResponse() {
+-  let requestId;
+-  Services.obs.addObserver(function observe(subject, topic, data) {
+-    if (topic === 'captive-portal-login') {
+-      let xhr = Cc['@mozilla.org/xmlextras/xmlhttprequest;1']
+-                  .createInstance(Ci.nsIXMLHttpRequest);
+-      xhr.open('GET', gServerURL + kCanonicalSitePath, true);
+-      xhr.send();
+-      loginFinished = true;
+-      do_check_eq(++step, 2);
+-      requestId = JSON.parse(data).id;
+-      gCaptivePortalDetector.abort(kInterfaceName);
+-    }
+-  }, 'captive-portal-login', false);
+-  Services.obs.addObserver(function observe(subject, topic, data) {
+-    if (topic === 'captive-portal-login-abort') {
+-      do_check_eq(++step, 3);
+-      do_check_eq(JSON.parse(data).id, requestId);
+-      gServer.stop(do_test_finished);
+-    }
+-  }, 'captive-portal-login-abort', false);
+-}
+-
+-function test_abort() {
+-  do_test_pending();
+-
+-  let callback = {
+-    QueryInterface: XPCOMUtils.generateQI([Ci.nsICaptivePortalCallback]),
+-    prepare: function prepare() {
+-      do_check_eq(++step, 1);
+-      gCaptivePortalDetector.finishPreparation(kInterfaceName);
+-    },
+-    complete: function complete(success) {
+-      do_throw('should not execute |complete| callback');
+-    },
+-  };
+-
+-  gCaptivePortalDetector.checkCaptivePortal(kInterfaceName, callback);
+-}
+-
+-function run_test() {
+-  run_captivedetect_test(xhr_handler, fakeUIResponse, test_abort);
+-}
+diff --git a/toolkit/components/captivedetect/test/unit/test_abort_ongoing_request.js b/toolkit/components/captivedetect/test/unit/test_abort_ongoing_request.js
+deleted file mode 100644
+index ad99903..0000000
+--- a/toolkit/components/captivedetect/test/unit/test_abort_ongoing_request.js
++++ /dev/null
+@@ -1,72 +0,0 @@
+-/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+-/* This Source Code Form is subject to the terms of the Mozilla Public
+- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+-'use strict';
+-
+-const kInterfaceName = 'wifi';
+-const kOtherInterfaceName = 'ril';
+-
+-var server;
+-var step = 0;
+-var loginFinished = false;
+-
+-function xhr_handler(metadata, response) {
+-  response.setStatusLine(metadata.httpVersion, 200, 'OK');
+-  response.setHeader('Cache-Control', 'no-cache', false);
+-  response.setHeader('Content-Type', 'text/plain', false);
+-  if (loginFinished) {
+-    response.write('true');
+-  } else {
+-    response.write('false');
+-  }
+-}
+-
+-function fakeUIResponse() {
+-  Services.obs.addObserver(function observe(subject, topic, data) {
+-    if (topic === 'captive-portal-login') {
+-      let xhr = Cc['@mozilla.org/xmlextras/xmlhttprequest;1']
+-                  .createInstance(Ci.nsIXMLHttpRequest);
+-      xhr.open('GET', gServerURL + kCanonicalSitePath, true);
+-      xhr.send();
+-      loginFinished = true;
+-      do_check_eq(++step, 3);
+-    }
+-  }, 'captive-portal-login', false);
+-}
+-
+-function test_multiple_requests_abort() {
+-  do_test_pending();
+-
+-  let callback = {
+-    QueryInterface: XPCOMUtils.generateQI([Ci.nsICaptivePortalCallback]),
+-    prepare: function prepare() {
+-      do_check_eq(++step, 1);
+-      gCaptivePortalDetector.finishPreparation(kInterfaceName);
+-    },
+-    complete: function complete(success) {
+-      do_throw('should not execute |complete| callback for ' + kInterfaceName);
+-    },
+-  };
+-
+-  let otherCallback = {
+-    QueryInterface: XPCOMUtils.generateQI([Ci.nsICaptivePortalCallback]),
+-    prepare: function prepare() {
+-      do_check_eq(++step, 2);
+-      gCaptivePortalDetector.finishPreparation(kOtherInterfaceName);
+-    },
+-    complete: function complete(success) {
+-      do_check_eq(++step, 4);
+-      do_check_true(success);
+-      gServer.stop(do_test_finished);
+-    }
+-  };
+-
+-  gCaptivePortalDetector.checkCaptivePortal(kInterfaceName, callback);
+-  gCaptivePortalDetector.checkCaptivePortal(kOtherInterfaceName, otherCallback);
+-  gCaptivePortalDetector.abort(kInterfaceName);
+-}
+-
+-function run_test() {
+-  run_captivedetect_test(xhr_handler, fakeUIResponse, test_multiple_requests_abort);
+-}
+diff --git a/toolkit/components/captivedetect/test/unit/test_abort_pending_request.js b/toolkit/components/captivedetect/test/unit/test_abort_pending_request.js
+deleted file mode 100644
+index ce36f1e..0000000
+--- a/toolkit/components/captivedetect/test/unit/test_abort_pending_request.js
++++ /dev/null
+@@ -1,71 +0,0 @@
+-/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+-/* This Source Code Form is subject to the terms of the Mozilla Public
+- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+-'use strict';
+-
+-const kInterfaceName = 'wifi';
+-const kOtherInterfaceName = 'ril';
+-
+-var server;
+-var step = 0;
+-var loginFinished = false;
+-
+-function xhr_handler(metadata, response) {
+-  response.setStatusLine(metadata.httpVersion, 200, 'OK');
+-  response.setHeader('Cache-Control', 'no-cache', false);
+-  response.setHeader('Content-Type', 'text/plain', false);
+-  if (loginFinished) {
+-    response.write('true');
+-  } else {
+-    response.write('false');
+-  }
+-}
+-
+-function fakeUIResponse() {
+-  Services.obs.addObserver(function observe(subject, topic, data) {
+-    if (topic === 'captive-portal-login') {
+-      let xhr = Cc['@mozilla.org/xmlextras/xmlhttprequest;1']
+-                  .createInstance(Ci.nsIXMLHttpRequest);
+-      xhr.open('GET', gServerURL + kCanonicalSitePath, true);
+-      xhr.send();
+-      loginFinished = true;
+-      do_check_eq(++step, 2);
+-    }
+-  }, 'captive-portal-login', false);
+-}
+-
+-function test_abort() {
+-  do_test_pending();
+-
+-  let callback = {
+-    QueryInterface: XPCOMUtils.generateQI([Ci.nsICaptivePortalCallback]),
+-    prepare: function prepare() {
+-      do_check_eq(++step, 1);
+-      gCaptivePortalDetector.finishPreparation(kInterfaceName);
+-    },
+-    complete: function complete(success) {
+-      do_check_eq(++step, 3);
+-      do_check_true(success);
+-      gServer.stop(do_test_finished);
+-    },
+-  };
+-
+-  let otherCallback = {
+-    QueryInterface: XPCOMUtils.generateQI([Ci.nsICaptivePortalCallback]),
+-    prepare: function prepare() {
+-      do_throw('should not execute |prepare| callback for ' + kOtherInterfaceName);
+-    },
+-    complete: function complete(success) {
+-      do_throw('should not execute |complete| callback for ' + kInterfaceName);
+-    }
+-  };
+-
+-  gCaptivePortalDetector.checkCaptivePortal(kInterfaceName, callback);
+-  gCaptivePortalDetector.checkCaptivePortal(kOtherInterfaceName, otherCallback);
+-  gCaptivePortalDetector.abort(kOtherInterfaceName);
+-}
+-
+-function run_test() {
+-  run_captivedetect_test(xhr_handler, fakeUIResponse, test_abort);
+-}
+diff --git a/toolkit/components/captivedetect/test/unit/test_captive_portal_found.js b/toolkit/components/captivedetect/test/unit/test_captive_portal_found.js
+deleted file mode 100644
+index 7fb7ba8..0000000
+--- a/toolkit/components/captivedetect/test/unit/test_captive_portal_found.js
++++ /dev/null
+@@ -1,67 +0,0 @@
+-/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+-/* This Source Code Form is subject to the terms of the Mozilla Public
+- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+-'use strict';
+-
+-const kInterfaceName = 'wifi';
+-
+-var server;
+-var step = 0;
+-var loginFinished = false;
+-
+-function xhr_handler(metadata, response) {
+-  response.setStatusLine(metadata.httpVersion, 200, 'OK');
+-  response.setHeader('Cache-Control', 'no-cache', false);
+-  response.setHeader('Content-Type', 'text/plain', false);
+-  if (loginFinished) {
+-    response.write('true');
+-  } else {
+-    response.write('false');
+-  }
+-}
+-
+-function fakeUIResponse() {
+-  Services.obs.addObserver(function observe(subject, topic, data) {
+-    if (topic === 'captive-portal-login') {
+-      let xhr = Cc['@mozilla.org/xmlextras/xmlhttprequest;1']
+-                  .createInstance(Ci.nsIXMLHttpRequest);
+-      xhr.open('GET', gServerURL + kCanonicalSitePath, true);
+-      xhr.send();
+-      loginFinished = true;
+-      do_check_eq(++step, 2);
+-    }
+-  }, 'captive-portal-login', false);
+-
+-  Services.obs.addObserver(function observe(subject, topic, data) {
+-    if (topic === 'captive-portal-login-success') {
+-      do_check_eq(++step, 4);
+-      gServer.stop(do_test_finished);
+-    }
+-  }, 'captive-portal-login-success', false);
+-}
+-
+-function test_portal_found() {
+-  do_test_pending();
+-
+-  let callback = {
+-    QueryInterface: XPCOMUtils.generateQI([Ci.nsICaptivePortalCallback]),
+-    prepare: function prepare() {
+-      do_check_eq(++step, 1);
+-      gCaptivePortalDetector.finishPreparation(kInterfaceName);
+-    },
+-    complete: function complete(success) {
+-      // Since this is a synchronous callback, it must happen before
+-      // 'captive-portal-login-success' is received.
+-      // (Check captivedetect.js::executeCallback
+-      do_check_eq(++step, 3);
+-      do_check_true(success);
+-    },
+-  };
+-
+-  gCaptivePortalDetector.checkCaptivePortal(kInterfaceName, callback);
+-}
+-
+-function run_test() {
+-  run_captivedetect_test(xhr_handler, fakeUIResponse, test_portal_found);
+-}
+diff --git a/toolkit/components/captivedetect/test/unit/test_captive_portal_found_303.js b/toolkit/components/captivedetect/test/unit/test_captive_portal_found_303.js
+deleted file mode 100644
+index 7064e12..0000000
+--- a/toolkit/components/captivedetect/test/unit/test_captive_portal_found_303.js
++++ /dev/null
+@@ -1,74 +0,0 @@
+-/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+-/* This Source Code Form is subject to the terms of the Mozilla Public
+- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+-'use strict';
+-
+-const kInterfaceName = 'wifi';
+-
+-var step = 0;
+-var loginFinished = false;
+-
+-var gRedirectServer;
+-var gRedirectServerURL;
+-
+-function xhr_handler(metadata, response) {
+-  if (loginFinished) {
+-    response.setStatusLine(metadata.httpVersion, 200, 'OK');
+-    response.setHeader('Cache-Control', 'no-cache', false);
+-    response.setHeader('Content-Type', 'text/plain', false);
+-    response.write('true');
+-  } else {
+-    response.setStatusLine(metadata.httpVersion, 303, "See Other");
+-    response.setHeader("Location", gRedirectServerURL, false);
+-    response.setHeader("Content-Type", "text/html", false);
+-  }
+-}
+-
+-function fakeUIResponse() {
+-  Services.obs.addObserver(function observe(subject, topic, data) {
+-    if (topic === 'captive-portal-login') {
+-      let xhr = Cc['@mozilla.org/xmlextras/xmlhttprequest;1']
+-                  .createInstance(Ci.nsIXMLHttpRequest);
+-      xhr.open('GET', gServerURL + kCanonicalSitePath, true);
+-      xhr.send();
+-      loginFinished = true;
+-      do_check_eq(++step, 2);
+-    }
+-  }, 'captive-portal-login', false);
+-
+-  Services.obs.addObserver(function observe(subject, topic, data) {
+-    if (topic === 'captive-portal-login-success') {
+-      do_check_eq(++step, 4);
+-      gServer.stop(function () {
+-        gRedirectServer.stop(do_test_finished);
+-      });
+-    }
+-  }, 'captive-portal-login-success', false);
+-}
+-
+-function test_portal_found() {
+-  do_test_pending();
+-
+-  let callback = {
+-    QueryInterface: XPCOMUtils.generateQI([Ci.nsICaptivePortalCallback]),
+-    prepare: function prepare() {
+-      do_check_eq(++step, 1);
+-      gCaptivePortalDetector.finishPreparation(kInterfaceName);
+-    },
+-    complete: function complete(success) {
+-      do_check_eq(++step, 3);
+-      do_check_true(success);
+-    },
+-  };
+-
+-  gCaptivePortalDetector.checkCaptivePortal(kInterfaceName, callback);
+-}
+-
+-function run_test() {
+-  gRedirectServer = new HttpServer();
+-  gRedirectServer.start(-1);
+-  gRedirectServerURL = 'http://localhost:' + gRedirectServer.identity.primaryPort;
+-
+-  run_captivedetect_test(xhr_handler, fakeUIResponse, test_portal_found);
+-}
+diff --git a/toolkit/components/captivedetect/test/unit/test_captive_portal_not_found.js b/toolkit/components/captivedetect/test/unit/test_captive_portal_not_found.js
+deleted file mode 100644
+index 1dc4fe0..0000000
+--- a/toolkit/components/captivedetect/test/unit/test_captive_portal_not_found.js
++++ /dev/null
+@@ -1,52 +0,0 @@
+-/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+-/* This Source Code Form is subject to the terms of the Mozilla Public
+- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+-'use strict';
+-
+-const kInterfaceName = 'wifi';
+-
+-var server;
+-var step = 0;
+-var attempt = 0;
+-
+-function xhr_handler(metadata, response) {
+-  dump('HTTP activity\n');
+-  response.setStatusLine(metadata.httpVersion, 200, 'OK');
+-  response.setHeader('Cache-Control', 'no-cache', false);
+-  response.setHeader('Content-Type', 'text/plain', false);
+-  response.write('true');
+-  attempt++;
+-}
+-
+-function fakeUIResponse() {
+-  Services.obs.addObserver(function observe(subject, topic, data) {
+-    if (topic == 'captive-portal-login') {
+-      do_throw('should not receive captive-portal-login event');
+-    }
+-  }, 'captive-portal-login', false);
+-}
+-
+-function test_portal_not_found() {
+-  do_test_pending();
+-
+-  let callback = {
+-    QueryInterface: XPCOMUtils.generateQI([Ci.nsICaptivePortalCallback]),
+-    prepare: function prepare() {
+-      do_check_eq(++step, 1);
+-      gCaptivePortalDetector.finishPreparation(kInterfaceName);
+-    },
+-    complete: function complete(success) {
+-      do_check_eq(++step, 2);
+-      do_check_true(success);
+-      do_check_eq(attempt, 1);
+-      gServer.stop(function() { dump('server stop\n'); do_test_finished(); });
+-    }
+-  };
+-
+-  gCaptivePortalDetector.checkCaptivePortal(kInterfaceName, callback);
+-}
+-
+-function run_test() {
+-  run_captivedetect_test(xhr_handler, fakeUIResponse, test_portal_not_found);
+-}
+diff --git a/toolkit/components/captivedetect/test/unit/test_captive_portal_not_found_404.js b/toolkit/components/captivedetect/test/unit/test_captive_portal_not_found_404.js
+deleted file mode 100644
+index 66bcdd0..0000000
+--- a/toolkit/components/captivedetect/test/unit/test_captive_portal_not_found_404.js
++++ /dev/null
+@@ -1,49 +0,0 @@
+-/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+-/* This Source Code Form is subject to the terms of the Mozilla Public
+- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+-'use strict';
+-
+-const kInterfaceName = 'wifi';
+-
+-var server;
+-var step = 0;
+-var loginFinished = false;
+-var attempt = 0;
+-
+-function xhr_handler(metadata, response) {
+-  response.setStatusLine(metadata.httpVersion, 404, "Page not Found");
+-  attempt++;
+-}
+-
+-function fakeUIResponse() {
+-  Services.obs.addObserver(function observe(subject, topic, data) {
+-    if (topic === 'captive-portal-login') {
+-      do_throw('should not receive captive-portal-login event');
+-    }
+-  }, 'captive-portal-login', false);
+-}
+-
+-function test_portal_not_found() {
+-  do_test_pending();
+-
+-  let callback = {
+-    QueryInterface: XPCOMUtils.generateQI([Ci.nsICaptivePortalCallback]),
+-    prepare: function prepare() {
+-      do_check_eq(++step, 1);
+-      gCaptivePortalDetector.finishPreparation(kInterfaceName);
+-    },
+-    complete: function complete(success) {
+-      do_check_eq(++step, 2);
+-      do_check_false(success);
+-      do_check_eq(attempt, 6);
+-      gServer.stop(do_test_finished);
+-    },
+-  };
+-
+-  gCaptivePortalDetector.checkCaptivePortal(kInterfaceName, callback);
+-}
+-
+-function run_test() {
+-  run_captivedetect_test(xhr_handler, fakeUIResponse, test_portal_not_found);
+-}
+diff --git a/toolkit/components/captivedetect/test/unit/test_multiple_requests.js b/toolkit/components/captivedetect/test/unit/test_multiple_requests.js
+deleted file mode 100644
+index 11cf5e4..0000000
+--- a/toolkit/components/captivedetect/test/unit/test_multiple_requests.js
++++ /dev/null
+@@ -1,83 +0,0 @@
+-/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+-/* This Source Code Form is subject to the terms of the Mozilla Public
+- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+-'use strict';
+-
+-const kInterfaceName = 'wifi';
+-const kOtherInterfaceName = 'ril';
+-
+-var server;
+-var step = 0;
+-var loginFinished = false;
+-var loginSuccessCount = 0;
+-
+-function xhr_handler(metadata, response) {
+-  response.setStatusLine(metadata.httpVersion, 200, 'OK');
+-  response.setHeader('Cache-Control', 'no-cache', false);
+-  response.setHeader('Content-Type', 'text/plain', false);
+-  if (loginFinished) {
+-    response.write('true');
+-  } else {
+-    response.write('false');
+-  }
+-}
+-
+-function fakeUIResponse() {
+-  Services.obs.addObserver(function observe(subject, topic, data) {
+-    if (topic === 'captive-portal-login') {
+-      let xhr = Cc['@mozilla.org/xmlextras/xmlhttprequest;1']
+-                  .createInstance(Ci.nsIXMLHttpRequest);
+-      xhr.open('GET', gServerURL + kCanonicalSitePath, true);
+-      xhr.send();
+-      loginFinished = true;
+-      do_check_eq(++step, 2);
+-    }
+-  }, 'captive-portal-login', false);
+-
+-  Services.obs.addObserver(function observe(subject, topic, data) {
+-    if (topic === 'captive-portal-login-success') {
+-      loginSuccessCount++;
+-      if (loginSuccessCount > 1) {
+-        throw "We should only receive 'captive-portal-login-success' once";
+-      }
+-      do_check_eq(++step, 4);
+-    }
+-  }, 'captive-portal-login-success', false);
+-}
+-
+-function test_multiple_requests() {
+-  do_test_pending();
+-
+-  let callback = {
+-    QueryInterface: XPCOMUtils.generateQI([Ci.nsICaptivePortalCallback]),
+-    prepare: function prepare() {
+-      do_check_eq(++step, 1);
+-      gCaptivePortalDetector.finishPreparation(kInterfaceName);
+-    },
+-    complete: function complete(success) {
+-      do_check_eq(++step, 3);
+-      do_check_true(success);
+-    },
+-  };
+-
+-  let otherCallback = {
+-    QueryInterface: XPCOMUtils.generateQI([Ci.nsICaptivePortalCallback]),
+-    prepare: function prepare() {
+-      do_check_eq(++step, 5);
+-      gCaptivePortalDetector.finishPreparation(kOtherInterfaceName);
+-    },
+-    complete: function complete(success) {
+-      do_check_eq(++step, 6);
+-      do_check_true(success);
+-      gServer.stop(do_test_finished);
+-    }
+-  };
+-
+-  gCaptivePortalDetector.checkCaptivePortal(kInterfaceName, callback);
+-  gCaptivePortalDetector.checkCaptivePortal(kOtherInterfaceName, otherCallback);
+-}
+-
+-function run_test() {
+-  run_captivedetect_test(xhr_handler, fakeUIResponse, test_multiple_requests);
+-}
+diff --git a/toolkit/components/captivedetect/test/unit/test_user_cancel.js b/toolkit/components/captivedetect/test/unit/test_user_cancel.js
+deleted file mode 100644
+index a038768..0000000
+--- a/toolkit/components/captivedetect/test/unit/test_user_cancel.js
++++ /dev/null
+@@ -1,54 +0,0 @@
+-/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+-/* This Source Code Form is subject to the terms of the Mozilla Public
+- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+-'use strict';
+-
+-const kInterfaceName = 'wifi';
+-
+-var server;
+-var step = 0;
+-
+-function xhr_handler(metadata, response) {
+-  response.setStatusLine(metadata.httpVersion, 200, 'OK');
+-  response.setHeader('Cache-Control', 'no-cache', false);
+-  response.setHeader('Content-Type', 'text/plain', false);
+-  response.write('false');
+-}
+-
+-function fakeUIResponse() {
+-  Services.obs.addObserver(function observe(subject, topic, data) {
+-    if (topic === 'captive-portal-login') {
+-      let xhr = Cc['@mozilla.org/xmlextras/xmlhttprequest;1']
+-                  .createInstance(Ci.nsIXMLHttpRequest);
+-      xhr.open('GET', gServerURL + kCanonicalSitePath, true);
+-      xhr.send();
+-      do_check_eq(++step, 2);
+-      let details = JSON.parse(data);
+-      gCaptivePortalDetector.cancelLogin(details.id);
+-    }
+-  }, 'captive-portal-login', false);
+-}
+-
+-function test_cancel() {
+-  do_test_pending();
+-
+-  let callback = {
+-    QueryInterface: XPCOMUtils.generateQI([Ci.nsICaptivePortalCallback]),
+-    prepare: function prepare() {
+-      do_check_eq(++step, 1);
+-      gCaptivePortalDetector.finishPreparation(kInterfaceName);
+-    },
+-    complete: function complete(success) {
+-      do_check_eq(++step, 3);
+-      do_check_false(success);
+-      gServer.stop(do_test_finished);
+-    },
+-  };
+-
+-  gCaptivePortalDetector.checkCaptivePortal(kInterfaceName, callback);
+-}
+-
+-function run_test() {
+-  run_captivedetect_test(xhr_handler, fakeUIResponse, test_cancel);
+-}
+diff --git a/toolkit/components/captivedetect/test/unit/xpcshell.ini b/toolkit/components/captivedetect/test/unit/xpcshell.ini
+deleted file mode 100644
+index 0f440c4..0000000
+--- a/toolkit/components/captivedetect/test/unit/xpcshell.ini
++++ /dev/null
+@@ -1,15 +0,0 @@
+-[DEFAULT]
+-head = head_setprefs.js
+-tail =
+-
+-[test_captive_portal_not_found.js]
+-[test_captive_portal_not_found_404.js]
+-[test_captive_portal_found.js]
+-[test_captive_portal_found_303.js]
+-[test_abort.js]
+-[test_abort_during_user_login.js]
+-[test_user_cancel.js]
+-[test_multiple_requests.js]
+-[test_abort_ongoing_request.js]
+-[test_abort_pending_request.js]
+-
+-- 
+2.8.2.windows.1
+

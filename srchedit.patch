@@ -1,0 +1,360 @@
+From b7d38a90f6af464fdfb8a6225d044f5309dcc7ae Mon Sep 17 00:00:00 2001
+From: Fedor <fedor@mail.ru>
+Date: Thu, 22 Nov 2018 02:24:16 +0300
+Subject: [PATCH] srchedit
+
+---
+ .../components/search/content/engineManager.js     | 203 +++++++++++++++++----
+ .../components/search/content/engineManager.xul    |   3 +-
+ application/palemoon/components/search/jar.mn      |   2 +
+ .../locales/en-US/chrome/browser/engineManager.dtd |   2 +-
+ application/palemoon/locales/jar.mn                |   2 +
+ application/palemoon/themes/linux/jar.mn           |   1 +
+ .../components/search/current/nsSearchService.js   |  15 ++
+ 7 files changed, 189 insertions(+), 39 deletions(-)
+
+diff --git a/application/palemoon/components/search/content/engineManager.js b/application/palemoon/components/search/content/engineManager.js
+index 993d48b..109dc08 100644
+--- a/application/palemoon/components/search/content/engineManager.js
++++ b/application/palemoon/components/search/content/engineManager.js
+@@ -57,6 +57,20 @@ var gEngineManagerDialog = {
+     }
+   },
+ 
++  onCancel: function () {
++    // restore engine urls
++    let engines = gEngineView._engineStore.engines;
++    for each (let engine in engines) {
++      let ee = engine.originalEngine.wrappedJSObject;
++      for (let url of ee._urls) {
++        for (let name of ["method", "template", "params"]) {
++          let nn = "__new_"+name;
++          if (nn in url) delete url[nn];
++        }
++      }
++    }
++  },
++
+   onOK: function engineManager_onOK() {
+     // Set the preference
+     var newSuggestEnabled = document.getElementById("enableSuggest").checked;
+@@ -64,6 +78,37 @@ var gEngineManagerDialog = {
+ 
+     // Commit the changes
+     gEngineView._engineStore.commit();
++
++    let engines = gEngineView._engineStore.engines;
++    for each (let engine in engines) {
++      let ee = engine.originalEngine.wrappedJSObject;
++      for (let url of ee._urls) {
++        for (let name of ["method", "template", "params"]) {
++          let nn = "__new_"+name;
++          if (nn in url) {
++            url[name] = url[nn];
++            delete url[nn];
++          }
++        }
++      }
++      if (ee._name != engine.name) {
++        let oldname = ee._name;
++        engine.originalEngine.name = engine.name;
++        ee.__old_name = ee._name;
++        ee._name = engine.name;
++        Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService).notifyObservers(ee, "browser-search-engine-modified", "engine-renamed");
++      }
++      if ("_searchForm" in engine) ee._searchForm = engine._searchForm;
++      if ("_queryCharset" in engine) ee._queryCharset = engine._queryCharset;
++      if (engine.__icon_changed) {
++        Components.utils.reportError("icon for '"+ee._name+"' was changed!");
++        ee._setIcon(engine.iconURI.spec, true);
++      }
++      // inform everybody of the changes, also stores our changes in the cache
++      Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService).notifyObservers(ee, "browser-search-engine-modified", "engine-changed");
++      //Tycho doesn't have this; besides, "engine-changed" will do that for us
++      //if (!ee._readOnly) ee._lazySerializeToFile();
++    }
+   },
+ 
+   onRestoreDefaults: function engineManager_onRestoreDefaults() {
+@@ -112,47 +157,127 @@ var gEngineManagerDialog = {
+ 
+   editKeyword: Task.async(function* engineManager_editKeyword() {
+     var selectedEngine = gEngineView.selectedEngine;
+-    if (!selectedEngine)
+-      return;
+-
+-    var alias = { value: selectedEngine.alias };
+-    var strings = document.getElementById("engineManagerBundle");
+-    var title = strings.getString("editTitle");
+-    var msg = strings.getFormattedString("editMsg", [selectedEngine.name]);
+-
+-    while (Services.prompt.prompt(window, title, msg, alias, null, {})) {
+-      var bduplicate = false;
+-      var eduplicate = false;
+-      var dupName = "";
+-
+-      if (alias.value != "") {
+-        // Check for duplicates in Places keywords.
+-        bduplicate = !!(yield PlacesUtils.keywords.fetch(alias.value));
+-
+-        // Check for duplicates in changes we haven't committed yet
+-        let engines = gEngineView._engineStore.engines;
+-        for each (let engine in engines) {
+-          if (engine.alias == alias.value &&
+-              engine.name != selectedEngine.name) {
+-            eduplicate = true;
+-            dupName = engine.name;
+-            break;
++    if (!selectedEngine) return;
++
++    // returns either null or object:
++    //  string name
++    //  string alias
++    //  string qtext
++    //  url iconURI
++    function buildParams (engine) {
++      function url2text (ceng, eng, u) {
++        function getUF (name) {
++          let nn = "__new_"+name;
++          return (nn in u ? u[nn] : u[name]);
++        }
++        function getEF (name) {
++          return (name in ceng ? ceng[name] : eng[name]);
++        }
++        let normStr = function (s) { return s.replace(/\\/g, "\\\\").replace(/:/g, "\\:"); };
++        let tpl = getUF("template")||getEF("_searchForm");
++        let s = getUF("method")+" "+tpl+"\n"+(getEF("_queryCharset")||"UTF-8")+"\n";
++        let uparams = getUF("params");
++        if (uparams.length) {
++          s += "\n";
++          for (let p of uparams) {
++            s += p.name+"=";
++            if (p.value == "{searchTerms}") s += p.value; else s += normStr(p.value);
++            s += "\n";
+           }
+         }
++        return s;
+       }
+ 
+-      // Notify the user if they have chosen an existing engine/bookmark keyword
+-      if (eduplicate || bduplicate) {
+-        var dtitle = strings.getString("duplicateTitle");
+-        var bmsg = strings.getString("duplicateBookmarkMsg");
+-        var emsg = strings.getFormattedString("duplicateEngineMsg", [dupName]);
++      let res = {
++        iconURI: engine.iconURI,
++        name: engine.name,
++        alias: engine.alias,
++        engine: engine,
++      };
++      if (res.iconURI) res.iconURI = res.iconURI.spec;
++
++      let ceng = engine;
++      engine = engine.originalEngine.wrappedJSObject;
++
++      //if (engine._readOnly && !("_serializeToJSON" in engine)) {
++        // fallback to keyword editor
++      //  return null;
++      //} else {
++        res.qtext = null;
++        let url = engine._getURLOfType("text/html");
++        if (!url) return null;
++        res.qtext = url2text(ceng, engine, url);
++      //}
++
++      return res;
++    }
+ 
+-        Services.prompt.alert(window, dtitle, eduplicate ? emsg : bmsg);
+-      } else {
+-        gEngineView._engineStore.changeEngine(selectedEngine, "alias",
+-                                              alias.value);
+-        gEngineView.invalidate();
+-        break;
++    let params = buildParams(selectedEngine);
++    if (params) {
++      // use extended dialog
++      //params.engine = selectedEngine;
++      params.estore = gEngineView._engineStore;
++      openDialog("chrome://browser/content/search/engineInfoEdit.xul",
++                 "browser-search-info-editor", "chrome,dialog,modal,centerscreen,resizable",
++                 params);
++      if (params.accepted) {
++        let inv = false;
++        if (params.alias != selectedEngine.alias) {
++          inv = true;
++          gEngineView._engineStore.changeEngine(selectedEngine, "alias", params.alias);
++        }
++        if (params.name != selectedEngine.name) {
++          inv = true;
++          gEngineView._engineStore.changeEngine(selectedEngine, "name", params.name);
++          //selectedEngine.name = params.name;
++        }
++        if (params.url != selectedEngine._searchForm) selectedEngine._searchForm = params.url;
++        if (params.charset != selectedEngine._queryCharset) selectedEngine._queryCharset = params.charset;
++        if (params.iconURI && params.iconChanged) {
++          let newURI = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService).newURI;
++          selectedEngine.iconURI = newURI(params.iconURI, null, null);
++          selectedEngine.__icon_changed = true;
++          inv = true;
++        }
++        if (inv) gEngineView.invalidate();
++      }
++    } else {
++      // use old dialog, so user can edit at least something
++      var alias = { value: selectedEngine.alias };
++      var strings = document.getElementById("engineManagerBundle");
++      var title = strings.getString("editTitle");
++      var msg = strings.getFormattedString("editMsg", [selectedEngine.name]);
++      while (Services.prompt.prompt(window, title, msg, alias, null, {})) {
++        var bduplicate = false;
++        var eduplicate = false;
++        var dupName = "";
++        if (alias.value != "") {
++          try {
++            let bmserv = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
++                         getService(Ci.nsINavBookmarksService);
++            if (bmserv.getURIForKeyword(alias.value)) bduplicate = true;
++          } catch(ex) {}
++          // Check for duplicates in changes we haven't committed yet
++          let engines = gEngineView._engineStore.engines;
++          for each (let engine in engines) {
++            if (engine.alias == alias.value && engine.name != selectedEngine.name) {
++              eduplicate = true;
++              dupName = engine.name;
++              break;
++            }
++          }
++        }
++        // Notify the user if they have chosen an existing engine/bookmark keyword
++        if (eduplicate || bduplicate) {
++          var dtitle = strings.getString("duplicateTitle");
++          var bmsg = strings.getString("duplicateBookmarkMsg");
++          var emsg = strings.getFormattedString("duplicateEngineMsg", [dupName]);
++          Services.prompt.alert(window, dtitle, eduplicate ? emsg : bmsg);
++        } else {
++          gEngineView._engineStore.changeEngine(selectedEngine, "alias", alias.value);
++          gEngineView.invalidate();
++          break;
++        }
+       }
+     }
+   }),
+@@ -176,7 +301,11 @@ var gEngineManagerDialog = {
+ 
+     document.getElementById("cmd_editkeyword")
+             .setAttribute("disabled", noSelection);
+-  }
++  },
++
++  onDblClick: function () {
++    if (gEngineView.selectedIndex >= 0) gEngineManagerDialog.editKeyword();
++  },
+ };
+ 
+ function onDragEngineStart(event) {
+diff --git a/application/palemoon/components/search/content/engineManager.xul b/application/palemoon/components/search/content/engineManager.xul
+index 1152ef8..8aa8005 100644
+--- a/application/palemoon/components/search/content/engineManager.xul
++++ b/application/palemoon/components/search/content/engineManager.xul
+@@ -16,6 +16,7 @@
+         onload="gEngineManagerDialog.init();"
+         onunload="gEngineManagerDialog.destroy();"
+         ondialogaccept="gEngineManagerDialog.onOK();"
++        ondialogcancel="gEngineManagerDialog.onCancel();"
+         ondialogextra2="gEngineManagerDialog.onRestoreDefaults();"
+         title="&engineManager.title;"
+         style="&engineManager.style;"
+@@ -52,7 +53,7 @@
+   <separator class="thin"/>
+   <hbox flex="1">
+     <tree id="engineList" flex="1" rows="10" hidecolumnpicker="true"
+-          seltype="single" onselect="gEngineManagerDialog.onSelect();">
++          seltype="single" onselect="gEngineManagerDialog.onSelect();" ondblclick="gEngineManagerDialog.onDblClick();">
+       <treechildren id="engineChildren" flex="1"
+                     ondragstart="onDragEngineStart(event);"/>
+       <treecols>
+diff --git a/application/palemoon/components/search/jar.mn b/application/palemoon/components/search/jar.mn
+index 88a33a9..ceb80da 100644
+--- a/application/palemoon/components/search/jar.mn
++++ b/application/palemoon/components/search/jar.mn
+@@ -7,3 +7,5 @@ browser.jar:
+         content/browser/search/searchbarBindings.css                (content/searchbarBindings.css)
+         content/browser/search/engineManager.xul                    (content/engineManager.xul)
+         content/browser/search/engineManager.js                     (content/engineManager.js)
++        content/browser/search/engineInfoEdit.xul                   (content/engineInfoEdit.xul)
++        content/browser/search/engineInfoEdit.js                    (content/engineInfoEdit.js)
+diff --git a/application/palemoon/locales/en-US/chrome/browser/engineManager.dtd b/application/palemoon/locales/en-US/chrome/browser/engineManager.dtd
+index 8ad9772..e18825a 100644
+--- a/application/palemoon/locales/en-US/chrome/browser/engineManager.dtd
++++ b/application/palemoon/locales/en-US/chrome/browser/engineManager.dtd
+@@ -16,7 +16,7 @@
+ <!ENTITY  dn.accesskey              "D">
+ <!ENTITY  remove.label              "Remove">
+ <!ENTITY  remove.accesskey          "R">
+-<!ENTITY  edit.label                "Edit Keyword…">
++<!ENTITY  edit.label                "Edit engine…">
+ <!ENTITY  edit.accesskey            "t">
+ 
+ <!ENTITY  addEngine.label           "Get more search engines…">
+diff --git a/application/palemoon/locales/jar.mn b/application/palemoon/locales/jar.mn
+index e3477c3..6729288 100644
+--- a/application/palemoon/locales/jar.mn
++++ b/application/palemoon/locales/jar.mn
+@@ -36,6 +36,8 @@
+     locale/browser/searchbar.dtd                   (%chrome/browser/searchbar.dtd)
+     locale/browser/engineManager.dtd               (%chrome/browser/engineManager.dtd)
+     locale/browser/engineManager.properties        (%chrome/browser/engineManager.properties)
++    locale/browser/engineInfoEdit.dtd              (%chrome/browser/engineInfoEdit.dtd)
++    locale/browser/engineInfoEdit.properties       (%chrome/browser/engineInfoEdit.properties)
+     locale/browser/setDesktopBackground.dtd        (%chrome/browser/setDesktopBackground.dtd)
+     locale/browser/shellservice.properties         (%chrome/browser/shellservice.properties)
+     locale/browser/statusbar/statusbar-overlay.dtd (%chrome/browser/statusbar/statusbar-overlay.dtd)
+diff --git a/application/palemoon/themes/linux/jar.mn b/application/palemoon/themes/linux/jar.mn
+index 8b2e9dc..682ec87 100644
+--- a/application/palemoon/themes/linux/jar.mn
++++ b/application/palemoon/themes/linux/jar.mn
+@@ -21,6 +21,7 @@ browser.jar:
+ * skin/classic/browser/browser.css
+   skin/classic/browser/click-to-play-warning-stripes.png
+ * skin/classic/browser/engineManager.css
++* skin/classic/browser/engineInfoEdit.css
+   skin/classic/browser/Geolocation-16.png
+   skin/classic/browser/Geolocation-64.png
+   skin/classic/browser/Go-arrow.png
+diff --git a/toolkit/components/search/current/nsSearchService.js b/toolkit/components/search/current/nsSearchService.js
+index 99e73b5..0768e2b 100644
+--- a/toolkit/components/search/current/nsSearchService.js
++++ b/toolkit/components/search/current/nsSearchService.js
+@@ -73,6 +73,7 @@ const SEARCH_ENGINE_CHANGED      = "engine-changed";
+ const SEARCH_ENGINE_LOADED       = "engine-loaded";
+ const SEARCH_ENGINE_CURRENT      = "engine-current";
+ const SEARCH_ENGINE_DEFAULT      = "engine-default";
++const SEARCH_ENGINE_RENAMED      = "engine-renamed";
+ 
+ // The following constants are left undocumented in nsIBrowserSearchService.idl
+ // For the moment, they are meant for testing/debugging purposes only.
+@@ -4594,6 +4595,20 @@ SearchService.prototype = {
+             // Invalidate the map used to parse URLs to search engines.
+             this._parseSubmissionMap = null;
+             break;
++          case SEARCH_ENGINE_RENAMED:
++            if (aEngine && ("wrappedJSObject" in aEngine)) {
++              let wjo = aEngine.wrappedJSObject;
++              if (wjo && ("__old_name" in wjo)) {
++                delete this._engines[wjo.__old_name];
++                this._engines[wjo._name] = wjo;
++                delete wjo.__old_name;
++                this.batchTask.disarm();
++                this.batchTask.arm();
++                // Invalidate the map used to parse URLs to search engines.
++                this._parseSubmissionMap = null;
++              }
++            }
++            break;
+         }
+         break;
+ 
+-- 
+2.8.2.windows.1
+

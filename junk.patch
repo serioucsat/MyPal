@@ -1,0 +1,1143 @@
+From 1417628e7ac6f2184298eb41879ee3eb41046d17 Mon Sep 17 00:00:00 2001
+From: Fedor <fedor@mail.ru>
+Date: Fri, 7 Sep 2018 09:58:45 +0300
+Subject: [PATCH] junk
+
+---
+ application/basilisk/app/profile/basilisk.js       |   3 -
+ .../basilisk/base/content/aboutNetError.xhtml      |  48 +---------
+ application/basilisk/base/content/browser.js       |  24 -----
+ application/basilisk/base/content/content.js       |  17 ----
+ .../basilisk/base/content/global-scripts.inc       |   1 -
+ application/basilisk/base/content/newtab/newTab.js |   1 -
+ application/basilisk/base/jar.mn                   |   1 -
+ application/basilisk/components/nsBrowserGlue.js   |   3 -
+ application/basilisk/installer/package-manifest.in |   3 -
+ .../en-US/chrome/browser/browser.properties        |  11 ---
+ .../locales/en-US/chrome/overrides/netError.dtd    |   7 --
+ application/basilisk/modules/moz.build             |   1 -
+ .../basilisk/themes/shared/aboutNetError.css       |  19 ----
+ .../locales/en-US/chrome/overrides/netError.dtd    |   7 --
+ docshell/base/nsDocShell.cpp                       |   8 --
+ dom/ipc/ContentChild.cpp                           |  20 +---
+ dom/ipc/ContentChild.h                             |   1 -
+ dom/ipc/ContentParent.cpp                          |  20 ----
+ dom/ipc/ContentParent.h                            |   1 -
+ dom/ipc/PContent.ipdl                              |   3 +-
+ media/webrtc/trunk/build/common.gypi               |  11 +--
+ media/webrtc/trunk/peerconnection_client.target.mk |   2 -
+ mobile/android/installer/package-manifest.in       |   4 -
+ modules/libpref/init/all.js                        |  14 ---
+ netwerk/base/moz.build                             |   3 -
+ netwerk/base/nsIOService.cpp                       | 103 ---------------------
+ netwerk/base/nsIOService.h                         |   7 --
+ netwerk/build/nsNetCID.h                           |  11 ---
+ netwerk/build/nsNetModule.cpp                      |  10 --
+ netwerk/protocol/http/nsHttpChannel.cpp            |   8 --
+ testing/profiles/prefs_general.js                  |   1 -
+ toolkit/components/moz.build                       |   2 -
+ 33 files changed, 5 insertions(+), 372 deletions(-)
+
+diff --git a/application/basilisk/app/profile/basilisk.js b/application/basilisk/app/profile/basilisk.js
+index 7a7cec9..588b9e7 100644
+--- a/application/basilisk/app/profile/basilisk.js
++++ b/application/basilisk/app/profile/basilisk.js
+@@ -574,9 +574,6 @@ pref("mousewheel.with_win.action", 1);
+ pref("browser.xul.error_pages.enabled", true);
+ pref("browser.xul.error_pages.expert_bad_cert", false);
+ 
+-// Enable captive portal detection.
+-pref("network.captive-portal-service.enabled", true);
+-
+ // If true, network link events will change the value of navigator.onLine
+ pref("network.manage-offline-status", true);
+ 
+diff --git a/application/basilisk/base/content/aboutNetError.xhtml b/application/basilisk/base/content/aboutNetError.xhtml
+index 3296600..03f2bb8 100644
+--- a/application/basilisk/base/content/aboutNetError.xhtml
++++ b/application/basilisk/base/content/aboutNetError.xhtml
+@@ -30,8 +30,6 @@
+       //   e - the error code
+       //   s - custom CSS class to allow alternate styling/favicons
+       //   d - error description
+-      //   captive - "true" to indicate we're behind a captive portal.
+-      //             Any other value is ignored.
+ 
+       // Note that this file uses document.documentURI to get
+       // the URL (with the format from above). This is because
+@@ -59,10 +57,6 @@
+         return searchParams.get("d");
+       }
+ 
+-      function isCaptive() {
+-        return searchParams.get("captive") == "true";
+-      }
+-
+       function retryThis(buttonEl)
+       {
+         // Note: The application may wish to handle switching off "offline mode"
+@@ -166,11 +160,6 @@
+       {
+         var err = getErrorCode();
+         gIsCertError = (err == "nssBadCert");
+-        // Only worry about captive portals if this is a cert error.
+-        let showCaptivePortalUI = isCaptive() && gIsCertError;
+-        if (showCaptivePortalUI) {
+-          err = "captivePortal";
+-        }
+ 
+         // if it's an unknown error or there's no title or description
+         // defined, get the generic message
+@@ -193,10 +182,7 @@
+             sd.textContent = getDescription();
+           }
+         }
+-        if (showCaptivePortalUI) {
+-          initPageCaptivePortal();
+-          return;
+-        }
++
+         if (gIsCertError) {
+           initPageCertError();
+           return;
+@@ -289,29 +275,6 @@
+         addDomainErrorLink();
+       }
+ 
+-      function initPageCaptivePortal()
+-      {
+-        document.body.className = "captiveportal";
+-        document.title = document.getElementById("captivePortalPageTitle").textContent;
+-
+-        document.getElementById("openPortalLoginPageButton")
+-                .addEventListener("click", () => {
+-          let event = new CustomEvent("AboutNetErrorOpenCaptivePortal", {bubbles:true});
+-          document.dispatchEvent(event);
+-        });
+-
+-        addAutofocus("openPortalLoginPageButton");
+-        setupAdvancedButton(true);
+-
+-        addDomainErrorLink();
+-
+-        // When the portal is freed, an event is generated by the frame script
+-        // that we can pick up and attempt to reload the original page.
+-        window.addEventListener("AboutNetErrorCaptivePortalFreed", () => {
+-          document.location.reload();
+-        });
+-      }
+-
+       function initPageCertError() {
+         document.body.className = "certerror";
+         document.title = document.getElementById("certErrorPageTitle").textContent;
+@@ -434,13 +397,11 @@
+   <body dir="&locale.dir;">
+     <!-- Contains an alternate page title set on page init for cert errors. -->
+     <div id="certErrorPageTitle" style="display: none;">&certerror.pagetitle1;</div>
+-    <div id="captivePortalPageTitle" style="display: none;">&captivePortal.title;</div>
+ 
+     <!-- ERROR ITEM CONTAINER (removed during loading to avoid bug 39098) -->
+     <div id="errorContainer">
+       <div id="errorTitlesContainer">
+         <h1 id="et_generic">&generic.title;</h1>
+-        <h1 id="et_captivePortal">&captivePortal.title;</h1>
+         <h1 id="et_dnsNotFound">&dnsNotFound.title;</h1>
+         <h1 id="et_fileNotFound">&fileNotFound.title;</h1>
+         <h1 id="et_fileAccessDenied">&fileAccessDenied.title;</h1>
+@@ -470,7 +431,6 @@
+       </div>
+       <div id="errorDescriptionsContainer">
+         <div id="ed_generic">&generic.longDesc;</div>
+-        <div id="ed_captivePortal">&captivePortal.longDesc;</div>
+         <div id="ed_dnsNotFound">&dnsNotFound.longDesc;</div>
+         <div id="ed_fileNotFound">&fileNotFound.longDesc;</div>
+         <div id="ed_fileAccessDenied">&fileAccessDenied.longDesc;</div>
+@@ -529,12 +489,6 @@
+           <button id="prefResetButton" class="primary" autocomplete="off">&prefReset.label;</button>
+         </div>
+ 
+-        <div id="certErrorAndCaptivePortalButtonContainer" class="button-container">
+-          <button id="returnButton" class="primary" autocomplete="off">&returnToPreviousPage.label;</button>
+-          <button id="openPortalLoginPageButton" class="primary" autocomplete="off">&openPortalLoginPage.label;</button>
+-          <div class="button-spacer"></div>
+-          <button id="advancedButton" autocomplete="off">&advanced.label;</button>
+-        </div>
+       </div>
+ 
+       <div id="netErrorButtonContainer" class="button-container">
+diff --git a/application/basilisk/base/content/browser.js b/application/basilisk/base/content/browser.js
+index 4f4ebb0..aa04f51 100644
+--- a/application/basilisk/base/content/browser.js
++++ b/application/basilisk/base/content/browser.js
+@@ -976,7 +976,6 @@ var gBrowserInit = {
+     AboutPrivateBrowsingListener.init();
+     TrackingProtection.init();
+     RefreshBlocker.init();
+-    CaptivePortalWatcher.init();
+ 
+     let mm = window.getGroupMessageManager("browsers");
+     mm.loadFrameScript("chrome://browser/content/tab-content.js", true);
+@@ -1512,8 +1511,6 @@ var gBrowserInit = {
+ 
+     RefreshBlocker.uninit();
+ 
+-    CaptivePortalWatcher.uninit();
+-
+     gMenuButtonUpdateBadge.uninit();
+ 
+     gMenuButtonBadgeManager.uninit();
+@@ -2745,16 +2742,12 @@ var BrowserOnClick = {
+   init: function () {
+     let mm = window.messageManager;
+     mm.addMessageListener("Browser:CertExceptionError", this);
+-    mm.addMessageListener("Browser:OpenCaptivePortalPage", this);
+     mm.addMessageListener("Browser:SiteBlockedError", this);
+     mm.addMessageListener("Browser:EnableOnlineMode", this);
+     mm.addMessageListener("Browser:ResetSSLPreferences", this);
+     mm.addMessageListener("Browser:SSLErrorReportTelemetry", this);
+     mm.addMessageListener("Browser:OverrideWeakCrypto", this);
+     mm.addMessageListener("Browser:SSLErrorGoBack", this);
+-
+-    Services.obs.addObserver(this, "captive-portal-login-abort", false);
+-    Services.obs.addObserver(this, "captive-portal-login-success", false);
+   },
+ 
+   uninit: function () {
+@@ -2766,20 +2759,6 @@ var BrowserOnClick = {
+     mm.removeMessageListener("Browser:SSLErrorReportTelemetry", this);
+     mm.removeMessageListener("Browser:OverrideWeakCrypto", this);
+     mm.removeMessageListener("Browser:SSLErrorGoBack", this);
+-
+-    Services.obs.removeObserver(this, "captive-portal-login-abort");
+-    Services.obs.removeObserver(this, "captive-portal-login-success");
+-  },
+-
+-  observe: function(aSubject, aTopic, aData) {
+-    switch (aTopic) {
+-      case "captive-portal-login-abort":
+-      case "captive-portal-login-success":
+-        // Broadcast when a captive portal is freed so that error pages
+-        // can refresh themselves.
+-        window.messageManager.broadcastAsyncMessage("Browser:CaptivePortalFreed");
+-      break;
+-    }
+   },
+ 
+   receiveMessage: function (msg) {
+@@ -2789,9 +2768,6 @@ var BrowserOnClick = {
+                          msg.data.isTopFrame, msg.data.location,
+                          msg.data.securityInfoAsString);
+       break;
+-      case "Browser:OpenCaptivePortalPage":
+-        CaptivePortalWatcher.ensureCaptivePortalTab();
+-      break;
+       case "Browser:SiteBlockedError":
+         this.onAboutBlocked(msg.data.elementId, msg.data.reason,
+                             msg.data.isTopFrame, msg.data.location);
+diff --git a/application/basilisk/base/content/content.js b/application/basilisk/base/content/content.js
+index 5accbdf..55a97f1 100644
+--- a/application/basilisk/base/content/content.js
++++ b/application/basilisk/base/content/content.js
+@@ -264,9 +264,7 @@ function getSerializedSecurityInfo(docShell) {
+ var AboutNetAndCertErrorListener = {
+   init: function(chromeGlobal) {
+     addMessageListener("CertErrorDetails", this);
+-    addMessageListener("Browser:CaptivePortalFreed", this);
+     chromeGlobal.addEventListener('AboutNetErrorLoad', this, false, true);
+-    chromeGlobal.addEventListener('AboutNetErrorOpenCaptivePortal', this, false, true);
+     chromeGlobal.addEventListener('AboutNetErrorSetAutomatic', this, false, true);
+     chromeGlobal.addEventListener('AboutNetErrorOverride', this, false, true);
+     chromeGlobal.addEventListener('AboutNetErrorResetPreferences', this, false, true);
+@@ -289,9 +287,6 @@ var AboutNetAndCertErrorListener = {
+       case "CertErrorDetails":
+         this.onCertErrorDetails(msg);
+         break;
+-      case "Browser:CaptivePortalFreed":
+-        this.onCaptivePortalFreed(msg);
+-        break;
+     }
+   },
+ 
+@@ -338,10 +333,6 @@ var AboutNetAndCertErrorListener = {
+     }
+   },
+ 
+-  onCaptivePortalFreed(msg) {
+-    content.dispatchEvent(new content.CustomEvent("AboutNetErrorCaptivePortalFreed"));
+-  },
+-
+   handleEvent: function(aEvent) {
+     if (!this.isAboutNetError && !this.isAboutCertError) {
+       return;
+@@ -351,9 +342,6 @@ var AboutNetAndCertErrorListener = {
+     case "AboutNetErrorLoad":
+       this.onPageLoad(aEvent);
+       break;
+-    case "AboutNetErrorOpenCaptivePortal":
+-      this.openCaptivePortalPage(aEvent);
+-      break;
+     case "AboutNetErrorSetAutomatic":
+       this.onSetAutomatic(aEvent);
+       break;
+@@ -384,11 +372,6 @@ var AboutNetAndCertErrorListener = {
+     }
+   },
+ 
+-  openCaptivePortalPage: function(evt) {
+-    sendAsyncMessage("Browser:OpenCaptivePortalPage");
+-  },
+-
+-
+   onResetPreferences: function(evt) {
+     sendAsyncMessage("Browser:ResetSSLPreferences");
+   },
+diff --git a/application/basilisk/base/content/global-scripts.inc b/application/basilisk/base/content/global-scripts.inc
+index eef21e1..7d0ef79 100644
+--- a/application/basilisk/base/content/global-scripts.inc
++++ b/application/basilisk/base/content/global-scripts.inc
+@@ -11,7 +11,6 @@
+ <script type="application/javascript" src="chrome://global/content/viewSourceUtils.js"/>
+ 
+ <script type="application/javascript" src="chrome://browser/content/browser-addons.js"/>
+-<script type="application/javascript" src="chrome://browser/content/browser-captivePortal.js"/>
+ <script type="application/javascript" src="chrome://browser/content/browser-ctrlTab.js"/>
+ <script type="application/javascript" src="chrome://browser/content/browser-customization.js"/>
+ <script type="application/javascript" src="chrome://browser/content/browser-devedition.js"/>
+diff --git a/application/basilisk/base/content/newtab/newTab.js b/application/basilisk/base/content/newtab/newTab.js
+index bbd2ef3..1731eda 100644
+--- a/application/basilisk/base/content/newtab/newTab.js
++++ b/application/basilisk/base/content/newtab/newTab.js
+@@ -11,7 +11,6 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+ Cu.import("resource://gre/modules/Services.jsm");
+ Cu.import("resource://gre/modules/PageThumbs.jsm");
+ Cu.import("resource://gre/modules/BackgroundPageThumbs.jsm");
+-Cu.import("resource:///modules/DirectoryLinksProvider.jsm");
+ Cu.import("resource://gre/modules/NewTabUtils.jsm");
+ 
+ XPCOMUtils.defineLazyModuleGetter(this, "Rect",
+diff --git a/application/basilisk/base/jar.mn b/application/basilisk/base/jar.mn
+index 5ec92d7..1d4aded 100644
+--- a/application/basilisk/base/jar.mn
++++ b/application/basilisk/base/jar.mn
+@@ -68,7 +68,6 @@ browser.jar:
+ *       content/browser/browser.js                    (content/browser.js)
+ *       content/browser/browser.xul                   (content/browser.xul)
+         content/browser/browser-addons.js             (content/browser-addons.js)
+-        content/browser/browser-captivePortal.js      (content/browser-captivePortal.js)
+         content/browser/browser-ctrlTab.js            (content/browser-ctrlTab.js)
+         content/browser/browser-customization.js      (content/browser-customization.js)
+         content/browser/browser-data-submission-info-bar.js (content/browser-data-submission-info-bar.js)
+diff --git a/application/basilisk/components/nsBrowserGlue.js b/application/basilisk/components/nsBrowserGlue.js
+index 3258159..6138e15 100644
+--- a/application/basilisk/components/nsBrowserGlue.js
++++ b/application/basilisk/components/nsBrowserGlue.js
+@@ -32,7 +32,6 @@ XPCOMUtils.defineLazyServiceGetter(this, "AlertsService", "@mozilla.org/alerts-s
+   ["ContentPrefServiceParent", "resource://gre/modules/ContentPrefServiceParent.jsm"],
+   ["ContentSearch", "resource:///modules/ContentSearch.jsm"],
+   ["DateTimePickerHelper", "resource://gre/modules/DateTimePickerHelper.jsm"],
+-  ["DirectoryLinksProvider", "resource:///modules/DirectoryLinksProvider.jsm"],
+   ["Feeds", "resource:///modules/Feeds.jsm"],
+   ["FileUtils", "resource://gre/modules/FileUtils.jsm"],
+   ["FormValidationHandler", "resource:///modules/FormValidationHandler.jsm"],
+@@ -657,9 +656,7 @@ BrowserGlue.prototype = {
+     webrtcUI.init();
+     AboutHome.init();
+ 
+-    DirectoryLinksProvider.init();
+     NewTabUtils.init();
+-    NewTabUtils.links.addProvider(DirectoryLinksProvider);
+     AboutNewTab.init();
+ 
+     NewTabMessages.init();
+diff --git a/application/basilisk/installer/package-manifest.in b/application/basilisk/installer/package-manifest.in
+index d3a0041..dbd6243 100644
+--- a/application/basilisk/installer/package-manifest.in
++++ b/application/basilisk/installer/package-manifest.in
+@@ -287,7 +287,6 @@
+ @RESPATH@/components/saxparser.xpt
+ @RESPATH@/browser/components/sessionstore.xpt
+ @RESPATH@/components/services-crypto-component.xpt
+-@RESPATH@/components/captivedetect.xpt
+ @RESPATH@/browser/components/shellservice.xpt
+ @RESPATH@/components/shistory.xpt
+ @RESPATH@/components/spellchecker.xpt
+@@ -492,8 +491,6 @@
+ @RESPATH@/components/Weave.js
+ @RESPATH@/components/FxAccountsComponents.manifest
+ @RESPATH@/components/FxAccountsPush.js
+-@RESPATH@/components/CaptivePortalDetectComponents.manifest
+-@RESPATH@/components/captivedetect.js
+ @RESPATH@/components/servicesComponents.manifest
+ @RESPATH@/components/cryptoComponents.manifest
+ @RESPATH@/components/TelemetryStartup.js
+diff --git a/application/basilisk/locales/en-US/chrome/browser/browser.properties b/application/basilisk/locales/en-US/chrome/browser/browser.properties
+index f1c3983..582239f 100644
+--- a/application/basilisk/locales/en-US/chrome/browser/browser.properties
++++ b/application/basilisk/locales/en-US/chrome/browser/browser.properties
+@@ -695,17 +695,6 @@ decoder.noHWAcceleration.message = To improve video quality, you may need to ins
+ decoder.noPulseAudio.message = To play audio, you may need to install the required PulseAudio software.
+ decoder.unsupportedLibavcodec.message = libavcodec may be vulnerable or is not supported, and should be updated to play video.
+ 
+-# LOCALIZATION NOTE (captivePortal.infoMessage,
+-#                    captivePortal.infoMessage2):
+-# Shown in a notification bar when we detect a captive portal is blocking network access
+-# and requires the user to log in before browsing. %1$S is replaced with brandShortName.
+-captivePortal.infoMessage = This network may require you to login to use the internet. %1$S has opened the login page for you.
+-captivePortal.infoMessage2 = This network may require you to login to use the internet.
+-# LOCALIZATION NOTE (captivePortal.showLoginPage):
+-# The label for a button shown in the info bar in all tabs except the login page tab.
+-# The button shows the portal login page tab when clicked.
+-captivePortal.showLoginPage = Show Login Page
+-
+ permissions.remove.tooltip = Clear this permission and ask again
+ 
+ # LOCALIZATION NOTE (aboutDialog.architecture.*):
+diff --git a/application/basilisk/locales/en-US/chrome/overrides/netError.dtd b/application/basilisk/locales/en-US/chrome/overrides/netError.dtd
+index 55da9a3..2f6e439 100644
+--- a/application/basilisk/locales/en-US/chrome/overrides/netError.dtd
++++ b/application/basilisk/locales/en-US/chrome/overrides/netError.dtd
+@@ -51,13 +51,6 @@
+ <p>&brandShortName; can’t load this page for some reason.</p>
+ ">
+ 
+-<!ENTITY captivePortal.title "Login to network">
+-<!ENTITY captivePortal.longDesc "
+-<p>This network may require you to login to access the internet.</p>
+-">
+-
+-<!ENTITY openPortalLoginPage.label "Open Login Page">
+-
+ <!ENTITY malformedURI.title "The address isn’t valid">
+ <!ENTITY malformedURI.longDesc "
+ <ul>
+diff --git a/application/basilisk/modules/moz.build b/application/basilisk/modules/moz.build
+index d043d47..cd8f2ce 100644
+--- a/application/basilisk/modules/moz.build
++++ b/application/basilisk/modules/moz.build
+@@ -16,7 +16,6 @@ EXTRA_JS_MODULES += [
+     'ContentObservers.jsm',
+     'ContentSearch.jsm',
+     'ContentWebRTC.jsm',
+-    'DirectoryLinksProvider.jsm',
+     'E10SUtils.jsm',
+     'Feeds.jsm',
+     'FormSubmitObserver.jsm',
+diff --git a/application/basilisk/themes/shared/aboutNetError.css b/application/basilisk/themes/shared/aboutNetError.css
+index 7e1e7c3..4f3020a 100644
+--- a/application/basilisk/themes/shared/aboutNetError.css
++++ b/application/basilisk/themes/shared/aboutNetError.css
+@@ -16,10 +16,6 @@ body.certerror {
+                                             #f0d000 66%, #f0d000);
+ }
+ 
+-body.captiveportal .title {
+-  background-image: url("wifi.svg");
+-}
+-
+ body.certerror .title {
+   background-image: url("cert-error.svg");
+ }
+@@ -39,13 +35,6 @@ button:disabled {
+   display: none;
+ }
+ 
+-#certErrorAndCaptivePortalButtonContainer {
+-  display: none;
+-}
+-
+-body:not(.neterror) #certErrorAndCaptivePortalButtonContainer {
+-  display: flex;
+-}
+ 
+ body:not(.neterror) #netErrorButtonContainer {
+   display: none;
+@@ -64,14 +53,6 @@ body:not(.neterror) #netErrorButtonContainer {
+   display: none;
+ }
+ 
+-body.captiveportal #returnButton {
+-  display: none;
+-}
+-
+-body:not(.captiveportal) #openPortalLoginPageButton {
+-  display: none;
+-}
+-
+ #openPortalLoginPageButton {
+   margin-inline-start: 0;
+ }
+diff --git a/application/palemoon/locales/en-US/chrome/overrides/netError.dtd b/application/palemoon/locales/en-US/chrome/overrides/netError.dtd
+index 9e5cbc7..148e4a4 100644
+--- a/application/palemoon/locales/en-US/chrome/overrides/netError.dtd
++++ b/application/palemoon/locales/en-US/chrome/overrides/netError.dtd
+@@ -51,13 +51,6 @@
+ <p>&brandShortName; can’t load this page for some reason.</p>
+ ">
+ 
+-<!ENTITY captivePortal.title "Login to network">
+-<!ENTITY captivePortal.longDesc "
+-<p>This network may require you to login to access the internet.</p>
+-">
+-
+-<!ENTITY openPortalLoginPage.label "Open Login Page">
+-
+ <!ENTITY malformedURI.title "The address isn't valid">
+ <!ENTITY malformedURI.longDesc "
+ <ul>
+diff --git a/docshell/base/nsDocShell.cpp b/docshell/base/nsDocShell.cpp
+index ae30743..6fb7ad9 100644
+--- a/docshell/base/nsDocShell.cpp
++++ b/docshell/base/nsDocShell.cpp
+@@ -43,7 +43,6 @@
+ #include "nsArray.h"
+ #include "nsArrayUtils.h"
+ #include "nsContentSecurityManager.h"
+-#include "nsICaptivePortalService.h"
+ #include "nsIDOMStorage.h"
+ #include "nsIContentViewer.h"
+ #include "nsIDocumentLoaderFactory.h"
+@@ -5324,13 +5323,6 @@ nsDocShell::LoadErrorPage(nsIURI* aURI, const char16_t* aURL,
+     errorPageUrl.AppendASCII(manifestParam.get());
+   }
+ 
+-  nsCOMPtr<nsICaptivePortalService> cps = do_GetService(NS_CAPTIVEPORTAL_CID);
+-  int32_t cpsState;
+-  if (cps && NS_SUCCEEDED(cps->GetState(&cpsState)) &&
+-      cpsState == nsICaptivePortalService::LOCKED_PORTAL) {
+-    errorPageUrl.AppendLiteral("&captive=true");
+-  }
+-
+   // netError.xhtml's getDescription only handles the "d" parameter at the
+   // end of the URL, so append it last.
+   errorPageUrl.AppendLiteral("&d=");
+diff --git a/dom/ipc/ContentChild.cpp b/dom/ipc/ContentChild.cpp
+index fc288e2..e9544f4 100644
+--- a/dom/ipc/ContentChild.cpp
++++ b/dom/ipc/ContentChild.cpp
+@@ -52,7 +52,6 @@
+ #include "mozilla/layers/ImageBridgeChild.h"
+ #include "mozilla/layout/RenderFrameChild.h"
+ #include "mozilla/net/NeckoChild.h"
+-#include "mozilla/net/CaptivePortalService.h"
+ #include "mozilla/plugins/PluginInstanceParent.h"
+ #include "mozilla/plugins/PluginModuleParent.h"
+ #include "mozilla/widget/WidgetMessageUtils.h"
+@@ -888,15 +887,13 @@ ContentChild::InitXPCOM()
+   StructuredCloneData initialData;
+   OptionalURIParams userContentSheetURL;
+ 
+-  int32_t captivePortalState;
+-  SendGetXPCOMProcessAttributes(&isOffline, &isConnected, &captivePortalState,
++  SendGetXPCOMProcessAttributes(&isOffline, &isConnected,
+                                 &isLangRTL, &haveBidiKeyboards,
+                                 &mAvailableDictionaries,
+                                 &clipboardCaps, &domainPolicy, &initialData,
+                                 &userContentSheetURL);
+   RecvSetOffline(isOffline);
+   RecvSetConnectivity(isConnected);
+-  RecvSetCaptivePortalState(captivePortalState);
+   RecvBidiKeyboardNotify(isLangRTL, haveBidiKeyboards);
+ 
+   // Create the CPOW manager as soon as possible.
+@@ -1825,21 +1822,6 @@ ContentChild::RecvSetConnectivity(const bool& connectivity)
+   return true;
+ }
+ 
+-bool
+-ContentChild::RecvSetCaptivePortalState(const int32_t& aState)
+-{
+-  nsCOMPtr<nsICaptivePortalService> cps = do_GetService(NS_CAPTIVEPORTAL_CID);
+-  if (!cps) {
+-    return true;
+-  }
+-
+-  mozilla::net::CaptivePortalService *portal =
+-    static_cast<mozilla::net::CaptivePortalService*>(cps.get());
+-  portal->SetStateInChild(aState);
+-
+-  return true;
+-}
+-
+ void
+ ContentChild::ActorDestroy(ActorDestroyReason why)
+ {
+diff --git a/dom/ipc/ContentChild.h b/dom/ipc/ContentChild.h
+index ba590b5..816779e 100644
+--- a/dom/ipc/ContentChild.h
++++ b/dom/ipc/ContentChild.h
+@@ -343,7 +343,6 @@ public:
+   virtual bool RecvSetOffline(const bool& offline) override;
+ 
+   virtual bool RecvSetConnectivity(const bool& connectivity) override;
+-  virtual bool RecvSetCaptivePortalState(const int32_t& state) override;
+ 
+   virtual bool RecvNotifyLayerAllocated(const dom::TabId& aTabId, const uint64_t& aLayersId) override;
+ 
+diff --git a/dom/ipc/ContentParent.cpp b/dom/ipc/ContentParent.cpp
+index 5c6aadb..6e35ffd 100644
+--- a/dom/ipc/ContentParent.cpp
++++ b/dom/ipc/ContentParent.cpp
+@@ -171,7 +171,6 @@
+ #include "mozilla/StyleSheet.h"
+ #include "mozilla/StyleSheetInlines.h"
+ #include "nsHostObjectProtocolHandler.h"
+-#include "nsICaptivePortalService.h"
+ 
+ #include "nsIBidiKeyboard.h"
+ 
+@@ -494,7 +493,6 @@ static const char* sObserverTopics[] = {
+   "profile-before-change",
+   NS_IPC_IOSERVICE_SET_OFFLINE_TOPIC,
+   NS_IPC_IOSERVICE_SET_CONNECTIVITY_TOPIC,
+-  NS_IPC_CAPTIVE_PORTAL_SET_STATE,
+   "memory-pressure",
+   "child-gc-request",
+   "child-cc-request",
+@@ -2539,17 +2537,6 @@ ContentParent::Observe(nsISupports* aSubject,
+     if (!SendSetConnectivity(NS_LITERAL_STRING("true").Equals(aData))) {
+       return NS_ERROR_NOT_AVAILABLE;
+     }
+-  } else if (!strcmp(aTopic, NS_IPC_CAPTIVE_PORTAL_SET_STATE)) {
+-    nsCOMPtr<nsICaptivePortalService> cps = do_QueryInterface(aSubject);
+-    MOZ_ASSERT(cps, "Should QI to a captive portal service");
+-    if (!cps) {
+-      return NS_ERROR_FAILURE;
+-    }
+-    int32_t state;
+-    cps->GetState(&state);
+-    if (!SendSetCaptivePortalState(state)) {
+-      return NS_ERROR_NOT_AVAILABLE;
+-    }
+   }
+   // listening for alert notifications
+   else if (!strcmp(aTopic, "alertfinished") ||
+@@ -2636,7 +2623,6 @@ ContentParent::RecvGetProcessAttributes(ContentParentId* aCpId,
+ bool
+ ContentParent::RecvGetXPCOMProcessAttributes(bool* aIsOffline,
+                                              bool* aIsConnected,
+-                                             int32_t* aCaptivePortalState,
+                                              bool* aIsLangRTL,
+                                              bool* aHaveBidiKeyboards,
+                                              InfallibleTArray<nsString>* dictionaries,
+@@ -2653,12 +2639,6 @@ ContentParent::RecvGetXPCOMProcessAttributes(bool* aIsOffline,
+   rv = io->GetConnectivity(aIsConnected);
+   MOZ_ASSERT(NS_SUCCEEDED(rv), "Failed getting connectivity?");
+ 
+-  *aCaptivePortalState = nsICaptivePortalService::UNKNOWN;
+-  nsCOMPtr<nsICaptivePortalService> cps = do_GetService(NS_CAPTIVEPORTAL_CONTRACTID);
+-  if (cps) {
+-    cps->GetState(aCaptivePortalState);
+-  }
+-
+   nsIBidiKeyboard* bidi = nsContentUtils::GetBidiKeyboard();
+ 
+   *aIsLangRTL = false;
+diff --git a/dom/ipc/ContentParent.h b/dom/ipc/ContentParent.h
+index abcea0b..497a806 100644
+--- a/dom/ipc/ContentParent.h
++++ b/dom/ipc/ContentParent.h
+@@ -690,7 +690,6 @@ private:
+   virtual bool
+   RecvGetXPCOMProcessAttributes(bool* aIsOffline,
+                                 bool* aIsConnected,
+-                                int32_t* aCaptivePortalState,
+                                 bool* aIsLangRTL,
+                                 bool* aHaveBidiKeyboards,
+                                 InfallibleTArray<nsString>* dictionaries,
+diff --git a/dom/ipc/PContent.ipdl b/dom/ipc/PContent.ipdl
+index c01ad59..bd9a0fc 100644
+--- a/dom/ipc/PContent.ipdl
++++ b/dom/ipc/PContent.ipdl
+@@ -366,7 +366,6 @@ child:
+ 
+     async SetOffline(bool offline);
+     async SetConnectivity(bool connectivity);
+-    async SetCaptivePortalState(int32_t aState);
+ 
+     async NotifyVisited(URIParams uri);
+ 
+@@ -559,7 +558,7 @@ parent:
+     sync GetProcessAttributes()
+         returns (ContentParentId cpId, bool isForApp, bool isForBrowser);
+     sync GetXPCOMProcessAttributes()
+-        returns (bool isOffline, bool isConnected, int32_t captivePortalState,
++        returns (bool isOffline, bool isConnected,
+                  bool isLangRTL,
+                  bool haveBidiKeyboards, nsString[] dictionaries,
+                  ClipboardCapabilities clipboardCaps,
+diff --git a/media/webrtc/trunk/build/common.gypi b/media/webrtc/trunk/build/common.gypi
+index 68003ba..4c93341 100644
+--- a/media/webrtc/trunk/build/common.gypi
++++ b/media/webrtc/trunk/build/common.gypi
+@@ -532,12 +532,6 @@
+           'linux_use_gold_flags%': 0,
+         }],
+ 
+-        ['OS=="android"', {
+-          'enable_captive_portal_detection%': 0,
+-        }, {
+-          'enable_captive_portal_detection%': 1,
+-        }],
+-
+         # Enable Skia UI text drawing incrementally on different platforms.
+         # http://crbug.com/105550
+         #
+@@ -665,7 +659,6 @@
+     'test_isolation_outdir%': '<(test_isolation_outdir)',
+     'enable_automation%': '<(enable_automation)',
+     'enable_printing%': '<(enable_printing)',
+-    'enable_captive_portal_detection%': '<(enable_captive_portal_detection)',
+     'disable_ftp_support%': '<(disable_ftp_support)',
+     'force_rlz_use_chrome_net%': '<(force_rlz_use_chrome_net)',
+     'enable_task_manager%': '<(enable_task_manager)',
+@@ -1782,9 +1775,7 @@
+       ['enable_printing==1', {
+         'defines': ['ENABLE_PRINTING=1'],
+       }],
+-      ['enable_captive_portal_detection==1', {
+-        'defines': ['ENABLE_CAPTIVE_PORTAL_DETECTION=1'],
+-      }],
++
+       ['disable_ftp_support==1', {
+         'defines': ['DISABLE_FTP_SUPPORT=1'],
+       }],
+diff --git a/media/webrtc/trunk/peerconnection_client.target.mk b/media/webrtc/trunk/peerconnection_client.target.mk
+index 3c4320a..2268874 100644
+--- a/media/webrtc/trunk/peerconnection_client.target.mk
++++ b/media/webrtc/trunk/peerconnection_client.target.mk
+@@ -28,7 +28,6 @@ DEFS_Debug := \
+ 	'-DENABLE_BACKGROUND=1' \
+ 	'-DENABLE_AUTOMATION=1' \
+ 	'-DENABLE_PRINTING=1' \
+-	'-DENABLE_CAPTIVE_PORTAL_DETECTION=1' \
+ 	'-DWEBRTC_CHROMIUM_BUILD' \
+ 	'-DWEBRTC_LINUX' \
+ 	'-DWEBRTC_THREAD_RR' \
+@@ -118,7 +117,6 @@ DEFS_Release := \
+ 	'-DENABLE_BACKGROUND=1' \
+ 	'-DENABLE_AUTOMATION=1' \
+ 	'-DENABLE_PRINTING=1' \
+-	'-DENABLE_CAPTIVE_PORTAL_DETECTION=1' \
+ 	'-DWEBRTC_CHROMIUM_BUILD' \
+ 	'-DWEBRTC_LINUX' \
+ 	'-DWEBRTC_THREAD_RR' \
+diff --git a/mobile/android/installer/package-manifest.in b/mobile/android/installer/package-manifest.in
+index af4a155..2962b81 100644
+--- a/mobile/android/installer/package-manifest.in
++++ b/mobile/android/installer/package-manifest.in
+@@ -207,7 +207,6 @@
+ @BINPATH@/components/satchel.xpt
+ @BINPATH@/components/saxparser.xpt
+ @BINPATH@/components/services-crypto-component.xpt
+-@BINPATH@/components/captivedetect.xpt
+ @BINPATH@/components/shistory.xpt
+ @BINPATH@/components/spellchecker.xpt
+ @BINPATH@/components/storage.xpt
+@@ -369,9 +368,6 @@
+ @BINPATH@/components/PeerConnection.manifest
+ #endif
+ 
+-@BINPATH@/components/CaptivePortalDetectComponents.manifest
+-@BINPATH@/components/captivedetect.js
+-
+ #ifdef MOZ_WEBSPEECH
+ @BINPATH@/components/dom_webspeechsynth.xpt
+ #endif
+diff --git a/modules/libpref/init/all.js b/modules/libpref/init/all.js
+index 1eee302..0e0e40e 100644
+--- a/modules/libpref/init/all.js
++++ b/modules/libpref/init/all.js
+@@ -4958,20 +4958,6 @@ pref("ui.touch_activation.duration_ms", 10);
+ // actions when the fifo is written to.  Disable this in general.
+ pref("memory_info_dumper.watch_fifo.enabled", false);
+ 
+-// If minInterval is 0, the check will only happen
+-// when the service has a strong suspicion we are in a captive portal
+-pref("network.captive-portal-service.minInterval", 60000); // 60 seconds
+-pref("network.captive-portal-service.maxInterval", 1500000); // 25 minutes
+-// Every 10 checks, the delay is increased by a factor of 5
+-pref("network.captive-portal-service.backoffFactor", "5.0");
+-pref("network.captive-portal-service.enabled", false);
+-
+-pref("captivedetect.canonicalURL", "http://detectportal.palemoon.org/success.txt");
+-pref("captivedetect.canonicalContent", "success\n");
+-pref("captivedetect.maxWaitingTime", 5000);
+-pref("captivedetect.pollingTime", 3000);
+-pref("captivedetect.maxRetryCount", 5);
+-
+ #ifdef RELEASE_OR_BETA
+ pref("dom.forms.inputmode", false);
+ #else
+diff --git a/netwerk/base/moz.build b/netwerk/base/moz.build
+index 3198d74..c7ac3ce 100644
+--- a/netwerk/base/moz.build
++++ b/netwerk/base/moz.build
+@@ -27,7 +27,6 @@ XPIDL_SOURCES += [
+     'nsICacheInfoChannel.idl',
+     'nsICachingChannel.idl',
+     'nsICancelable.idl',
+-    'nsICaptivePortalService.idl',
+     'nsIChannel.idl',
+     'nsIChannelEventSink.idl',
+     'nsIChannelWithDivertableParentListener.idl',
+@@ -172,7 +171,6 @@ EXPORTS.mozilla += [
+ ]
+ 
+ EXPORTS.mozilla.net += [
+-    'CaptivePortalService.h',
+     'ChannelDiverterChild.h',
+     'ChannelDiverterParent.h',
+     'Dashboard.h',
+@@ -185,7 +183,6 @@ EXPORTS.mozilla.net += [
+ UNIFIED_SOURCES += [
+     'ArrayBufferInputStream.cpp',
+     'BackgroundFileSaver.cpp',
+-    'CaptivePortalService.cpp',
+     'ChannelDiverterChild.cpp',
+     'ChannelDiverterParent.cpp',
+     'Dashboard.cpp',
+diff --git a/netwerk/base/nsIOService.cpp b/netwerk/base/nsIOService.cpp
+index e13541a..0b79fd3 100644
+--- a/netwerk/base/nsIOService.cpp
++++ b/netwerk/base/nsIOService.cpp
+@@ -53,7 +53,6 @@
+ #include "mozilla/ipc/URIUtils.h"
+ #include "mozilla/net/NeckoChild.h"
+ #include "mozilla/dom/ContentParent.h"
+-#include "mozilla/net/CaptivePortalService.h"
+ #include "ReferrerPolicy.h"
+ #include "nsContentSecurityManager.h"
+ #include "nsContentUtils.h"
+@@ -73,7 +72,6 @@ namespace net {
+ #define NECKO_BUFFER_CACHE_COUNT_PREF "network.buffer.cache.count"
+ #define NECKO_BUFFER_CACHE_SIZE_PREF  "network.buffer.cache.size"
+ #define NETWORK_NOTIFY_CHANGED_PREF   "network.notify.changed"
+-#define NETWORK_CAPTIVE_PORTAL_PREF   "network.captive-portal-service.enabled"
+ 
+ #define MAX_RECURSION_COUNT 50
+ 
+@@ -215,8 +213,6 @@ nsIOService::Init()
+     else
+         NS_WARNING("failed to get error service");
+ 
+-    InitializeCaptivePortalService();
+-
+     // setup our bad port list stuff
+     for(int i=0; gBadPortList[i]; i++)
+         mRestrictedPortList.AppendElement(gBadPortList[i]);
+@@ -230,7 +226,6 @@ nsIOService::Init()
+         prefBranch->AddObserver(NECKO_BUFFER_CACHE_COUNT_PREF, this, true);
+         prefBranch->AddObserver(NECKO_BUFFER_CACHE_SIZE_PREF, this, true);
+         prefBranch->AddObserver(NETWORK_NOTIFY_CHANGED_PREF, this, true);
+-        prefBranch->AddObserver(NETWORK_CAPTIVE_PORTAL_PREF, this, true);
+         PrefsChanged(prefBranch);
+     }
+     
+@@ -268,22 +263,6 @@ nsIOService::~nsIOService()
+ }
+ 
+ nsresult
+-nsIOService::InitializeCaptivePortalService()
+-{
+-    if (XRE_GetProcessType() != GeckoProcessType_Default) {
+-        // We only initalize a captive portal service in the main process
+-        return NS_OK;
+-    }
+-
+-    mCaptivePortalService = do_GetService(NS_CAPTIVEPORTAL_CID);
+-    if (mCaptivePortalService) {
+-        return static_cast<CaptivePortalService*>(mCaptivePortalService.get())->Initialize();
+-    }
+-
+-    return NS_OK;
+-}
+-
+-nsresult
+ nsIOService::InitializeSocketTransportService()
+ {
+     nsresult rv = NS_OK;
+@@ -364,62 +343,10 @@ NS_IMPL_ISUPPORTS(nsIOService,
+ ////////////////////////////////////////////////////////////////////////////////
+ 
+ nsresult
+-nsIOService::RecheckCaptivePortal()
+-{
+-  MOZ_ASSERT(NS_IsMainThread(), "Must be called on the main thread");
+-  if (mCaptivePortalService) {
+-    mCaptivePortalService->RecheckCaptivePortal();
+-  }
+-  return NS_OK;
+-}
+-
+-nsresult
+-nsIOService::RecheckCaptivePortalIfLocalRedirect(nsIChannel* newChan)
+-{
+-    nsresult rv;
+-
+-    if (!mCaptivePortalService) {
+-        return NS_OK;
+-    }
+-
+-    nsCOMPtr<nsIURI> uri;
+-    rv = newChan->GetURI(getter_AddRefs(uri));
+-    if (NS_FAILED(rv)) {
+-        return rv;
+-    }
+-
+-    nsCString host;
+-    rv = uri->GetHost(host);
+-    if (NS_FAILED(rv)) {
+-        return rv;
+-    }
+-
+-    PRNetAddr prAddr;
+-    if (PR_StringToNetAddr(host.BeginReading(), &prAddr) != PR_SUCCESS) {
+-        // The redirect wasn't to an IP literal, so there's probably no need
+-        // to trigger the captive portal detection right now. It can wait.
+-        return NS_OK;
+-    }
+-
+-    NetAddr netAddr;
+-    PRNetAddrToNetAddr(&prAddr, &netAddr);
+-    if (IsIPAddrLocal(&netAddr)) {
+-        // Redirects to local IP addresses are probably captive portals
+-        mCaptivePortalService->RecheckCaptivePortal();
+-    }
+-
+-    return NS_OK;
+-}
+-
+-nsresult
+ nsIOService::AsyncOnChannelRedirect(nsIChannel* oldChan, nsIChannel* newChan,
+                                     uint32_t flags,
+                                     nsAsyncRedirectVerifyHelper *helper)
+ {
+-    // If a redirect to a local network address occurs, then chances are we
+-    // are in a captive portal, so we trigger a recheck.
+-    RecheckCaptivePortalIfLocalRedirect(newChan);
+-
+     // This is silly. I wish there was a simpler way to get at the global
+     // reference of the contentSecurityManager. But it lives in the XPCOM
+     // service registry.
+@@ -1149,15 +1076,6 @@ nsIOService::SetConnectivityInternal(bool aConnectivity)
+     // we have statistic about network change event even if we are offline.
+     mLastConnectivityChange = PR_IntervalNow();
+ 
+-    if (mCaptivePortalService) {
+-        if (aConnectivity && !xpc::AreNonLocalConnectionsDisabled()) {
+-            // This will also trigger a captive portal check for the new network
+-            static_cast<CaptivePortalService*>(mCaptivePortalService.get())->Start();
+-        } else {
+-            static_cast<CaptivePortalService*>(mCaptivePortalService.get())->Stop();
+-        }
+-    }
+-
+     nsCOMPtr<nsIObserverService> observerService = services::GetObserverService();
+     if (!observerService) {
+         return NS_OK;
+@@ -1292,17 +1210,6 @@ nsIOService::PrefsChanged(nsIPrefBranch *prefs, const char *pref)
+         }
+     }
+ 
+-    if (!pref || strcmp(pref, NETWORK_CAPTIVE_PORTAL_PREF) == 0) {
+-        bool captivePortalEnabled;
+-        nsresult rv = prefs->GetBoolPref(NETWORK_CAPTIVE_PORTAL_PREF, &captivePortalEnabled);
+-        if (NS_SUCCEEDED(rv) && mCaptivePortalService) {
+-            if (captivePortalEnabled && !xpc::AreNonLocalConnectionsDisabled()) {
+-                static_cast<CaptivePortalService*>(mCaptivePortalService.get())->Start();
+-            } else {
+-                static_cast<CaptivePortalService*>(mCaptivePortalService.get())->Stop();
+-            }
+-        }
+-    }
+ }
+ 
+ void
+@@ -1384,8 +1291,6 @@ nsIOService::NotifyWakeup()
+                             (u"" NS_NETWORK_LINK_DATA_CHANGED));
+     }
+ 
+-    RecheckCaptivePortal();
+-
+     return NS_OK;
+ }
+ 
+@@ -1448,11 +1353,6 @@ nsIOService::Observe(nsISupports *subject,
+ 
+         SetOffline(true);
+ 
+-        if (mCaptivePortalService) {
+-            static_cast<CaptivePortalService*>(mCaptivePortalService.get())->Stop();
+-            mCaptivePortalService = nullptr;
+-        }
+-
+         // Break circular reference.
+         mProxyService = nullptr;
+     } else if (!strcmp(topic, NS_NETWORK_LINK_TOPIC)) {
+@@ -1620,9 +1520,6 @@ nsIOService::OnNetworkLinkEvent(const char *data)
+     bool isUp = true;
+     if (!strcmp(data, NS_NETWORK_LINK_DATA_CHANGED)) {
+         mLastNetworkLinkChange = PR_IntervalNow();
+-        // CHANGED means UP/DOWN didn't change
+-        // but the status of the captive portal may have changed.
+-        RecheckCaptivePortal();
+         return NS_OK;
+     } else if (!strcmp(data, NS_NETWORK_LINK_DATA_DOWN)) {
+         isUp = false;
+diff --git a/netwerk/base/nsIOService.h b/netwerk/base/nsIOService.h
+index e592c4d..9e350fb 100644
+--- a/netwerk/base/nsIOService.h
++++ b/netwerk/base/nsIOService.h
+@@ -21,7 +21,6 @@
+ #include "mozilla/Atomics.h"
+ #include "mozilla/Attributes.h"
+ #include "prtime.h"
+-#include "nsICaptivePortalService.h"
+ 
+ #define NS_N(x) (sizeof(x)/sizeof(*x))
+ 
+@@ -97,8 +96,6 @@ public:
+ 
+     static bool BlockToplevelDataUriNavigations();
+ 
+-    // Used to trigger a recheck of the captive portal status
+-    nsresult RecheckCaptivePortal();
+ private:
+     // These shouldn't be called directly:
+     // - construct using GetInstance
+@@ -116,9 +113,6 @@ private:
+     nsresult CacheProtocolHandler(const char *scheme,
+                                               nsIProtocolHandler* hdlr);
+ 
+-    nsresult InitializeCaptivePortalService();
+-    nsresult RecheckCaptivePortalIfLocalRedirect(nsIChannel* newChan);
+-
+     // Prefs wrangling
+     void PrefsChanged(nsIPrefBranch *prefs, const char *pref = nullptr);
+     void GetPrefBranch(nsIPrefBranch **);
+@@ -162,7 +156,6 @@ private:
+     nsCOMPtr<nsPISocketTransportService> mSocketTransportService;
+     nsCOMPtr<nsPIDNSService>             mDNSService;
+     nsCOMPtr<nsIProtocolProxyService2>   mProxyService;
+-    nsCOMPtr<nsICaptivePortalService>    mCaptivePortalService;
+     nsCOMPtr<nsINetworkLinkService>      mNetworkLinkService;
+     bool                                 mNetworkLinkServiceInitialized;
+ 
+diff --git a/netwerk/build/nsNetCID.h b/netwerk/build/nsNetCID.h
+index 02ba730..9dddca1 100644
+--- a/netwerk/build/nsNetCID.h
++++ b/netwerk/build/nsNetCID.h
+@@ -470,17 +470,6 @@
+     { 0xae, 0xcf, 0x05, 0xf8, 0xfa, 0xf0, 0x0c, 0x9b } \
+ }
+ 
+-// captive portal service implementing nsICaptivePortalService
+-#define NS_CAPTIVEPORTAL_CONTRACTID \
+-    "@mozilla.org/network/captive-portal-service;1"
+-#define NS_CAPTIVEPORTAL_CID \
+-{ /* bdbe0555-fc3d-4f7b-9205-c309ceb2d641 */ \
+-    0xbdbe0555, \
+-    0xfc3d, \
+-    0x4f7b, \
+-  { 0x92, 0x05, 0xc3, 0x09, 0xce, 0xb2, 0xd6, 0x41 } \
+-}
+-
+ // service implementing nsIRequestContextService
+ #define NS_REQUESTCONTEXTSERVICE_CONTRACTID \
+     "@mozilla.org/network/request-context-service;1"
+diff --git a/netwerk/build/nsNetModule.cpp b/netwerk/build/nsNetModule.cpp
+index d244a14..7f8b232 100644
+--- a/netwerk/build/nsNetModule.cpp
++++ b/netwerk/build/nsNetModule.cpp
+@@ -150,13 +150,6 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(LoadContextInfoFactory)
+ 
+ ///////////////////////////////////////////////////////////////////////////////
+ 
+-#include "mozilla/net/CaptivePortalService.h"
+-namespace mozilla {
+-namespace net {
+-  NS_GENERIC_FACTORY_CONSTRUCTOR(CaptivePortalService)
+-} // namespace net
+-} // namespace mozilla
+-
+ #include "RequestContextService.h"
+ typedef mozilla::net::RequestContextService RequestContextService;
+ NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(RequestContextService, Init)
+@@ -862,7 +855,6 @@ NS_DEFINE_NAMED_CID(NS_REDIRECTCHANNELREGISTRAR_CID);
+ NS_DEFINE_NAMED_CID(NS_CACHE_STORAGE_SERVICE_CID);
+ NS_DEFINE_NAMED_CID(NS_NSILOADCONTEXTINFOFACTORY_CID);
+ NS_DEFINE_NAMED_CID(NS_NETWORKPREDICTOR_CID);
+-NS_DEFINE_NAMED_CID(NS_CAPTIVEPORTAL_CID);
+ NS_DEFINE_NAMED_CID(NS_REQUESTCONTEXTSERVICE_CID);
+ #ifdef BUILD_NETWORK_INFO_SERVICE
+ NS_DEFINE_NAMED_CID(NETWORKINFOSERVICE_CID);
+@@ -1013,7 +1005,6 @@ static const mozilla::Module::CIDEntry kNeckoCIDs[] = {
+     { &kNS_CACHE_STORAGE_SERVICE_CID, false, nullptr, CacheStorageServiceConstructor },
+     { &kNS_NSILOADCONTEXTINFOFACTORY_CID, false, nullptr, LoadContextInfoFactoryConstructor },
+     { &kNS_NETWORKPREDICTOR_CID, false, nullptr, mozilla::net::Predictor::Create },
+-    { &kNS_CAPTIVEPORTAL_CID, false, nullptr, mozilla::net::CaptivePortalServiceConstructor },
+     { &kNS_REQUESTCONTEXTSERVICE_CID, false, nullptr, RequestContextServiceConstructor },
+ #ifdef BUILD_NETWORK_INFO_SERVICE
+     { &kNETWORKINFOSERVICE_CID, false, nullptr, nsNetworkInfoServiceConstructor },
+@@ -1169,7 +1160,6 @@ static const mozilla::Module::ContractIDEntry kNeckoContracts[] = {
+     { NS_CACHE_STORAGE_SERVICE_CONTRACTID2, &kNS_CACHE_STORAGE_SERVICE_CID },
+     { NS_NSILOADCONTEXTINFOFACTORY_CONTRACTID, &kNS_NSILOADCONTEXTINFOFACTORY_CID },
+     { NS_NETWORKPREDICTOR_CONTRACTID, &kNS_NETWORKPREDICTOR_CID },
+-    { NS_CAPTIVEPORTAL_CONTRACTID, &kNS_CAPTIVEPORTAL_CID },
+     { NS_REQUESTCONTEXTSERVICE_CONTRACTID, &kNS_REQUESTCONTEXTSERVICE_CID },
+ #ifdef BUILD_NETWORK_INFO_SERVICE
+     { NETWORKINFOSERVICE_CONTRACT_ID, &kNETWORKINFOSERVICE_CID },
+diff --git a/netwerk/protocol/http/nsHttpChannel.cpp b/netwerk/protocol/http/nsHttpChannel.cpp
+index bb0b3ca..f7175bd 100644
+--- a/netwerk/protocol/http/nsHttpChannel.cpp
++++ b/netwerk/protocol/http/nsHttpChannel.cpp
+@@ -20,7 +20,6 @@
+ #include "nsICacheStorageService.h"
+ #include "nsICacheStorage.h"
+ #include "nsICacheEntry.h"
+-#include "nsICaptivePortalService.h"
+ #include "nsICryptoHash.h"
+ #include "nsINetworkInterceptController.h"
+ #include "nsINSSErrorsService.h"
+@@ -6532,13 +6531,6 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
+     MOZ_ASSERT(NS_IsMainThread(),
+                "OnStopRequest should only be called from the main thread");
+ 
+-    // If this load failed because of a security error, it may be because we
+-    // are in a captive portal - trigger an async check to make sure.
+-    int32_t nsprError = -1 * NS_ERROR_GET_CODE(status);
+-    if (mozilla::psm::IsNSSErrorCode(nsprError)) {
+-        gIOService->RecheckCaptivePortal();
+-    }
+-
+     if (mTimingEnabled && request == mCachePump) {
+         mCacheReadEnd = TimeStamp::Now();
+ 
+diff --git a/testing/profiles/prefs_general.js b/testing/profiles/prefs_general.js
+index 515828d..fdcd97f 100644
+--- a/testing/profiles/prefs_general.js
++++ b/testing/profiles/prefs_general.js
+@@ -144,7 +144,6 @@ user_pref("security.turn_off_all_security_so_that_viruses_can_take_over_this_com
+ // use an additional pref here to allow automation to use the "normal" behavior.
+ user_pref("dom.use_xbl_scopes_for_remote_xul", true);
+ 
+-user_pref("captivedetect.canonicalURL", "http://%(server)s/captive-detect/success.txt");
+ // Get network events.
+ user_pref("network.activity.blipIntervalMilliseconds", 250);
+ 
+diff --git a/toolkit/components/moz.build b/toolkit/components/moz.build
+index 953e6c6..194754e 100644
+--- a/toolkit/components/moz.build
++++ b/toolkit/components/moz.build
+@@ -95,8 +95,6 @@ if CONFIG['MOZ_TOOLKIT_SEARCH']:
+ if CONFIG['MOZ_URL_CLASSIFIER']:
+     DIRS += ['url-classifier']
+ 
+-DIRS += ['captivedetect']
+-
+ if CONFIG['OS_TARGET'] != 'Android':
+     DIRS += ['terminator']
+ 
+-- 
+2.8.2.windows.1
+

@@ -1,0 +1,81 @@
+From c0683e80f735195b81a8ebc66e2c1e2a5baffc03 Mon Sep 17 00:00:00 2001
+From: Fedor <fedor@mail.ru>
+Date: Wed, 5 Dec 2018 01:21:06 +0300
+Subject: [PATCH] websock
+
+---
+ dom/base/WebSocket.cpp      | 15 +++++++++++++++
+ dom/base/WebSocket.h        |  2 +-
+ modules/libpref/init/all.js |  3 +++
+ 3 files changed, 19 insertions(+), 1 deletion(-)
+
+diff --git a/dom/base/WebSocket.cpp b/dom/base/WebSocket.cpp
+index af4b785..1b9ca3d 100644
+--- a/dom/base/WebSocket.cpp
++++ b/dom/base/WebSocket.cpp
+@@ -960,6 +960,11 @@ WebSocket::Constructor(const GlobalObject& aGlobal,
+                        const nsAString& aUrl,
+                        ErrorResult& aRv)
+ {
++  if (!PrefEnabled()) {
++    aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
++    return nullptr;
++  }
++
+   Sequence<nsString> protocols;
+   return WebSocket::ConstructorCommon(aGlobal, aUrl, protocols, nullptr,
+                                       EmptyCString(), aRv);
+@@ -1483,6 +1488,11 @@ WebSocketImpl::Init(JSContext* aCx,
+   AssertIsOnMainThread();
+   MOZ_ASSERT(aPrincipal);
+ 
++  if (!WebSocket::PrefEnabled()) {
++    aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
++    return;
++  }
++
+   mService = WebSocketEventService::GetOrCreate();
+ 
+   // We need to keep the implementation alive in case the init disconnects it
+@@ -2054,6 +2064,11 @@ WebSocket::CreateAndDispatchCloseEvent(bool aWasClean,
+   return DispatchDOMEvent(nullptr, event, nullptr, nullptr);
+ }
+ 
++bool
++WebSocket::PrefEnabled()
++{
++  return Preferences::GetBool("network.websocket.enabled", true);
++}
+ nsresult
+ WebSocketImpl::ParseURL(const nsAString& aURL)
+ {
+diff --git a/dom/base/WebSocket.h b/dom/base/WebSocket.h
+index f5fd170..351a48a 100644
+--- a/dom/base/WebSocket.h
++++ b/dom/base/WebSocket.h
+@@ -63,7 +63,7 @@ public:
+ public: // static helpers:
+ 
+   // Determine if preferences allow WebSocket
+-  static bool PrefEnabled(JSContext* aCx = nullptr, JSObject* aGlobal = nullptr);
++  static bool PrefEnabled();
+ 
+ public: // WebIDL interface:
+ 
+diff --git a/modules/libpref/init/all.js b/modules/libpref/init/all.js
+index c53e0f7..32a2b86 100644
+--- a/modules/libpref/init/all.js
++++ b/modules/libpref/init/all.js
+@@ -1642,6 +1642,9 @@ pref("network.sts.max_time_for_events_between_two_polls", 100);
+ pref("network.sts.max_time_for_pr_close_during_shutdown", 5000);
+ // </http>
+ 
++// <ws>: WebSocket
++pref("network.websocket.enabled", true);
++
+ // 2147483647 == PR_INT32_MAX == ~2 GB
+ pref("network.websocket.max-message-size", 2147483647);
+ 
+-- 
+2.8.2.windows.1
+

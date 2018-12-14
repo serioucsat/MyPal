@@ -1,6 +1,6 @@
-From 4290ff3ccaa8f3774e7d381bafd0ec8b07e1a445 Mon Sep 17 00:00:00 2001
+From cd6b327446bd14cbb9a44002770cf1aeece6acf8 Mon Sep 17 00:00:00 2001
 From: Fedor <fedor@mail.ru>
-Date: Sun, 2 Sep 2018 21:04:59 +0300
+Date: Tue, 11 Dec 2018 14:52:06 +0300
 Subject: [PATCH] portable
 
 ---
@@ -16,10 +16,12 @@ Subject: [PATCH] portable
  toolkit/profile/nsToolkitProfileService.cpp        | 15 +++---
  toolkit/xre/nsAppRunner.cpp                        | 63 ++++++++++++++++++++--
  toolkit/xre/nsAppRunner.h                          |  2 +-
- 12 files changed, 210 insertions(+), 16 deletions(-)
+ toolkit/xre/nsXREDirProvider.cpp                   |  4 +-
+ xpcom/io/moz.build                                 |  2 +
+ 14 files changed, 214 insertions(+), 18 deletions(-)
 
 diff --git a/application/palemoon/components/nsBrowserGlue.js b/application/palemoon/components/nsBrowserGlue.js
-index 720d116..94eac13 100644
+index f0a7aa2..22151c0 100644
 --- a/application/palemoon/components/nsBrowserGlue.js
 +++ b/application/palemoon/components/nsBrowserGlue.js
 @@ -17,6 +17,9 @@ Cu.import("resource://gre/modules/Services.jsm");
@@ -32,7 +34,7 @@ index 720d116..94eac13 100644
  // Define Lazy Module Getters
  [
    ["AddonManager", "resource://gre/modules/AddonManager.jsm"],
-@@ -600,7 +603,9 @@ BrowserGlue.prototype = {
+@@ -605,7 +608,9 @@ BrowserGlue.prototype = {
        } catch (ex) {
          isDefaultError = true;
        }
@@ -43,7 +45,7 @@ index 720d116..94eac13 100644
        if (isDefault) {
          let now = (Math.floor(Date.now() / 1000)).toString();
          Services.prefs.setCharPref("browser.shell.mostRecentDateSetAsDefault", now);
-@@ -644,7 +649,7 @@ BrowserGlue.prototype = {
+@@ -649,7 +654,7 @@ BrowserGlue.prototype = {
            ShellService.shouldCheckDefaultBrowser = checkEveryTime.value;
          }.bind(this), Ci.nsIThread.DISPATCH_NORMAL);
        }
@@ -53,7 +55,7 @@ index 720d116..94eac13 100644
  
    _onQuitRequest: function BG__onQuitRequest(aCancelQuit, aQuitType) {
 diff --git a/application/palemoon/components/preferences/advanced.js b/application/palemoon/components/preferences/advanced.js
-index 0803496..f935f21 100644
+index aab58b3..01acad0 100644
 --- a/application/palemoon/components/preferences/advanced.js
 +++ b/application/palemoon/components/preferences/advanced.js
 @@ -10,6 +10,9 @@ Components.utils.import("resource://gre/modules/Services.jsm");
@@ -315,10 +317,10 @@ index d4f449f..534da1a 100644
  DesktopBackgroundDownloading=Saving Picture…
  DesktopBackgroundSet=Set Desktop Background
 diff --git a/application/palemoon/locales/en-US/installer/custom.properties b/application/palemoon/locales/en-US/installer/custom.properties
-index ef29b1e..6575467 100644
+index 8f95a19..d18d90e 100644
 --- a/application/palemoon/locales/en-US/installer/custom.properties
 +++ b/application/palemoon/locales/en-US/installer/custom.properties
-@@ -75,6 +75,8 @@ OPTION_STANDARD_RADIO=&Standard
+@@ -77,6 +77,8 @@ OPTION_STANDARD_RADIO=&Standard
  # Two lines
  OPTION_CUSTOM_DESC=You may choose individual options to be installed. Recommended for experienced users.
  OPTION_CUSTOM_RADIO=&Custom
@@ -431,7 +433,7 @@ index 38b3a37..d31461d 100644
          NS_ERROR("nsToolkitProfileService::Init failed!");
          delete profileService;
 diff --git a/toolkit/xre/nsAppRunner.cpp b/toolkit/xre/nsAppRunner.cpp
-index 37d0a4e..a8359ee 100644
+index 9392881..155d5c4 100644
 --- a/toolkit/xre/nsAppRunner.cpp
 +++ b/toolkit/xre/nsAppRunner.cpp
 @@ -1920,7 +1920,7 @@ static nsAutoCString gResetOldProfileName;
@@ -567,6 +569,34 @@ index b8d9553..03b2e9c 100644
  
  nsresult
  NS_NewToolkitProfileFactory(nsIFactory* *aResult);
+diff --git a/toolkit/xre/nsXREDirProvider.cpp b/toolkit/xre/nsXREDirProvider.cpp
+index 2656524..fddcf37 100644
+--- a/toolkit/xre/nsXREDirProvider.cpp
++++ b/toolkit/xre/nsXREDirProvider.cpp
+@@ -1375,8 +1375,8 @@ nsXREDirProvider::GetSysUserExtensionsDirectory(nsIFile** aFile)
+   nsresult rv = GetUserDataDirectoryHome(getter_AddRefs(localDir), false);
+   NS_ENSURE_SUCCESS(rv, rv);
+ 
+-  rv = AppendSysUserExtensionPath(localDir);
+-  NS_ENSURE_SUCCESS(rv, rv);
++  //rv = AppendSysUserExtensionPath(localDir);
++  //NS_ENSURE_SUCCESS(rv, rv);
+ 
+   rv = EnsureDirectoryExists(localDir);
+   NS_ENSURE_SUCCESS(rv, rv);
+diff --git a/xpcom/io/moz.build b/xpcom/io/moz.build
+index fdefa84..fee3ff8 100644
+--- a/xpcom/io/moz.build
++++ b/xpcom/io/moz.build
+@@ -133,6 +133,8 @@ include('/ipc/chromium/chromium-config.mozbuild')
+ 
+ FINAL_LIBRARY = 'xul'
+ 
++DEFINES['MOZ_APP_BASENAME'] = '"%s"' % CONFIG['MOZ_APP_BASENAME']
++
+ if CONFIG['OS_ARCH'] == 'Linux' and 'lib64' in CONFIG['libdir']:
+     DEFINES['HAVE_USR_LIB64_DIR'] = True
+ 
 -- 
 2.8.2.windows.1
 
