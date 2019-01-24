@@ -1,6 +1,6 @@
-From 1417628e7ac6f2184298eb41879ee3eb41046d17 Mon Sep 17 00:00:00 2001
+From b67fa03c4d9dd2c366af0c0613d8e3d832d5db6a Mon Sep 17 00:00:00 2001
 From: Fedor <fedor@mail.ru>
-Date: Fri, 7 Sep 2018 09:58:45 +0300
+Date: Wed, 23 Jan 2019 16:58:07 +0300
 Subject: [PATCH] junk
 
 ---
@@ -10,6 +10,8 @@ Subject: [PATCH] junk
  application/basilisk/base/content/content.js       |  17 ----
  .../basilisk/base/content/global-scripts.inc       |   1 -
  application/basilisk/base/content/newtab/newTab.js |   1 -
+ application/basilisk/base/content/newtab/page.js   |   2 -
+ application/basilisk/base/content/newtab/sites.js  |  15 +--
  application/basilisk/base/jar.mn                   |   1 -
  application/basilisk/components/nsBrowserGlue.js   |   3 -
  application/basilisk/installer/package-manifest.in |   3 -
@@ -17,6 +19,8 @@ Subject: [PATCH] junk
  .../locales/en-US/chrome/overrides/netError.dtd    |   7 --
  application/basilisk/modules/moz.build             |   1 -
  .../basilisk/themes/shared/aboutNetError.css       |  19 ----
+ .../palemoon/components/preferences/advanced.xul   |  12 ---
+ .../en-US/chrome/browser/preferences/advanced.dtd  |   3 -
  .../locales/en-US/chrome/overrides/netError.dtd    |   7 --
  docshell/base/nsDocShell.cpp                       |   8 --
  dom/ipc/ContentChild.cpp                           |  20 +---
@@ -29,17 +33,17 @@ Subject: [PATCH] junk
  mobile/android/installer/package-manifest.in       |   4 -
  modules/libpref/init/all.js                        |  14 ---
  netwerk/base/moz.build                             |   3 -
- netwerk/base/nsIOService.cpp                       | 103 ---------------------
+ netwerk/base/nsIOService.cpp                       | 102 ---------------------
  netwerk/base/nsIOService.h                         |   7 --
  netwerk/build/nsNetCID.h                           |  11 ---
  netwerk/build/nsNetModule.cpp                      |  10 --
  netwerk/protocol/http/nsHttpChannel.cpp            |   8 --
  testing/profiles/prefs_general.js                  |   1 -
  toolkit/components/moz.build                       |   2 -
- 33 files changed, 5 insertions(+), 372 deletions(-)
+ 36 files changed, 6 insertions(+), 400 deletions(-)
 
 diff --git a/application/basilisk/app/profile/basilisk.js b/application/basilisk/app/profile/basilisk.js
-index 7a7cec9..588b9e7 100644
+index ff1f1fb..7fa5dbe 100644
 --- a/application/basilisk/app/profile/basilisk.js
 +++ b/application/basilisk/app/profile/basilisk.js
 @@ -574,9 +574,6 @@ pref("mousewheel.with_win.action", 1);
@@ -166,10 +170,10 @@ index 3296600..03f2bb8 100644
  
        <div id="netErrorButtonContainer" class="button-container">
 diff --git a/application/basilisk/base/content/browser.js b/application/basilisk/base/content/browser.js
-index 4f4ebb0..aa04f51 100644
+index 008966b..7c29c43 100644
 --- a/application/basilisk/base/content/browser.js
 +++ b/application/basilisk/base/content/browser.js
-@@ -976,7 +976,6 @@ var gBrowserInit = {
+@@ -974,7 +974,6 @@ var gBrowserInit = {
      AboutPrivateBrowsingListener.init();
      TrackingProtection.init();
      RefreshBlocker.init();
@@ -177,7 +181,7 @@ index 4f4ebb0..aa04f51 100644
  
      let mm = window.getGroupMessageManager("browsers");
      mm.loadFrameScript("chrome://browser/content/tab-content.js", true);
-@@ -1512,8 +1511,6 @@ var gBrowserInit = {
+@@ -1510,8 +1509,6 @@ var gBrowserInit = {
  
      RefreshBlocker.uninit();
  
@@ -186,7 +190,7 @@ index 4f4ebb0..aa04f51 100644
      gMenuButtonUpdateBadge.uninit();
  
      gMenuButtonBadgeManager.uninit();
-@@ -2745,16 +2742,12 @@ var BrowserOnClick = {
+@@ -2743,16 +2740,12 @@ var BrowserOnClick = {
    init: function () {
      let mm = window.messageManager;
      mm.addMessageListener("Browser:CertExceptionError", this);
@@ -203,7 +207,7 @@ index 4f4ebb0..aa04f51 100644
    },
  
    uninit: function () {
-@@ -2766,20 +2759,6 @@ var BrowserOnClick = {
+@@ -2764,20 +2757,6 @@ var BrowserOnClick = {
      mm.removeMessageListener("Browser:SSLErrorReportTelemetry", this);
      mm.removeMessageListener("Browser:OverrideWeakCrypto", this);
      mm.removeMessageListener("Browser:SSLErrorGoBack", this);
@@ -224,7 +228,7 @@ index 4f4ebb0..aa04f51 100644
    },
  
    receiveMessage: function (msg) {
-@@ -2789,9 +2768,6 @@ var BrowserOnClick = {
+@@ -2787,9 +2766,6 @@ var BrowserOnClick = {
                           msg.data.isTopFrame, msg.data.location,
                           msg.data.securityInfoAsString);
        break;
@@ -315,8 +319,68 @@ index bbd2ef3..1731eda 100644
  Cu.import("resource://gre/modules/NewTabUtils.jsm");
  
  XPCOMUtils.defineLazyModuleGetter(this, "Rect",
+diff --git a/application/basilisk/base/content/newtab/page.js b/application/basilisk/base/content/newtab/page.js
+index f7626ce..f2cf0d1 100644
+--- a/application/basilisk/base/content/newtab/page.js
++++ b/application/basilisk/base/content/newtab/page.js
+@@ -287,8 +287,6 @@ var gPage = {
+         }
+       }
+     }
+-
+-    DirectoryLinksProvider.reportSitesAction(sites, "view", lastIndex);
+   },
+ 
+   maybeShowAutoMigrationUndoNotification() {
+diff --git a/application/basilisk/base/content/newtab/sites.js b/application/basilisk/base/content/newtab/sites.js
+index 9d103ce..8bec3e6 100644
+--- a/application/basilisk/base/content/newtab/sites.js
++++ b/application/basilisk/base/content/newtab/sites.js
+@@ -171,7 +171,7 @@ Site.prototype = {
+     // first check for end time, as it may modify the link
+     this._checkLinkEndTime();
+     // setup display variables
+-    let enhanced = gAllPages.enhanced && DirectoryLinksProvider.getEnhancedLink(this.link);
++    let enhanced = gAllPages.enhanced;
+     let url = this.url;
+     let title = enhanced && enhanced.title ? enhanced.title :
+                 this.link.type == "history" ? this.link.baseDomain :
+@@ -244,7 +244,7 @@ Site.prototype = {
+    */
+   refreshThumbnail: function Site_refreshThumbnail() {
+     // Only enhance tiles if that feature is turned on
+-    let link = gAllPages.enhanced && DirectoryLinksProvider.getEnhancedLink(this.link) ||
++    let link = gAllPages.enhanced ||
+                this.link;
+ 
+     let thumbnail = this._querySelector(".newtab-thumbnail.thumbnail");
+@@ -387,12 +387,6 @@ Site.prototype = {
+     else if (button == 0) {
+       aEvent.preventDefault();
+       if (target.classList.contains("newtab-control-block")) {
+-        // Notify DirectoryLinksProvider of suggested tile block, this may
+-        // affect if and how suggested tiles are recommended and needs to
+-        // be reported before pages are updated inside block() call
+-        if (this.link.targetedSite) {
+-          DirectoryLinksProvider.handleSuggestedTileBlock();
+-        }
+         this.block();
+         action = "block";
+       }
+@@ -413,11 +407,6 @@ Site.prototype = {
+         action = "pin";
+       }
+     }
+-
+-    // Report all link click actions
+-    if (action) {
+-      DirectoryLinksProvider.reportSitesAction(gGrid.sites, action, tileIndex);
+-    }
+   },
+ 
+   /**
 diff --git a/application/basilisk/base/jar.mn b/application/basilisk/base/jar.mn
-index 5ec92d7..1d4aded 100644
+index c288685..aac748c 100644
 --- a/application/basilisk/base/jar.mn
 +++ b/application/basilisk/base/jar.mn
 @@ -68,7 +68,6 @@ browser.jar:
@@ -328,10 +392,10 @@ index 5ec92d7..1d4aded 100644
          content/browser/browser-customization.js      (content/browser-customization.js)
          content/browser/browser-data-submission-info-bar.js (content/browser-data-submission-info-bar.js)
 diff --git a/application/basilisk/components/nsBrowserGlue.js b/application/basilisk/components/nsBrowserGlue.js
-index 3258159..6138e15 100644
+index f2e6553..34be4ef 100644
 --- a/application/basilisk/components/nsBrowserGlue.js
 +++ b/application/basilisk/components/nsBrowserGlue.js
-@@ -32,7 +32,6 @@ XPCOMUtils.defineLazyServiceGetter(this, "AlertsService", "@mozilla.org/alerts-s
+@@ -33,7 +33,6 @@ XPCOMUtils.defineLazyServiceGetter(this, "winShellService",
    ["ContentPrefServiceParent", "resource://gre/modules/ContentPrefServiceParent.jsm"],
    ["ContentSearch", "resource:///modules/ContentSearch.jsm"],
    ["DateTimePickerHelper", "resource://gre/modules/DateTimePickerHelper.jsm"],
@@ -339,7 +403,7 @@ index 3258159..6138e15 100644
    ["Feeds", "resource:///modules/Feeds.jsm"],
    ["FileUtils", "resource://gre/modules/FileUtils.jsm"],
    ["FormValidationHandler", "resource:///modules/FormValidationHandler.jsm"],
-@@ -657,9 +656,7 @@ BrowserGlue.prototype = {
+@@ -658,9 +657,7 @@ BrowserGlue.prototype = {
      webrtcUI.init();
      AboutHome.init();
  
@@ -350,10 +414,10 @@ index 3258159..6138e15 100644
  
      NewTabMessages.init();
 diff --git a/application/basilisk/installer/package-manifest.in b/application/basilisk/installer/package-manifest.in
-index d3a0041..dbd6243 100644
+index 311050b..554f7a4 100644
 --- a/application/basilisk/installer/package-manifest.in
 +++ b/application/basilisk/installer/package-manifest.in
-@@ -287,7 +287,6 @@
+@@ -282,7 +282,6 @@
  @RESPATH@/components/saxparser.xpt
  @RESPATH@/browser/components/sessionstore.xpt
  @RESPATH@/components/services-crypto-component.xpt
@@ -361,7 +425,7 @@ index d3a0041..dbd6243 100644
  @RESPATH@/browser/components/shellservice.xpt
  @RESPATH@/components/shistory.xpt
  @RESPATH@/components/spellchecker.xpt
-@@ -492,8 +491,6 @@
+@@ -487,8 +486,6 @@
  @RESPATH@/components/Weave.js
  @RESPATH@/components/FxAccountsComponents.manifest
  @RESPATH@/components/FxAccountsPush.js
@@ -466,6 +530,55 @@ index 7e1e7c3..4f3020a 100644
  #openPortalLoginPageButton {
    margin-inline-start: 0;
  }
+diff --git a/application/palemoon/components/preferences/advanced.xul b/application/palemoon/components/preferences/advanced.xul
+index 34998c1..402a66b 100644
+--- a/application/palemoon/components/preferences/advanced.xul
++++ b/application/palemoon/components/preferences/advanced.xul
+@@ -48,6 +48,4 @@
+                   type="bool"/>
+ #endif
+       <preference id="pref.general.compatmode" name="general.useragent.compatMode"        type="int"/>
+-      
+-      <preference id="pref.general.captiveportal" name="network.captive-portal-service.enabled" type="bool"/>
+ 
+@@ -181,7 +179,6 @@
+             </hbox>
+           </groupbox>
+ #endif
+-          <!-- User Agent compatibility -->
+           <groupbox id="UACompatGroup" orient="vertical">
+             <caption label="&UACompatGroup.label;"/>
+             <hbox align="center">
+@@ -195,15 +192,6 @@
+                 </menulist>
+             </hbox>
+           </groupbox>
+-          
+-          <!-- Captive portal detection -->
+-          <groupbox id="captivePortalGroup" orient="vertical">
+-            <caption label="&captivePortalGroup.label;"/>
+-            <checkbox id="captivePortalDetect"
+-                      label="&captivePortalDetect.label;"
+-                      preference="pref.general.captiveportal"/>
+-          </groupbox>
+-          
+         </tabpanel>
+ 
+         <!-- Network -->
+diff --git a/application/palemoon/locales/en-US/chrome/browser/preferences/advanced.dtd b/application/palemoon/locales/en-US/chrome/browser/preferences/advanced.dtd
+index dcb7b0e..f8203c6 100644
+--- a/application/palemoon/locales/en-US/chrome/browser/preferences/advanced.dtd
++++ b/application/palemoon/locales/en-US/chrome/browser/preferences/advanced.dtd
+@@ -39,9 +39,6 @@
+ <!ENTITY UACompat.Gecko                  "Gecko Compatibility">
+ <!ENTITY UACompat.Firefox                "Firefox Compatibility">
+ 
+-<!ENTITY captivePortalGroup.label        "Captive portals">
+-<!ENTITY captivePortalDetect.label       "Detect restricted network access">
+-
+ <!ENTITY dataChoicesTab.label            "Data Choices">
+ 
+ <!ENTITY crashReporterSection.label      "Crash Reporter">
 diff --git a/application/palemoon/locales/en-US/chrome/overrides/netError.dtd b/application/palemoon/locales/en-US/chrome/overrides/netError.dtd
 index 9e5cbc7..148e4a4 100644
 --- a/application/palemoon/locales/en-US/chrome/overrides/netError.dtd
@@ -485,10 +598,10 @@ index 9e5cbc7..148e4a4 100644
  <!ENTITY malformedURI.longDesc "
  <ul>
 diff --git a/docshell/base/nsDocShell.cpp b/docshell/base/nsDocShell.cpp
-index ae30743..6fb7ad9 100644
+index 7f8a693..13f97b7 100644
 --- a/docshell/base/nsDocShell.cpp
 +++ b/docshell/base/nsDocShell.cpp
-@@ -43,7 +43,6 @@
+@@ -42,7 +42,6 @@
  #include "nsArray.h"
  #include "nsArrayUtils.h"
  #include "nsContentSecurityManager.h"
@@ -496,7 +609,7 @@ index ae30743..6fb7ad9 100644
  #include "nsIDOMStorage.h"
  #include "nsIContentViewer.h"
  #include "nsIDocumentLoaderFactory.h"
-@@ -5324,13 +5323,6 @@ nsDocShell::LoadErrorPage(nsIURI* aURI, const char16_t* aURL,
+@@ -5305,13 +5304,6 @@ nsDocShell::LoadErrorPage(nsIURI* aURI, const char16_t* aURL,
      errorPageUrl.AppendASCII(manifestParam.get());
    }
  
@@ -511,7 +624,7 @@ index ae30743..6fb7ad9 100644
    // end of the URL, so append it last.
    errorPageUrl.AppendLiteral("&d=");
 diff --git a/dom/ipc/ContentChild.cpp b/dom/ipc/ContentChild.cpp
-index fc288e2..e9544f4 100644
+index fdf0fcf..df771a2318 100644
 --- a/dom/ipc/ContentChild.cpp
 +++ b/dom/ipc/ContentChild.cpp
 @@ -52,7 +52,6 @@
@@ -522,7 +635,7 @@ index fc288e2..e9544f4 100644
  #include "mozilla/plugins/PluginInstanceParent.h"
  #include "mozilla/plugins/PluginModuleParent.h"
  #include "mozilla/widget/WidgetMessageUtils.h"
-@@ -888,15 +887,13 @@ ContentChild::InitXPCOM()
+@@ -887,15 +886,13 @@ ContentChild::InitXPCOM()
    StructuredCloneData initialData;
    OptionalURIParams userContentSheetURL;
  
@@ -539,7 +652,7 @@ index fc288e2..e9544f4 100644
    RecvBidiKeyboardNotify(isLangRTL, haveBidiKeyboards);
  
    // Create the CPOW manager as soon as possible.
-@@ -1825,21 +1822,6 @@ ContentChild::RecvSetConnectivity(const bool& connectivity)
+@@ -1816,21 +1813,6 @@ ContentChild::RecvSetConnectivity(const bool& connectivity)
    return true;
  }
  
@@ -562,10 +675,10 @@ index fc288e2..e9544f4 100644
  ContentChild::ActorDestroy(ActorDestroyReason why)
  {
 diff --git a/dom/ipc/ContentChild.h b/dom/ipc/ContentChild.h
-index ba590b5..816779e 100644
+index f29d17e..f8ac9c1 100644
 --- a/dom/ipc/ContentChild.h
 +++ b/dom/ipc/ContentChild.h
-@@ -343,7 +343,6 @@ public:
+@@ -341,7 +341,6 @@ public:
    virtual bool RecvSetOffline(const bool& offline) override;
  
    virtual bool RecvSetConnectivity(const bool& connectivity) override;
@@ -574,10 +687,10 @@ index ba590b5..816779e 100644
    virtual bool RecvNotifyLayerAllocated(const dom::TabId& aTabId, const uint64_t& aLayersId) override;
  
 diff --git a/dom/ipc/ContentParent.cpp b/dom/ipc/ContentParent.cpp
-index 5c6aadb..6e35ffd 100644
+index 7944615..a87e8eb 100644
 --- a/dom/ipc/ContentParent.cpp
 +++ b/dom/ipc/ContentParent.cpp
-@@ -171,7 +171,6 @@
+@@ -170,7 +170,6 @@
  #include "mozilla/StyleSheet.h"
  #include "mozilla/StyleSheetInlines.h"
  #include "nsHostObjectProtocolHandler.h"
@@ -585,7 +698,7 @@ index 5c6aadb..6e35ffd 100644
  
  #include "nsIBidiKeyboard.h"
  
-@@ -494,7 +493,6 @@ static const char* sObserverTopics[] = {
+@@ -493,7 +492,6 @@ static const char* sObserverTopics[] = {
    "profile-before-change",
    NS_IPC_IOSERVICE_SET_OFFLINE_TOPIC,
    NS_IPC_IOSERVICE_SET_CONNECTIVITY_TOPIC,
@@ -593,7 +706,7 @@ index 5c6aadb..6e35ffd 100644
    "memory-pressure",
    "child-gc-request",
    "child-cc-request",
-@@ -2539,17 +2537,6 @@ ContentParent::Observe(nsISupports* aSubject,
+@@ -2532,17 +2530,6 @@ ContentParent::Observe(nsISupports* aSubject,
      if (!SendSetConnectivity(NS_LITERAL_STRING("true").Equals(aData))) {
        return NS_ERROR_NOT_AVAILABLE;
      }
@@ -611,7 +724,7 @@ index 5c6aadb..6e35ffd 100644
    }
    // listening for alert notifications
    else if (!strcmp(aTopic, "alertfinished") ||
-@@ -2636,7 +2623,6 @@ ContentParent::RecvGetProcessAttributes(ContentParentId* aCpId,
+@@ -2629,7 +2616,6 @@ ContentParent::RecvGetProcessAttributes(ContentParentId* aCpId,
  bool
  ContentParent::RecvGetXPCOMProcessAttributes(bool* aIsOffline,
                                               bool* aIsConnected,
@@ -619,7 +732,7 @@ index 5c6aadb..6e35ffd 100644
                                               bool* aIsLangRTL,
                                               bool* aHaveBidiKeyboards,
                                               InfallibleTArray<nsString>* dictionaries,
-@@ -2653,12 +2639,6 @@ ContentParent::RecvGetXPCOMProcessAttributes(bool* aIsOffline,
+@@ -2646,12 +2632,6 @@ ContentParent::RecvGetXPCOMProcessAttributes(bool* aIsOffline,
    rv = io->GetConnectivity(aIsConnected);
    MOZ_ASSERT(NS_SUCCEEDED(rv), "Failed getting connectivity?");
  
@@ -633,7 +746,7 @@ index 5c6aadb..6e35ffd 100644
  
    *aIsLangRTL = false;
 diff --git a/dom/ipc/ContentParent.h b/dom/ipc/ContentParent.h
-index abcea0b..497a806 100644
+index 26b5c44..e6bd13d 100644
 --- a/dom/ipc/ContentParent.h
 +++ b/dom/ipc/ContentParent.h
 @@ -690,7 +690,6 @@ private:
@@ -645,10 +758,10 @@ index abcea0b..497a806 100644
                                  bool* aHaveBidiKeyboards,
                                  InfallibleTArray<nsString>* dictionaries,
 diff --git a/dom/ipc/PContent.ipdl b/dom/ipc/PContent.ipdl
-index c01ad59..bd9a0fc 100644
+index e8fb25a..69a1587 100644
 --- a/dom/ipc/PContent.ipdl
 +++ b/dom/ipc/PContent.ipdl
-@@ -366,7 +366,6 @@ child:
+@@ -361,7 +361,6 @@ child:
  
      async SetOffline(bool offline);
      async SetConnectivity(bool connectivity);
@@ -656,7 +769,7 @@ index c01ad59..bd9a0fc 100644
  
      async NotifyVisited(URIParams uri);
  
-@@ -559,7 +558,7 @@ parent:
+@@ -554,7 +553,7 @@ parent:
      sync GetProcessAttributes()
          returns (ContentParentId cpId, bool isForApp, bool isForBrowser);
      sync GetXPCOMProcessAttributes()
@@ -744,10 +857,10 @@ index af4a155..2962b81 100644
  @BINPATH@/components/dom_webspeechsynth.xpt
  #endif
 diff --git a/modules/libpref/init/all.js b/modules/libpref/init/all.js
-index 1eee302..0e0e40e 100644
+index eaa0abf..187bff6 100644
 --- a/modules/libpref/init/all.js
 +++ b/modules/libpref/init/all.js
-@@ -4958,20 +4958,6 @@ pref("ui.touch_activation.duration_ms", 10);
+@@ -4953,20 +4953,6 @@ pref("ui.touch_activation.duration_ms", 10);
  // actions when the fifo is written to.  Disable this in general.
  pref("memory_info_dumper.watch_fifo.enabled", false);
  
@@ -797,10 +910,10 @@ index 3198d74..c7ac3ce 100644
      'ChannelDiverterParent.cpp',
      'Dashboard.cpp',
 diff --git a/netwerk/base/nsIOService.cpp b/netwerk/base/nsIOService.cpp
-index e13541a..0b79fd3 100644
+index e0dc7d8..c1fc2aa 100644
 --- a/netwerk/base/nsIOService.cpp
 +++ b/netwerk/base/nsIOService.cpp
-@@ -53,7 +53,6 @@
+@@ -52,7 +52,6 @@
  #include "mozilla/ipc/URIUtils.h"
  #include "mozilla/net/NeckoChild.h"
  #include "mozilla/dom/ContentParent.h"
@@ -808,7 +921,7 @@ index e13541a..0b79fd3 100644
  #include "ReferrerPolicy.h"
  #include "nsContentSecurityManager.h"
  #include "nsContentUtils.h"
-@@ -73,7 +72,6 @@ namespace net {
+@@ -72,7 +71,6 @@ namespace net {
  #define NECKO_BUFFER_CACHE_COUNT_PREF "network.buffer.cache.count"
  #define NECKO_BUFFER_CACHE_SIZE_PREF  "network.buffer.cache.size"
  #define NETWORK_NOTIFY_CHANGED_PREF   "network.notify.changed"
@@ -816,7 +929,7 @@ index e13541a..0b79fd3 100644
  
  #define MAX_RECURSION_COUNT 50
  
-@@ -215,8 +213,6 @@ nsIOService::Init()
+@@ -209,8 +207,6 @@ nsIOService::Init()
      else
          NS_WARNING("failed to get error service");
  
@@ -825,7 +938,7 @@ index e13541a..0b79fd3 100644
      // setup our bad port list stuff
      for(int i=0; gBadPortList[i]; i++)
          mRestrictedPortList.AppendElement(gBadPortList[i]);
-@@ -230,7 +226,6 @@ nsIOService::Init()
+@@ -224,7 +220,6 @@ nsIOService::Init()
          prefBranch->AddObserver(NECKO_BUFFER_CACHE_COUNT_PREF, this, true);
          prefBranch->AddObserver(NECKO_BUFFER_CACHE_SIZE_PREF, this, true);
          prefBranch->AddObserver(NETWORK_NOTIFY_CHANGED_PREF, this, true);
@@ -833,7 +946,7 @@ index e13541a..0b79fd3 100644
          PrefsChanged(prefBranch);
      }
      
-@@ -268,22 +263,6 @@ nsIOService::~nsIOService()
+@@ -261,22 +256,6 @@ nsIOService::~nsIOService()
  }
  
  nsresult
@@ -856,7 +969,7 @@ index e13541a..0b79fd3 100644
  nsIOService::InitializeSocketTransportService()
  {
      nsresult rv = NS_OK;
-@@ -364,62 +343,10 @@ NS_IMPL_ISUPPORTS(nsIOService,
+@@ -357,62 +336,10 @@ NS_IMPL_ISUPPORTS(nsIOService,
  ////////////////////////////////////////////////////////////////////////////////
  
  nsresult
@@ -919,9 +1032,7 @@ index e13541a..0b79fd3 100644
      // This is silly. I wish there was a simpler way to get at the global
      // reference of the contentSecurityManager. But it lives in the XPCOM
      // service registry.
-@@ -1149,15 +1076,6 @@ nsIOService::SetConnectivityInternal(bool aConnectivity)
-     // we have statistic about network change event even if we are offline.
-     mLastConnectivityChange = PR_IntervalNow();
+@@ -1138,13 +1065,4 @@ nsIOService::SetConnectivityInternal(bool aConnectivity)
  
 -    if (mCaptivePortalService) {
 -        if (aConnectivity && !xpc::AreNonLocalConnectionsDisabled()) {
@@ -935,7 +1046,7 @@ index e13541a..0b79fd3 100644
      nsCOMPtr<nsIObserverService> observerService = services::GetObserverService();
      if (!observerService) {
          return NS_OK;
-@@ -1292,17 +1210,6 @@ nsIOService::PrefsChanged(nsIPrefBranch *prefs, const char *pref)
+@@ -1281,17 +1199,6 @@ nsIOService::PrefsChanged(nsIPrefBranch *prefs, const char *pref)
          }
      }
  
@@ -953,7 +1064,7 @@ index e13541a..0b79fd3 100644
  }
  
  void
-@@ -1384,8 +1291,6 @@ nsIOService::NotifyWakeup()
+@@ -1373,8 +1280,6 @@ nsIOService::NotifyWakeup()
                              (u"" NS_NETWORK_LINK_DATA_CHANGED));
      }
  
@@ -962,7 +1073,7 @@ index e13541a..0b79fd3 100644
      return NS_OK;
  }
  
-@@ -1448,11 +1353,6 @@ nsIOService::Observe(nsISupports *subject,
+@@ -1437,11 +1342,6 @@ nsIOService::Observe(nsISupports *subject,
  
          SetOffline(true);
  
@@ -974,18 +1085,15 @@ index e13541a..0b79fd3 100644
          // Break circular reference.
          mProxyService = nullptr;
      } else if (!strcmp(topic, NS_NETWORK_LINK_TOPIC)) {
-@@ -1620,9 +1520,6 @@ nsIOService::OnNetworkLinkEvent(const char *data)
-     bool isUp = true;
-     if (!strcmp(data, NS_NETWORK_LINK_DATA_CHANGED)) {
-         mLastNetworkLinkChange = PR_IntervalNow();
--        // CHANGED means UP/DOWN didn't change
+@@ -1609,6 +1509,4 @@ nsIOService::OnNetworkLinkEvent(const char *data)
+         // CHANGED means UP/DOWN didn't change
 -        // but the status of the captive portal may have changed.
 -        RecheckCaptivePortal();
          return NS_OK;
      } else if (!strcmp(data, NS_NETWORK_LINK_DATA_DOWN)) {
          isUp = false;
 diff --git a/netwerk/base/nsIOService.h b/netwerk/base/nsIOService.h
-index e592c4d..9e350fb 100644
+index 19eed74..29204f6 100644
 --- a/netwerk/base/nsIOService.h
 +++ b/netwerk/base/nsIOService.h
 @@ -21,7 +21,6 @@
@@ -996,7 +1104,7 @@ index e592c4d..9e350fb 100644
  
  #define NS_N(x) (sizeof(x)/sizeof(*x))
  
-@@ -97,8 +96,6 @@ public:
+@@ -94,8 +93,6 @@ public:
  
      static bool BlockToplevelDataUriNavigations();
  
@@ -1005,7 +1113,7 @@ index e592c4d..9e350fb 100644
  private:
      // These shouldn't be called directly:
      // - construct using GetInstance
-@@ -116,9 +113,6 @@ private:
+@@ -113,9 +110,6 @@ private:
      nsresult CacheProtocolHandler(const char *scheme,
                                                nsIProtocolHandler* hdlr);
  
@@ -1015,7 +1123,7 @@ index e592c4d..9e350fb 100644
      // Prefs wrangling
      void PrefsChanged(nsIPrefBranch *prefs, const char *pref = nullptr);
      void GetPrefBranch(nsIPrefBranch **);
-@@ -162,7 +156,6 @@ private:
+@@ -159,7 +153,6 @@ private:
      nsCOMPtr<nsPISocketTransportService> mSocketTransportService;
      nsCOMPtr<nsPIDNSService>             mDNSService;
      nsCOMPtr<nsIProtocolProxyService2>   mProxyService;
@@ -1088,7 +1196,7 @@ index d244a14..7f8b232 100644
  #ifdef BUILD_NETWORK_INFO_SERVICE
      { NETWORKINFOSERVICE_CONTRACT_ID, &kNETWORKINFOSERVICE_CID },
 diff --git a/netwerk/protocol/http/nsHttpChannel.cpp b/netwerk/protocol/http/nsHttpChannel.cpp
-index bb0b3ca..f7175bd 100644
+index a890c51..e3024c7 100644
 --- a/netwerk/protocol/http/nsHttpChannel.cpp
 +++ b/netwerk/protocol/http/nsHttpChannel.cpp
 @@ -20,7 +20,6 @@
@@ -1099,7 +1207,7 @@ index bb0b3ca..f7175bd 100644
  #include "nsICryptoHash.h"
  #include "nsINetworkInterceptController.h"
  #include "nsINSSErrorsService.h"
-@@ -6532,13 +6531,6 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
+@@ -6491,12 +6490,5 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
      MOZ_ASSERT(NS_IsMainThread(),
                 "OnStopRequest should only be called from the main thread");
  
@@ -1112,9 +1220,8 @@ index bb0b3ca..f7175bd 100644
 -
      if (mTimingEnabled && request == mCachePump) {
          mCacheReadEnd = TimeStamp::Now();
- 
 diff --git a/testing/profiles/prefs_general.js b/testing/profiles/prefs_general.js
-index 515828d..fdcd97f 100644
+index bf1534c..c297a31 100644
 --- a/testing/profiles/prefs_general.js
 +++ b/testing/profiles/prefs_general.js
 @@ -144,7 +144,6 @@ user_pref("security.turn_off_all_security_so_that_viruses_can_take_over_this_com

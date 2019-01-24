@@ -1,0 +1,1997 @@
+From 81b108eec9d431f70cb8393897748d162a752773 Mon Sep 17 00:00:00 2001
+From: Fedor <fedor@mail.ru>
+Date: Wed, 23 Jan 2019 21:44:09 +0300
+Subject: [PATCH] gmp
+
+---
+ application/basilisk/installer/package-manifest.in |    2 +
+ .../basilisk/modules/ContentCrashHandlers.jsm      |    6 +
+ application/basilisk/modules/PluginContent.jsm     |    5 +-
+ application/basilisk/modules/moz.build             |    8 +-
+ dom/ipc/ContentChild.cpp                           |    8 +-
+ dom/ipc/ContentChild.h                             |    3 +-
+ dom/ipc/ContentParent.cpp                          |   12 +-
+ dom/ipc/ContentParent.h                            |    6 +-
+ dom/ipc/PContent.ipdl                              | 1034 --------------------
+ dom/ipc/moz.build                                  |    6 +-
+ dom/media/AbstractMediaDecoder.h                   |    6 +
+ dom/media/DecoderDoctorDiagnostics.cpp             |    2 +
+ dom/media/DecoderDoctorDiagnostics.h               |    6 +
+ dom/media/MediaDecoder.cpp                         |   10 +
+ dom/media/MediaDecoder.h                           |    8 +
+ dom/media/MediaDecoderReader.h                     |    4 +
+ dom/media/MediaDecoderReaderWrapper.h              |    2 +
+ dom/media/MediaDecoderStateMachine.cpp             |   26 +-
+ dom/media/MediaDecoderStateMachine.h               |    2 +
+ dom/media/MediaFormatReader.cpp                    |   11 +-
+ dom/media/MediaFormatReader.h                      |    9 +-
+ dom/media/MediaPrefs.h                             |    8 +
+ dom/media/eme/MediaKeySystemAccess.cpp             |   16 +-
+ dom/media/fmp4/MP4Decoder.cpp                      |    2 +
+ dom/media/gmp/GMPChild.cpp                         |    1 +
+ dom/media/gmp/GMPParent.cpp                        |    1 +
+ dom/media/gmp/GMPUtils.cpp                         |   14 +-
+ dom/media/gmp/GMPUtils.h                           |    5 -
+ dom/media/moz.build                                |   14 +-
+ dom/media/platforms/PDMFactory.cpp                 |   17 +-
+ dom/media/platforms/PDMFactory.h                   |    6 +
+ dom/media/platforms/PlatformDecoderModule.h        |    8 +
+ dom/media/platforms/moz.build                      |   12 +-
+ dom/media/platforms/wmf/WMFVideoMFTManager.cpp     |    2 +-
+ dom/media/platforms/wrappers/H264Converter.cpp     |    8 +-
+ dom/media/platforms/wrappers/H264Converter.h       |    2 +
+ dom/media/webaudio/BufferDecoder.cpp               |   13 +-
+ dom/media/webaudio/BufferDecoder.h                 |   10 +-
+ dom/media/webaudio/MediaBufferDecoder.cpp          |   11 +-
+ dom/webidl/moz.build                               |   19 +-
+ gfx/layers/ipc/PAPZCTreeManager.ipdl               |    1 +
+ ipc/app/moz.build                                  |    2 +-
+ ipc/contentproc/plugin-container.cpp               |    4 +-
+ layout/build/nsLayoutModule.cpp                    |   11 +-
+ layout/reftests/reftest.list                       |    2 -
+ mobile/android/app/mobile.js                       |    2 +
+ mobile/android/base/moz.build                      |   11 +-
+ mobile/android/components/AddonUpdateService.js    |    4 +
+ modules/libpref/init/all.js                        |    6 +
+ toolkit/content/jar.mn                             |    4 +-
+ toolkit/content/process-content.js                 |    4 +
+ toolkit/forgetaboutsite/ForgetAboutSite.jsm        |    2 +
+ toolkit/forgetaboutsite/moz.build                  |    2 +-
+ toolkit/modules/moz.build                          |    8 +-
+ toolkit/moz.configure                              |   13 +
+ toolkit/mozapps/extensions/extensions.manifest     |    2 +
+ toolkit/mozapps/extensions/internal/moz.build      |    9 +-
+ toolkit/mozapps/extensions/jar.mn                  |    2 +
+ toolkit/mozapps/webextensions/extensions.manifest  |    2 +
+ toolkit/mozapps/webextensions/jar.mn               |    2 +
+ toolkit/xre/nsEmbedFunctions.cpp                   |   10 +
+ xpcom/build/XREChildData.h                         |    5 +-
+ xpcom/build/nsXULAppAPI.h                          |    2 +
+ 63 files changed, 334 insertions(+), 1121 deletions(-)
+ delete mode 100644 dom/ipc/PContent.ipdl
+
+diff --git a/application/basilisk/installer/package-manifest.in b/application/basilisk/installer/package-manifest.in
+index 554f7a4..eaa9646 100644
+--- a/application/basilisk/installer/package-manifest.in
++++ b/application/basilisk/installer/package-manifest.in
+@@ -172,7 +172,9 @@
+ @RESPATH@/components/composer.xpt
+ @RESPATH@/components/content_events.xpt
+ @RESPATH@/components/content_html.xpt
++#ifdef THE_GMP
+ @RESPATH@/components/content_geckomediaplugins.xpt
++#endif
+ #ifdef MOZ_WEBRTC
+ @RESPATH@/components/content_webrtc.xpt
+ #endif
+diff --git a/application/basilisk/modules/ContentCrashHandlers.jsm b/application/basilisk/modules/ContentCrashHandlers.jsm
+index 488cc4f..f9a8957 100644
+--- a/application/basilisk/modules/ContentCrashHandlers.jsm
++++ b/application/basilisk/modules/ContentCrashHandlers.jsm
+@@ -798,13 +798,17 @@ this.PluginCrashReporter = {
+     this.crashReports = new Map();
+ 
+     Services.obs.addObserver(this, "plugin-crashed", false);
++#ifdef THE_GMP
+     Services.obs.addObserver(this, "gmp-plugin-crash", false);
++#endif
+     Services.obs.addObserver(this, "profile-after-change", false);
+   },
+ 
+   uninit() {
+     Services.obs.removeObserver(this, "plugin-crashed", false);
++#ifdef THE_GMP
+     Services.obs.removeObserver(this, "gmp-plugin-crash", false);
++#endif
+     Services.obs.removeObserver(this, "profile-after-change", false);
+     this.initialized = false;
+   },
+@@ -829,6 +833,7 @@ this.PluginCrashReporter = {
+         }
+         break;
+       }
++#ifdef THE_GMP
+       case "gmp-plugin-crash": {
+         let propertyBag = subject;
+         if (!(propertyBag instanceof Ci.nsIWritablePropertyBag2) ||
+@@ -857,6 +862,7 @@ this.PluginCrashReporter = {
+         }
+         break;
+       }
++#endif
+       case "profile-after-change":
+         this.uninit();
+         break;
+diff --git a/application/basilisk/modules/PluginContent.jsm b/application/basilisk/modules/PluginContent.jsm
+index 622d608..db9ab60 100644
+--- a/application/basilisk/modules/PluginContent.jsm
++++ b/application/basilisk/modules/PluginContent.jsm
+@@ -953,11 +953,12 @@ PluginContent.prototype = {
+     if (!(aEvent instanceof this.content.PluginCrashedEvent))
+       return;
+ 
++#ifdef THE_GMP
+     if (aEvent.gmpPlugin) {
+       this.GMPCrashed(aEvent);
+       return;
+     }
+-
++#endif
+     if (!(target instanceof Ci.nsIObjectLoadingContent))
+       return;
+ 
+@@ -1105,6 +1106,7 @@ PluginContent.prototype = {
+     }
+   },
+ 
++#ifdef THE_GMP
+   GMPCrashed: function(aEvent) {
+     let target          = aEvent.target;
+     let pluginName      = aEvent.pluginName;
+@@ -1116,6 +1118,7 @@ PluginContent.prototype = {
+       // TODO: Throw exception? How did we get here?
+       return;
+     }
++#endif
+ 
+     let messageString =
+       gNavigatorBundle.formatStringFromName("crashedpluginsMessage.title",
+diff --git a/application/basilisk/modules/moz.build b/application/basilisk/modules/moz.build
+index cd8f2ce..171ff78 100644
+--- a/application/basilisk/modules/moz.build
++++ b/application/basilisk/modules/moz.build
+@@ -11,7 +11,6 @@ EXTRA_JS_MODULES += [
+     'BrowserUsageTelemetry.jsm',
+     'CastingApps.jsm',
+     'ContentClick.jsm',
+-    'ContentCrashHandlers.jsm',
+     'ContentLinkHandler.jsm',
+     'ContentObservers.jsm',
+     'ContentSearch.jsm',
+@@ -25,7 +24,6 @@ EXTRA_JS_MODULES += [
+     'NetworkPrioritizer.jsm',
+     'offlineAppCache.jsm',
+     'PermissionUI.jsm',
+-    'PluginContent.jsm',
+     'ProcessHangMonitor.jsm',
+     'ReaderParent.jsm',
+     'RecentWindow.jsm',
+@@ -37,6 +35,12 @@ EXTRA_JS_MODULES += [
+     'webrtcUI.jsm',
+ ]
+ 
++EXTRA_PP_JS_MODULES += [
++    'ContentCrashHandlers.jsm',
++    'PluginContent.jsm',
++]
++
++
+ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
+     EXTRA_JS_MODULES += [
+         'Windows8WindowFrameColor.jsm',
+diff --git a/dom/ipc/ContentChild.cpp b/dom/ipc/ContentChild.cpp
+index df771a2318..1df7ee5 100644
+--- a/dom/ipc/ContentChild.cpp
++++ b/dom/ipc/ContentChild.cpp
+@@ -60,7 +60,9 @@
+ #include "mozilla/BasePrincipal.h"
+ #include "mozilla/WebBrowserPersistDocumentChild.h"
+ #include "imgLoader.h"
++#ifdef THE_GMP
+ #include "GMPServiceChild.h"
++#endif
+ 
+ #include "mozilla/Unused.h"
+ 
+@@ -167,7 +169,6 @@
+ #include "mozilla/net/NeckoMessageUtils.h"
+ #include "mozilla/widget/PuppetBidiKeyboard.h"
+ #include "mozilla/RemoteSpellCheckEngineChild.h"
+-#include "GMPServiceChild.h"
+ #include "gfxPlatform.h"
+ #include "nscore.h" // for NS_FREE_PERMANENT_DATA
+ 
+@@ -177,7 +178,9 @@ using namespace mozilla::dom::ipc;
+ using namespace mozilla::dom::workers;
+ using namespace mozilla::media;
+ using namespace mozilla::embedding;
++#ifdef THE_GMP
+ using namespace mozilla::gmp;
++#endif
+ using namespace mozilla::hal_sandbox;
+ using namespace mozilla::ipc;
+ using namespace mozilla::layers;
+@@ -1126,7 +1129,7 @@ ContentChild::AllocPContentBridgeParent(mozilla::ipc::Transport* aTransport,
+     ContentBridgeParent::Create(aTransport, aOtherProcess));
+   return mLastBridge;
+ }
+-
++#ifdef THE_GMP
+ PGMPServiceChild*
+ ContentChild::AllocPGMPServiceChild(mozilla::ipc::Transport* aTransport,
+                                     base::ProcessId aOtherProcess)
+@@ -1140,6 +1143,7 @@ ContentChild::RecvGMPsChanged(nsTArray<GMPCapabilityData>&& capabilities)
+   GeckoMediaPluginServiceChild::UpdateGMPCapabilities(Move(capabilities));
+   return true;
+ }
++#endif
+ 
+ bool
+ ContentChild::RecvInitRendering(Endpoint<PCompositorBridgeChild>&& aCompositor,
+diff --git a/dom/ipc/ContentChild.h b/dom/ipc/ContentChild.h
+index f8ac9c1..6467397 100644
+--- a/dom/ipc/ContentChild.h
++++ b/dom/ipc/ContentChild.h
+@@ -140,13 +140,14 @@ public:
+   PContentBridgeChild*
+   AllocPContentBridgeChild(mozilla::ipc::Transport* transport,
+                            base::ProcessId otherProcess) override;
+-
++#ifdef THE_GMP
+   PGMPServiceChild*
+   AllocPGMPServiceChild(mozilla::ipc::Transport* transport,
+                         base::ProcessId otherProcess) override;
+ 
+   bool
+   RecvGMPsChanged(nsTArray<GMPCapabilityData>&& capabilities) override;
++#endif
+ 
+   bool
+   RecvInitRendering(
+diff --git a/dom/ipc/ContentParent.cpp b/dom/ipc/ContentParent.cpp
+index a87e8eb..b08ac04 100644
+--- a/dom/ipc/ContentParent.cpp
++++ b/dom/ipc/ContentParent.cpp
+@@ -22,7 +22,9 @@
+ #include "AppProcessChecker.h"
+ #include "AudioChannelService.h"
+ #include "BlobParent.h"
++#ifdef THE_GMP
+ #include "GMPServiceParent.h"
++#endif
+ #include "HandlerServiceParent.h"
+ #include "IHistory.h"
+ #include "imgIContainer.h"
+@@ -240,7 +242,9 @@ using namespace mozilla::dom::power;
+ using namespace mozilla::media;
+ using namespace mozilla::embedding;
+ using namespace mozilla::gfx;
++#ifdef THE_GMP
+ using namespace mozilla::gmp;
++#endif
+ using namespace mozilla::hal;
+ using namespace mozilla::ipc;
+ using namespace mozilla::layers;
+@@ -875,11 +879,13 @@ static nsIDocShell* GetOpenerDocShellHelper(Element* aFrameElement)
+   return docShell;
+ }
+ 
++#ifdef THE_GMP
+ bool
+ ContentParent::RecvCreateGMPService()
+ {
+   return PGMPService::Open(this);
+ }
++#endif
+ 
+ bool
+ ContentParent::RecvLoadPlugin(const uint32_t& aPluginId, nsresult* aRv, uint32_t* aRunID)
+@@ -1282,9 +1288,10 @@ ContentParent::Init()
+ #endif
+   }
+ #endif
+-
++#ifdef THE_GMP
+   RefPtr<GeckoMediaPluginServiceParent> gmps(GeckoMediaPluginServiceParent::GetSingleton());
+   gmps->UpdateContentProcessGMPCapabilities();
++#endif
+ }
+ 
+ void
+@@ -2580,13 +2587,14 @@ ContentParent::Observe(nsISupports* aSubject,
+   return NS_OK;
+ }
+ 
++#ifdef THE_GMP
+ PGMPServiceParent*
+ ContentParent::AllocPGMPServiceParent(mozilla::ipc::Transport* aTransport,
+                                       base::ProcessId aOtherProcess)
+ {
+   return GMPServiceParent::Create(aTransport, aOtherProcess);
+ }
+-
++#endif
+ PBackgroundParent*
+ ContentParent::AllocPBackgroundParent(Transport* aTransport,
+                                       ProcessId aOtherProcess)
+diff --git a/dom/ipc/ContentParent.h b/dom/ipc/ContentParent.h
+index e6bd13d..86cc902 100644
+--- a/dom/ipc/ContentParent.h
++++ b/dom/ipc/ContentParent.h
+@@ -238,7 +238,9 @@ public:
+ 
+   virtual bool RecvBridgeToChildProcess(const ContentParentId& aCpId) override;
+ 
++#ifdef THE_GMP
+   virtual bool RecvCreateGMPService() override;
++#endif
+ 
+   virtual bool RecvLoadPlugin(const uint32_t& aPluginId, nsresult* aRv,
+                               uint32_t* aRunID) override;
+@@ -670,11 +672,11 @@ private:
+   static bool AllocateLayerTreeId(ContentParent* aContent,
+                                   TabParent* aTopLevel, const TabId& aTabId,
+                                   uint64_t* aId);
+-
++#ifdef THE_GMP
+   PGMPServiceParent*
+   AllocPGMPServiceParent(mozilla::ipc::Transport* aTransport,
+                          base::ProcessId aOtherProcess) override;
+-
++#endif
+   PBackgroundParent*
+   AllocPBackgroundParent(Transport* aTransport, ProcessId aOtherProcess)
+                          override;
+diff --git a/dom/ipc/moz.build b/dom/ipc/moz.build
+index 5629ab2..47a7b9f 100644
+--- a/dom/ipc/moz.build
++++ b/dom/ipc/moz.build
+@@ -82,7 +82,6 @@ IPDL_SOURCES += [
+     'PBrowser.ipdl',
+     'PBrowserOrId.ipdlh',
+     'PColorPicker.ipdl',
+-    'PContent.ipdl',
+     'PContentBridge.ipdl',
+     'PContentPermission.ipdlh',
+     'PContentPermissionRequest.ipdl',
+@@ -96,6 +95,11 @@ IPDL_SOURCES += [
+     'ServiceWorkerConfiguration.ipdlh',
+ ]
+ 
++if CONFIG['THE_GMP']:
++  IPDL_SOURCES += ['gmp/PContent.ipdl',]
++else:
++  IPDL_SOURCES += ['nogmp/PContent.ipdl',]
++
+ include('/ipc/chromium/chromium-config.mozbuild')
+ 
+ FINAL_LIBRARY = 'xul'
+diff --git a/dom/media/AbstractMediaDecoder.h b/dom/media/AbstractMediaDecoder.h
+index a0f04ec..c83333d 100644
+--- a/dom/media/AbstractMediaDecoder.h
++++ b/dom/media/AbstractMediaDecoder.h
+@@ -17,7 +17,9 @@
+ #include "nsDataHashtable.h"
+ #include "nsThreadUtils.h"
+ 
++#ifdef THE_GMP
+ class GMPCrashHelper;
++#endif
+ 
+ namespace mozilla
+ {
+@@ -31,7 +33,9 @@ class MediaResource;
+ class ReentrantMonitor;
+ class VideoFrameContainer;
+ class MediaDecoderOwner;
++#ifdef MOZ_EME
+ class CDMProxy;
++#endif
+ 
+ typedef nsDataHashtable<nsCStringHashKey, nsCString> MetadataTags;
+ 
+@@ -111,7 +115,9 @@ public:
+   // Set by Reader if the current audio track can be offloaded
+   virtual void SetPlatformCanOffloadAudio(bool aCanOffloadAudio) {}
+ 
++#ifdef THE_GMP
+   virtual already_AddRefed<GMPCrashHelper> GetCrashHelper() { return nullptr; }
++#endif
+ 
+   // Stack based class to assist in notifying the frame statistics of
+   // parsed and decoded frames. Use inside video demux & decode functions
+diff --git a/dom/media/DecoderDoctorDiagnostics.cpp b/dom/media/DecoderDoctorDiagnostics.cpp
+index 91c2d8d..0452c48 100644
+--- a/dom/media/DecoderDoctorDiagnostics.cpp
++++ b/dom/media/DecoderDoctorDiagnostics.cpp
+@@ -846,6 +846,7 @@ DecoderDoctorDiagnostics::GetDescription() const
+       if (mFFmpegFailedToLoad) {
+         s += ", Linux platform decoder failed to load";
+       }
++#ifdef THE_GMP
+       if (mGMPPDMFailedToStartup) {
+         s += ", GMP PDM failed to startup";
+       } else if (!mGMP.IsEmpty()) {
+@@ -853,6 +854,7 @@ DecoderDoctorDiagnostics::GetDescription() const
+         s += mGMP;
+         s += "'";
+       }
++#endif
+       break;
+     case eMediaKeySystemAccessRequest:
+       s = "key system='";
+diff --git a/dom/media/DecoderDoctorDiagnostics.h b/dom/media/DecoderDoctorDiagnostics.h
+index 6ed04cf..1ae29f5 100644
+--- a/dom/media/DecoderDoctorDiagnostics.h
++++ b/dom/media/DecoderDoctorDiagnostics.h
+@@ -79,14 +79,18 @@ public:
+   void SetFFmpegFailedToLoad() { mFFmpegFailedToLoad = true; }
+   bool DidFFmpegFailToLoad() const { return mFFmpegFailedToLoad; }
+ 
++#ifdef THE_GMP
+   void SetGMPPDMFailedToStartup() { mGMPPDMFailedToStartup = true; }
+   bool DidGMPPDMFailToStartup() const { return mGMPPDMFailedToStartup; }
++#endif
+ 
+   void SetVideoNotSupported() { mVideoNotSupported = true; }
+   void SetAudioNotSupported() { mAudioNotSupported = true; }
+ 
++#ifdef THE_GMP
+   void SetGMP(const nsACString& aGMP) { mGMP = aGMP; }
+   const nsACString& GMP() const { return mGMP; }
++#endif
+ 
+   const nsAString& KeySystem() const { return mKeySystem; }
+   bool IsKeySystemSupported() const { return mIsKeySystemSupported; }
+@@ -120,7 +124,9 @@ private:
+ 
+   bool mWMFFailedToLoad = false;
+   bool mFFmpegFailedToLoad = false;
++#ifdef THE_GMP
+   bool mGMPPDMFailedToStartup = false;
++#endif
+   bool mVideoNotSupported = false;
+   bool mAudioNotSupported = false;
+   nsCString mGMP;
+diff --git a/dom/media/MediaDecoder.cpp b/dom/media/MediaDecoder.cpp
+index 223c59c..bb232a6 100644
+--- a/dom/media/MediaDecoder.cpp
++++ b/dom/media/MediaDecoder.cpp
+@@ -30,7 +30,9 @@
+ #include "mozilla/dom/VideoTrack.h"
+ #include "mozilla/dom/VideoTrackList.h"
+ #include "nsPrintfCString.h"
++#ifdef THE_GMP
+ #include "GMPService.h"
++#endif
+ #include "Layers.h"
+ #include "mozilla/layers/ShadowLayers.h"
+ 
+@@ -387,7 +389,9 @@ MediaDecoder::MediaDecoder(MediaDecoderOwner* aOwner)
+   , mLogicalPosition(0.0)
+   , mDuration(std::numeric_limits<double>::quiet_NaN())
+   , mResourceCallback(new ResourceCallback())
++#ifdef MOZ_EME
+   , mCDMProxyPromise(mCDMProxyPromiseHolder.Ensure(__func__))
++#endif
+   , mIgnoreProgressData(false)
+   , mInfiniteStream(false)
+   , mOwner(aOwner)
+@@ -472,7 +476,9 @@ MediaDecoder::Shutdown()
+ 
+   mResourceCallback->Disconnect();
+ 
++#ifdef MOZ_EME
+   mCDMProxyPromiseHolder.RejectIfExists(true, __func__);
++#endif
+ 
+   DiscardOngoingSeekIfExists();
+ 
+@@ -923,6 +929,7 @@ MediaDecoder::OwnerHasError() const
+   return mOwner->HasError();
+ }
+ 
++#ifdef THE_GMP
+ class MediaElementGMPCrashHelper : public GMPCrashHelper
+ {
+ public:
+@@ -950,6 +957,7 @@ MediaDecoder::GetCrashHelper()
+   return mOwner->GetMediaElement() ?
+     MakeAndAddRef<MediaElementGMPCrashHelper>(mOwner->GetMediaElement()) : nullptr;
+ }
++#endif
+ 
+ bool
+ MediaDecoder::IsEnded() const
+@@ -1537,6 +1545,7 @@ MediaDecoder::CanPlayThrough()
+   return GetStatistics().CanPlayThrough();
+ }
+ 
++#ifdef MOZ_EME
+ RefPtr<MediaDecoder::CDMProxyPromise>
+ MediaDecoder::RequestCDMProxy() const
+ {
+@@ -1551,6 +1560,7 @@ MediaDecoder::SetCDMProxy(CDMProxy* aProxy)
+ 
+   mCDMProxyPromiseHolder.ResolveIfExists(aProxy, __func__);
+ }
++#endif
+ 
+ bool
+ MediaDecoder::IsOpusEnabled()
+diff --git a/dom/media/MediaDecoder.h b/dom/media/MediaDecoder.h
+index 05e88db..5909661 100644
+--- a/dom/media/MediaDecoder.h
++++ b/dom/media/MediaDecoder.h
+@@ -8,7 +8,9 @@
+ #define MediaDecoder_h_
+ 
+ #include "mozilla/Atomics.h"
++#ifdef MOZ_EME
+ #include "mozilla/CDMProxy.h"
++#endif
+ #include "mozilla/MozPromise.h"
+ #include "mozilla/ReentrantMonitor.h"
+ #include "mozilla/StateMirroring.h"
+@@ -243,7 +245,9 @@ public:
+   // Must be called before Shutdown().
+   bool OwnerHasError() const;
+ 
++#ifdef THE_GMP
+   already_AddRefed<GMPCrashHelper> GetCrashHelper() override;
++#endif
+ 
+ protected:
+   // Updates the media duration. This is called while the media is being
+@@ -432,6 +436,7 @@ private:
+ 
+   MediaDecoderOwner* GetOwner() const override;
+ 
++#ifdef MOZ_EME
+   typedef MozPromise<RefPtr<CDMProxy>, bool /* aIgnored */, /* IsExclusive = */ true> CDMProxyPromise;
+ 
+   // Resolved when a CDMProxy is available and the capabilities are known or
+@@ -439,6 +444,7 @@ private:
+   RefPtr<CDMProxyPromise> RequestCDMProxy() const;
+ 
+   void SetCDMProxy(CDMProxy* aProxy);
++#endif
+ 
+   static bool IsOggEnabled();
+   static bool IsOpusEnabled();
+@@ -589,8 +595,10 @@ private:
+ 
+   RefPtr<ResourceCallback> mResourceCallback;
+ 
++#ifdef MOZ_EME
+   MozPromiseHolder<CDMProxyPromise> mCDMProxyPromiseHolder;
+   RefPtr<CDMProxyPromise> mCDMProxyPromise;
++#endif
+ 
+ protected:
+   // The promise resolving/rejection is queued as a "micro-task" which will be
+diff --git a/dom/media/MediaDecoderReader.h b/dom/media/MediaDecoderReader.h
+index 8a69978..f53c746 100644
+--- a/dom/media/MediaDecoderReader.h
++++ b/dom/media/MediaDecoderReader.h
+@@ -24,7 +24,9 @@
+ 
+ namespace mozilla {
+ 
++#ifdef MOZ_EME
+ class CDMProxy;
++#endif
+ class MediaDecoderReader;
+ 
+ struct WaitForDataRejectValue
+@@ -186,7 +188,9 @@ public:
+   // when to call SetIdle().
+   virtual void SetIdle() {}
+ 
++#ifdef MOZ_EME
+   virtual void SetCDMProxy(CDMProxy* aProxy) {}
++#endif
+ 
+   // Tell the reader that the data decoded are not for direct playback, so it
+   // can accept more files, in particular those which have more channels than
+diff --git a/dom/media/MediaDecoderReaderWrapper.h b/dom/media/MediaDecoderReaderWrapper.h
+index 92001ca..1a8d3a6 100644
+--- a/dom/media/MediaDecoderReaderWrapper.h
++++ b/dom/media/MediaDecoderReaderWrapper.h
+@@ -113,7 +113,9 @@ public:
+     return mReader->CanonicalBuffered();
+   }
+ 
++#ifdef MOZ_EME
+   void SetCDMProxy(CDMProxy* aProxy) { mReader->SetCDMProxy(aProxy); }
++#endif
+ 
+   void SetVideoBlankDecode(bool aIsBlankDecode);
+ 
+diff --git a/dom/media/MediaDecoderStateMachine.cpp b/dom/media/MediaDecoderStateMachine.cpp
+index 2ed1956..5c41728 100644
+--- a/dom/media/MediaDecoderStateMachine.cpp
++++ b/dom/media/MediaDecoderStateMachine.cpp
+@@ -193,7 +193,9 @@ public:
+   virtual State GetState() const = 0;
+ 
+   // Event handlers for various events.
++#ifdef MOZ_EME
+   virtual void HandleCDMProxyReady() {}
++#endif
+   virtual void HandleAudioDecoded(MediaData* aAudio) {}
+   virtual void HandleVideoDecoded(MediaData* aVideo, TimeStamp aDecodeStart) {}
+   virtual void HandleEndOfStream() {}
+@@ -371,7 +373,9 @@ public:
+     return DECODER_STATE_WAIT_FOR_CDM;
+   }
+ 
++#ifdef MOZ_EME
+   void HandleCDMProxyReady() override;
++#endif
+ 
+   RefPtr<MediaDecoder::SeekPromise> HandleSeek(SeekTarget aTarget) override
+   {
+@@ -1238,7 +1242,11 @@ DecodeMetadataState::OnMetadataRead(MetadataHolder* aMetadata)
+   // feeding in the CDM, which we need to decode the first frame (and
+   // thus get the metadata). We could fix this if we could compute the start
+   // time by demuxing without necessaring decoding.
+-  bool waitingForCDM = Info().IsEncrypted() && !mMaster->mCDMProxy;
++  bool waitingForCDM = Info().IsEncrypted() 
++#ifdef MOZ_EME
++&& !mMaster->mCDMProxy
++#endif
++;
+ 
+   mMaster->mNotifyMetadataBeforeFirstFrame =
+     mMaster->mDuration.Ref().isSome() || waitingForCDM;
+@@ -1262,19 +1270,24 @@ DormantState::HandlePlayStateChanged(MediaDecoder::PlayState aPlayState)
+ {
+   if (aPlayState == MediaDecoder::PLAY_STATE_PLAYING) {
+     // Exit dormant when the user wants to play.
+-    MOZ_ASSERT(!Info().IsEncrypted() || mMaster->mCDMProxy);
++    MOZ_ASSERT(!Info().IsEncrypted()
++#ifdef MOZ_EME
++ || mMaster->mCDMProxy
++#endif
++);
+     MOZ_ASSERT(mMaster->mSentFirstFrameLoadedEvent);
+     SetState<SeekingState>(Move(mPendingSeek), EventVisibility::Suppressed);
+   }
+ }
+ 
++#ifdef MOZ_EME
+ void
+ MediaDecoderStateMachine::
+ WaitForCDMState::HandleCDMProxyReady()
+ {
+   SetState<DecodingFirstFrameState>(Move(mPendingSeek));
+ }
+-
++#endif
+ void
+ MediaDecoderStateMachine::
+ DecodingFirstFrameState::Enter(SeekJob aPendingSeek)
+@@ -1575,7 +1588,9 @@ ShutdownState::Enter()
+   // dispose of the timer.
+   master->mVideoDecodeSuspendTimer.Reset();
+ 
++#ifdef MOZ_EME
+   master->mCDMProxyPromise.DisconnectIfExists();
++#endif
+ 
+   if (master->IsPlaying()) {
+     master->StopPlayback();
+@@ -2129,10 +2144,12 @@ nsresult MediaDecoderStateMachine::Init(MediaDecoder* aDecoder)
+ 
+   mMediaSink = CreateMediaSink(mAudioCaptured);
+ 
++#ifdef MOZ_EME
+   mCDMProxyPromise.Begin(aDecoder->RequestCDMProxy()->Then(
+     OwnerThread(), __func__, this,
+     &MediaDecoderStateMachine::OnCDMProxyReady,
+     &MediaDecoderStateMachine::OnCDMProxyNotReady));
++#endif
+ 
+   nsresult rv = mReader->Init();
+   NS_ENSURE_SUCCESS(rv, rv);
+@@ -3108,6 +3125,7 @@ void MediaDecoderStateMachine::OnMediaSinkAudioError(nsresult aResult)
+   DecodeError(MediaResult(NS_ERROR_DOM_MEDIA_MEDIASINK_ERR, __func__));
+ }
+ 
++#ifdef MOZ_EME
+ void
+ MediaDecoderStateMachine::OnCDMProxyReady(RefPtr<CDMProxy> aProxy)
+ {
+@@ -3124,7 +3142,7 @@ MediaDecoderStateMachine::OnCDMProxyNotReady()
+   MOZ_ASSERT(OnTaskQueue());
+   mCDMProxyPromise.Complete();
+ }
+-
++#endif
+ void
+ MediaDecoderStateMachine::SetAudioCaptured(bool aCaptured)
+ {
+diff --git a/dom/media/MediaDecoderStateMachine.h b/dom/media/MediaDecoderStateMachine.h
+index ff3258f..f04f349 100644
+--- a/dom/media/MediaDecoderStateMachine.h
++++ b/dom/media/MediaDecoderStateMachine.h
+@@ -768,10 +768,12 @@ private:
+   // Playback will not start when audio is offloading.
+   bool mAudioOffloading;
+ 
++#ifdef MOZ_EME
+   void OnCDMProxyReady(RefPtr<CDMProxy> aProxy);
+   void OnCDMProxyNotReady();
+   RefPtr<CDMProxy> mCDMProxy;
+   MozPromiseRequestHolder<MediaDecoder::CDMProxyPromise> mCDMProxyPromise;
++#endif
+ 
+ private:
+   // The buffered range. Mirrored from the decoder thread.
+diff --git a/dom/media/MediaFormatReader.cpp b/dom/media/MediaFormatReader.cpp
+index 7734347..8f934fa 100644
+--- a/dom/media/MediaFormatReader.cpp
++++ b/dom/media/MediaFormatReader.cpp
+@@ -4,7 +4,9 @@
+  * License, v. 2.0. If a copy of the MPL was not distributed with this
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
++#ifdef MOZ_EME
+ #include "mozilla/CDMProxy.h"
++#endif
+ #include "mozilla/ClearOnShutdown.h"
+ #include "mozilla/dom/HTMLMediaElement.h"
+ #include "mozilla/Preferences.h"
+@@ -367,7 +369,9 @@ MediaFormatReader::DecoderFactory::DoCreateDecoder(TrackType aTrack)
+         : *ownerData.mOriginalInfo->GetAsAudioInfo(),
+         ownerData.mTaskQueue,
+         ownerData.mCallback.get(),
++#ifdef THE_GMP
+         mOwner->mCrashHelper,
++#endif
+         ownerData.mIsBlankDecode,
+         &result
+       });
+@@ -385,7 +389,9 @@ MediaFormatReader::DecoderFactory::DoCreateDecoder(TrackType aTrack)
+         ownerData.mCallback.get(),
+         mOwner->mKnowsCompositor,
+         mOwner->GetImageContainer(),
++#ifdef THE_GMP
+         mOwner->mCrashHelper,
++#endif
+         ownerData.mIsBlankDecode,
+         &result
+       });
+@@ -580,7 +586,9 @@ MediaFormatReader::InitInternal()
+ 
+   // Note: GMPCrashHelper must be created on main thread, as it may use
+   // weak references, which aren't threadsafe.
++#ifdef THE_GMP
+   mCrashHelper = mDecoder->GetCrashHelper();
++#endif
+ 
+   return NS_OK;
+ }
+@@ -613,6 +621,7 @@ private:
+ };
+ #endif
+ 
++#ifdef MOZ_EME
+ void
+ MediaFormatReader::SetCDMProxy(CDMProxy* aProxy)
+ {
+@@ -624,7 +633,7 @@ MediaFormatReader::SetCDMProxy(CDMProxy* aProxy)
+   });
+   OwnerThread()->Dispatch(r.forget());
+ }
+-
++#endif
+ bool
+ MediaFormatReader::IsWaitingOnCDMResource() {
+   MOZ_ASSERT(OnTaskQueue());
+diff --git a/dom/media/MediaFormatReader.h b/dom/media/MediaFormatReader.h
+index 4d05ca2..7d07ef0 100644
+--- a/dom/media/MediaFormatReader.h
++++ b/dom/media/MediaFormatReader.h
+@@ -20,7 +20,9 @@
+ 
+ namespace mozilla {
+ 
++#ifdef MOZ_EME
+ class CDMProxy;
++#endif
+ 
+ class MediaFormatReader final : public MediaDecoderReader
+ {
+@@ -91,7 +93,9 @@ public:
+     return mTrackDemuxersMayBlock;
+   }
+ 
++#ifdef MOZ_EME
+   void SetCDMProxy(CDMProxy* aProxy) override;
++#endif
+ 
+   // Returns a string describing the state of the decoder data.
+   // Used for debugging purposes.
+@@ -584,9 +588,12 @@ private:
+   RefPtr<VideoFrameContainer> mVideoFrameContainer;
+   layers::ImageContainer* GetImageContainer();
+ 
++#ifdef MOZ_EME
+   RefPtr<CDMProxy> mCDMProxy;
+-
++#endif
++#ifdef THE_GMP
+   RefPtr<GMPCrashHelper> mCrashHelper;
++#endif
+ 
+   void SetBlankDecode(TrackType aTrack, bool aIsBlankDecode);
+ 
+diff --git a/dom/media/MediaPrefs.h b/dom/media/MediaPrefs.h
+index c67a899..0a076d0 100644
+--- a/dom/media/MediaPrefs.h
++++ b/dom/media/MediaPrefs.h
+@@ -95,14 +95,20 @@ private:
+   // VideoSink
+   DECL_MEDIA_PREF("media.ruin-av-sync.enabled",               RuinAvSync, bool, false);
+ 
++#ifdef MOZ_EME
+   // Encrypted Media Extensions
+   DECL_MEDIA_PREF("media.clearkey.persistent-license.enabled", ClearKeyPersistentLicenseEnabled, bool, false);
++#endif
+ 
+   // PlatformDecoderModule
+   DECL_MEDIA_PREF("media.apple.forcevda",                     AppleForceVDA, bool, false);
++#ifdef THE_GMP
+   DECL_MEDIA_PREF("media.gmp.insecure.allow",                 GMPAllowInsecure, bool, false);
+   DECL_MEDIA_PREF("media.gmp.async-shutdown-timeout",         GMPAsyncShutdownTimeout, uint32_t, GMP_DEFAULT_ASYNC_SHUTDOWN_TIMEOUT);
++#endif
++#ifdef MOZ_EME
+   DECL_MEDIA_PREF("media.eme.enabled",                        EMEEnabled, bool, false);
++#endif
+   DECL_MEDIA_PREF("media.use-blank-decoder",                  PDMUseBlankDecoder, bool, false);
+   DECL_MEDIA_PREF("media.gpu-process-decoder",                PDMUseGPUDecoder, bool, false);
+ #ifdef MOZ_WIDGET_ANDROID
+@@ -130,9 +136,11 @@ private:
+   DECL_MEDIA_PREF("media.decoder.fuzzing.enabled",            PDMFuzzingEnabled, bool, false);
+   DECL_MEDIA_PREF("media.decoder.fuzzing.video-output-minimum-interval-ms", PDMFuzzingInterval, uint32_t, 0);
+   DECL_MEDIA_PREF("media.decoder.fuzzing.dont-delay-inputexhausted", PDMFuzzingDelayInputExhausted, bool, true);
++#ifdef THE_GMP
+   DECL_MEDIA_PREF("media.gmp.decoder.enabled",                PDMGMPEnabled, bool, true);
+   DECL_MEDIA_PREF("media.gmp.decoder.aac",                    GMPAACPreferred, uint32_t, 0);
+   DECL_MEDIA_PREF("media.gmp.decoder.h264",                   GMPH264Preferred, uint32_t, 0);
++#endif
+ 
+   // MediaDecoderStateMachine
+   DECL_MEDIA_PREF("media.suspend-bkgnd-video.enabled",        MDSMSuspendBackgroundVideoEnabled, bool, false);
+diff --git a/dom/media/eme/MediaKeySystemAccess.cpp b/dom/media/eme/MediaKeySystemAccess.cpp
+index 7007d3a..4f27378 100644
+--- a/dom/media/eme/MediaKeySystemAccess.cpp
++++ b/dom/media/eme/MediaKeySystemAccess.cpp
+@@ -142,10 +142,10 @@ MediaKeySystemAccess::GetKeySystemStatus(const nsAString& aKeySystem,
+       }
+ #ifdef XP_WIN
+       // Win Vista and later only.
+-      if (!IsVistaOrLater()) {
+-        aOutMessage = NS_LITERAL_CSTRING("Minimum Windows version (Vista) not met for Adobe EME");
+-        return MediaKeySystemStatus::Cdm_not_supported;
+-      }
++//      if (!IsVistaOrLater()) {
++//        aOutMessage = NS_LITERAL_CSTRING("Minimum Windows version (Vista) not met for Adobe EME");
++//        return MediaKeySystemStatus::Cdm_not_supported;
++//      }
+ #endif
+       return EnsureCDMInstalled(aKeySystem, aOutMessage);
+     }
+@@ -155,10 +155,10 @@ MediaKeySystemAccess::GetKeySystemStatus(const nsAString& aKeySystem,
+     if (Preferences::GetBool("media.gmp-widevinecdm.visible", false)) {
+ #ifdef XP_WIN
+       // Win Vista and later only.
+-      if (!IsVistaOrLater()) {
+-        aOutMessage = NS_LITERAL_CSTRING("Minimum Windows version (Vista) not met for Widevine EME");
+-        return MediaKeySystemStatus::Cdm_not_supported;
+-      }
++//      if (!IsVistaOrLater()) {
++//        aOutMessage = NS_LITERAL_CSTRING("Minimum Windows version (Vista) not met for Widevine EME");
++//        return MediaKeySystemStatus::Cdm_not_supported;
++//      }
+ #endif
+       if (!Preferences::GetBool("media.gmp-widevinecdm.enabled", false)) {
+         aOutMessage = NS_LITERAL_CSTRING("Widevine EME disabled");
+diff --git a/dom/media/fmp4/MP4Decoder.cpp b/dom/media/fmp4/MP4Decoder.cpp
+index 6954e97..7c77c7e 100644
+--- a/dom/media/fmp4/MP4Decoder.cpp
++++ b/dom/media/fmp4/MP4Decoder.cpp
+@@ -10,7 +10,9 @@
+ #include "MP4Demuxer.h"
+ #include "mozilla/Preferences.h"
+ #include "nsCharSeparatedTokenizer.h"
++#ifdef MOZ_EME
+ #include "mozilla/CDMProxy.h"
++#endif
+ #include "mozilla/Logging.h"
+ #include "mozilla/SharedThreadPool.h"
+ #include "nsMimeTypes.h"
+diff --git a/dom/media/gmp/GMPChild.cpp b/dom/media/gmp/GMPChild.cpp
+index 14b06cc..88c8759 100644
+--- a/dom/media/gmp/GMPChild.cpp
++++ b/dom/media/gmp/GMPChild.cpp
+@@ -23,6 +23,7 @@
+ #include "prio.h"
+ #include "base/task.h"
+ #include "widevine-adapter/WidevineAdapter.h"
++#include "utils.h"
+ 
+ using namespace mozilla::ipc;
+ 
+diff --git a/dom/media/gmp/GMPParent.cpp b/dom/media/gmp/GMPParent.cpp
+index 418f147..b1de82f 100644
+--- a/dom/media/gmp/GMPParent.cpp
++++ b/dom/media/gmp/GMPParent.cpp
+@@ -21,6 +21,7 @@
+ #include "GMPContentParent.h"
+ #include "MediaPrefs.h"
+ #include "VideoUtils.h"
++#include "utils.h"
+ 
+ using mozilla::ipc::GeckoChildProcessHost;
+ 
+diff --git a/dom/media/gmp/GMPUtils.cpp b/dom/media/gmp/GMPUtils.cpp
+index d275237..891d9ee 100644
+--- a/dom/media/gmp/GMPUtils.cpp
++++ b/dom/media/gmp/GMPUtils.cpp
+@@ -12,6 +12,7 @@
+ #include "nsCRTGlue.h"
+ #include "mozilla/Base64.h"
+ #include "nsISimpleEnumerator.h"
++#include "utils.h"
+ 
+ namespace mozilla {
+ 
+@@ -39,19 +40,6 @@ EMEVoucherFileExists()
+          exists;
+ }
+ 
+-void
+-SplitAt(const char* aDelims,
+-        const nsACString& aInput,
+-        nsTArray<nsCString>& aOutTokens)
+-{
+-  nsAutoCString str(aInput);
+-  char* end = str.BeginWriting();
+-  const char* start = nullptr;
+-  while (!!(start = NS_strtok(aDelims, &end))) {
+-    aOutTokens.AppendElement(nsCString(start));
+-  }
+-}
+-
+ nsCString
+ ToBase64(const nsTArray<uint8_t>& aBytes)
+ {
+diff --git a/dom/media/gmp/GMPUtils.h b/dom/media/gmp/GMPUtils.h
+index 7e7b9f2..3fff18d 100644
+--- a/dom/media/gmp/GMPUtils.h
++++ b/dom/media/gmp/GMPUtils.h
+@@ -32,11 +32,6 @@ bool GetEMEVoucherPath(nsIFile** aPath);
+ 
+ bool EMEVoucherFileExists();
+ 
+-void
+-SplitAt(const char* aDelims,
+-        const nsACString& aInput,
+-        nsTArray<nsCString>& aOutTokens);
+-
+ nsCString
+ ToBase64(const nsTArray<uint8_t>& aBytes);
+ 
+diff --git a/dom/media/moz.build b/dom/media/moz.build
+index df8cb61..495493d 100644
+--- a/dom/media/moz.build
++++ b/dom/media/moz.build
+@@ -20,12 +20,8 @@ with Files('GetUserMedia*'):
+     BUG_COMPONENT = component_av
+ 
+ DIRS += [
+-    'eme',
+     'encoder',
+     'flac',
+-    'gmp',
+-    'gmp-plugin',
+-    'gmp-plugin-openh264',
+     'imagecapture',
+     'ipc',
+     'mediasink',
+@@ -46,6 +42,13 @@ DIRS += [
+ if CONFIG['MOZ_FMP4']:
+     DIRS += ['fmp4']
+ 
++if CONFIG['THE_GMP']:
++    DIRS += ['gmp',
++             'gmp-plugin',
++             'gmp-plugin-openh264',]
++    if CONFIG['MOZ_EME']:
++        DIRS += ['eme']
++
+ if CONFIG['MOZ_WEBRTC']:
+     DIRS += ['bridge']
+ 
+@@ -136,6 +139,7 @@ EXPORTS += [
+     'ThreadPoolCOMListener.h',
+     'TimeUnits.h',
+     'TrackUnionStream.h',
++    'utils.h',
+     'VideoFrameContainer.h',
+     'VideoLimits.h',
+     'VideoSegment.h',
+@@ -251,6 +255,8 @@ UNIFIED_SOURCES += [
+     'XiphExtradata.cpp',
+ ]
+ 
++SOURCES += [ 'utils.cpp' ]
++
+ if CONFIG['OS_TARGET'] == 'WINNT':
+   SOURCES += [ 'ThreadPoolCOMListener.cpp' ]
+ 
+diff --git a/dom/media/platforms/PDMFactory.cpp b/dom/media/platforms/PDMFactory.cpp
+index 2680964..349e8bc 100644
+--- a/dom/media/platforms/PDMFactory.cpp
++++ b/dom/media/platforms/PDMFactory.cpp
+@@ -22,9 +22,12 @@
+ #ifdef MOZ_WIDGET_ANDROID
+ #include "AndroidDecoderModule.h"
+ #endif
++#ifdef THE_GMP
+ #include "GMPDecoderModule.h"
+-
++#endif
++#ifdef MOZ_EME
+ #include "mozilla/CDMProxy.h"
++#endif
+ #include "mozilla/ClearOnShutdown.h"
+ #include "mozilla/SharedThreadPool.h"
+ #include "mozilla/StaticPtr.h"
+@@ -37,7 +40,9 @@
+ #include "H264Converter.h"
+ 
+ #include "AgnosticDecoderModule.h"
++#ifdef MOZ_EME
+ #include "EMEDecoderModule.h"
++#endif
+ 
+ #include "DecoderDoctorDiagnostics.h"
+ 
+@@ -225,9 +230,11 @@ PDMFactory::CreateDecoder(const CreateDecoderParams& aParams)
+     if (mFFmpegFailedToLoad) {
+       diagnostics->SetFFmpegFailedToLoad();
+     }
++#ifdef THE_GMP
+     if (mGMPPDMFailedToStartup) {
+       diagnostics->SetGMPPDMFailedToStartup();
+     }
++#endif
+   }
+ 
+   for (auto& current : mCurrentPDMs) {
+@@ -409,13 +416,14 @@ PDMFactory::CreatePDMs()
+ 
+   m = new AgnosticDecoderModule();
+   StartupPDM(m);
+-
++#ifdef THE_GMP
+   if (MediaPrefs::PDMGMPEnabled()) {
+     m = new GMPDecoderModule();
+     mGMPPDMFailedToStartup = !StartupPDM(m);
+   } else {
+     mGMPPDMFailedToStartup = false;
+   }
++#endif
+ }
+ 
+ void
+@@ -448,9 +456,11 @@ PDMFactory::GetDecoder(const TrackInfo& aTrackInfo,
+     if (mFFmpegFailedToLoad) {
+       aDiagnostics->SetFFmpegFailedToLoad();
+     }
++#ifdef THE_GMP
+     if (mGMPPDMFailedToStartup) {
+       aDiagnostics->SetGMPPDMFailedToStartup();
+     }
++#endif
+   }
+ 
+   RefPtr<PlatformDecoderModule> pdm;
+@@ -463,11 +473,12 @@ PDMFactory::GetDecoder(const TrackInfo& aTrackInfo,
+   return pdm.forget();
+ }
+ 
++#ifdef MOZ_EME
+ void
+ PDMFactory::SetCDMProxy(CDMProxy* aProxy)
+ {
+   RefPtr<PDMFactory> m = new PDMFactory();
+   mEMEPDM = new EMEDecoderModule(aProxy, m);
+ }
+-
++#endif
+ }  // namespace mozilla
+diff --git a/dom/media/platforms/PDMFactory.h b/dom/media/platforms/PDMFactory.h
+index 94be7e9..0adcb51 100644
+--- a/dom/media/platforms/PDMFactory.h
++++ b/dom/media/platforms/PDMFactory.h
+@@ -11,7 +11,9 @@
+ #include "mozilla/Function.h"
+ #include "mozilla/StaticMutex.h"
+ 
++#ifdef MOZ_EME
+ class CDMProxy;
++#endif
+ 
+ namespace mozilla {
+ 
+@@ -43,7 +45,9 @@ public:
+   // does not decode, we create a PDM and use that to create MediaDataDecoders
+   // that we use on on aTaskQueue to decode the decrypted stream.
+   // This is called on the decode task queue.
++#ifdef MOZ_EME
+   void SetCDMProxy(CDMProxy* aProxy);
++#endif
+ 
+   static constexpr int kYUV400 = 0;
+   static constexpr int kYUV420 = 1;
+@@ -71,7 +75,9 @@ private:
+ 
+   bool mWMFFailedToLoad = false;
+   bool mFFmpegFailedToLoad = false;
++#ifdef THE_GMP
+   bool mGMPPDMFailedToStartup = false;
++#endif
+ 
+   void EnsureInit() const;
+   template<class T> friend class StaticAutoPtr;
+diff --git a/dom/media/platforms/PlatformDecoderModule.h b/dom/media/platforms/PlatformDecoderModule.h
+index 7480d8f..3889fff 100644
+--- a/dom/media/platforms/PlatformDecoderModule.h
++++ b/dom/media/platforms/PlatformDecoderModule.h
+@@ -14,7 +14,9 @@
+ #include "mozilla/layers/KnowsCompositor.h"
+ #include "nsTArray.h"
+ #include "mozilla/RefPtr.h"
++#ifdef THE_GMP
+ #include "GMPService.h"
++#endif
+ #include <queue>
+ #include "MediaResult.h"
+ 
+@@ -36,7 +38,9 @@ class RemoteDecoderModule;
+ class MediaDataDecoder;
+ class MediaDataDecoderCallback;
+ class TaskQueue;
++#ifdef MOZ_EME
+ class CDMProxy;
++#endif
+ 
+ static LazyLogModule sPDMLog("PlatformDecoderModule");
+ 
+@@ -79,7 +83,9 @@ struct MOZ_STACK_CLASS CreateDecoderParams final {
+   layers::ImageContainer* mImageContainer = nullptr;
+   MediaResult* mError = nullptr;
+   RefPtr<layers::KnowsCompositor> mKnowsCompositor;
++#ifdef THE_GMP
+   RefPtr<GMPCrashHelper> mCrashHelper;
++#endif
+   bool mUseBlankDecoder = false;
+ 
+ private:
+@@ -88,7 +94,9 @@ private:
+   void Set(DecoderDoctorDiagnostics* aDiagnostics) { mDiagnostics = aDiagnostics; }
+   void Set(layers::ImageContainer* aImageContainer) { mImageContainer = aImageContainer; }
+   void Set(MediaResult* aError) { mError = aError; }
++#ifdef THE_GMP
+   void Set(GMPCrashHelper* aCrashHelper) { mCrashHelper = aCrashHelper; }
++#endif
+   void Set(bool aUseBlankDecoder) { mUseBlankDecoder = aUseBlankDecoder; }
+   void Set(layers::KnowsCompositor* aKnowsCompositor) { mKnowsCompositor = aKnowsCompositor; }
+   template <typename T1, typename T2, typename... Ts>
+diff --git a/dom/media/platforms/moz.build b/dom/media/platforms/moz.build
+index f5fb72c..6f70238 100644
+--- a/dom/media/platforms/moz.build
++++ b/dom/media/platforms/moz.build
+@@ -29,11 +29,13 @@ UNIFIED_SOURCES += [
+     'wrappers/H264Converter.cpp'
+ ]
+ 
+-DIRS += [
+-    'agnostic/eme',
+-    'agnostic/gmp',
+-    'omx'
+-]
++if CONFIG['MOZ_EME']:
++    DIRS += ['agnostic/eme']
++
++if CONFIG['THE_GMP']:
++    DIRS += ['agnostic/gmp']
++
++DIRS += ['omx']
+ 
+ if CONFIG['MOZ_WMF']:
+     DIRS += [ 'wmf' ];
+diff --git a/dom/media/platforms/wmf/WMFVideoMFTManager.cpp b/dom/media/platforms/wmf/WMFVideoMFTManager.cpp
+index a7633a7..562c2c6 100644
+--- a/dom/media/platforms/wmf/WMFVideoMFTManager.cpp
++++ b/dom/media/platforms/wmf/WMFVideoMFTManager.cpp
+@@ -27,7 +27,7 @@
+ #include "mozilla/WindowsVersion.h"
+ #include "mozilla/Telemetry.h"
+ #include "nsPrintfCString.h"
+-#include "GMPUtils.h" // For SplitAt. TODO: Move SplitAt to a central place.
++#include "utils.h"
+ #include "MP4Decoder.h"
+ #include "VPXDecoder.h"
+ #include "mozilla/SyncRunnable.h"
+diff --git a/dom/media/platforms/wrappers/H264Converter.cpp b/dom/media/platforms/wrappers/H264Converter.cpp
+index 0edbfc1..525285e 100644
+--- a/dom/media/platforms/wrappers/H264Converter.cpp
++++ b/dom/media/platforms/wrappers/H264Converter.cpp
+@@ -24,7 +24,9 @@ H264Converter::H264Converter(PlatformDecoderModule* aPDM,
+   , mTaskQueue(aParams.mTaskQueue)
+   , mCallback(aParams.mCallback)
+   , mDecoder(nullptr)
++#ifdef THE_GMP
+   , mGMPCrashHelper(aParams.mCrashHelper)
++#endif
+   , mNeedAVCC(aPDM->DecoderNeedsConversion(aParams.mConfig)
+       == PlatformDecoderModule::ConversionRequired::kNeedAVCC)
+   , mLastError(NS_OK)
+@@ -200,8 +202,10 @@ H264Converter::CreateDecoder(DecoderDoctorDiagnostics* aDiagnostics)
+     mCallback,
+     aDiagnostics,
+     mImageContainer,
+-    mKnowsCompositor,
+-    mGMPCrashHelper
++    mKnowsCompositor
++#ifdef THE_GMP
++    ,mGMPCrashHelper
++#endif
+   });
+ 
+   if (!mDecoder) {
+diff --git a/dom/media/platforms/wrappers/H264Converter.h b/dom/media/platforms/wrappers/H264Converter.h
+index 6905b1c..0d34992 100644
+--- a/dom/media/platforms/wrappers/H264Converter.h
++++ b/dom/media/platforms/wrappers/H264Converter.h
+@@ -63,7 +63,9 @@ private:
+   MediaDataDecoderCallback* mCallback;
+   RefPtr<MediaDataDecoder> mDecoder;
+   MozPromiseRequestHolder<InitPromise> mInitPromiseRequest;
++#ifdef THE_GMP
+   RefPtr<GMPCrashHelper> mGMPCrashHelper;
++#endif
+   bool mNeedAVCC;
+   nsresult mLastError;
+   bool mNeedKeyframe = true;
+diff --git a/dom/media/webaudio/BufferDecoder.cpp b/dom/media/webaudio/BufferDecoder.cpp
+index 053a13b..bd53d3f 100644
+--- a/dom/media/webaudio/BufferDecoder.cpp
++++ b/dom/media/webaudio/BufferDecoder.cpp
+@@ -8,15 +8,23 @@
+ 
+ #include "nsISupports.h"
+ #include "MediaResource.h"
++#ifdef THE_GMP
+ #include "GMPService.h"
++#endif
+ 
+ namespace mozilla {
+ 
+ NS_IMPL_ISUPPORTS0(BufferDecoder)
+ 
+-BufferDecoder::BufferDecoder(MediaResource* aResource, GMPCrashHelper* aCrashHelper)
++BufferDecoder::BufferDecoder(MediaResource* aResource
++#ifdef THE_GMP
++, GMPCrashHelper* aCrashHelper
++#endif
++)
+   : mResource(aResource)
++#ifdef THE_GMP
+   , mCrashHelper(aCrashHelper)
++#endif
+ {
+   MOZ_ASSERT(NS_IsMainThread());
+   MOZ_COUNT_CTOR(BufferDecoder);
+@@ -67,11 +75,12 @@ BufferDecoder::GetOwner() const
+   // unknown
+   return nullptr;
+ }
+-
++#ifdef THE_GMP
+ already_AddRefed<GMPCrashHelper>
+ BufferDecoder::GetCrashHelper()
+ {
+   return do_AddRef(mCrashHelper);
+ }
++#endif
+ 
+ } // namespace mozilla
+diff --git a/dom/media/webaudio/BufferDecoder.h b/dom/media/webaudio/BufferDecoder.h
+index 52cb924..4df800f 100644
+--- a/dom/media/webaudio/BufferDecoder.h
++++ b/dom/media/webaudio/BufferDecoder.h
+@@ -24,7 +24,11 @@ class BufferDecoder final : public AbstractMediaDecoder
+ public:
+   // This class holds a weak pointer to MediaResource.  It's the responsibility
+   // of the caller to manage the memory of the MediaResource object.
+-  explicit BufferDecoder(MediaResource* aResource, GMPCrashHelper* aCrashHelper);
++  explicit BufferDecoder(MediaResource* aResource 
++#ifdef THE_GMP
++,GMPCrashHelper* aCrashHelper
++#endif
++);
+ 
+   NS_DECL_THREADSAFE_ISUPPORTS
+ 
+@@ -40,13 +44,17 @@ public:
+ 
+   MediaDecoderOwner* GetOwner() const final override;
+ 
++#ifdef THE_GMP
+   already_AddRefed<GMPCrashHelper> GetCrashHelper() override;
++#endif
+ 
+ private:
+   virtual ~BufferDecoder();
+   RefPtr<TaskQueue> mTaskQueueIdentity;
+   RefPtr<MediaResource> mResource;
++#ifdef THE_GMP
+   RefPtr<GMPCrashHelper> mCrashHelper;
++#endif
+ };
+ 
+ } // namespace mozilla
+diff --git a/dom/media/webaudio/MediaBufferDecoder.cpp b/dom/media/webaudio/MediaBufferDecoder.cpp
+index 2ee11ea..5e80a83 100644
+--- a/dom/media/webaudio/MediaBufferDecoder.cpp
++++ b/dom/media/webaudio/MediaBufferDecoder.cpp
+@@ -24,7 +24,9 @@
+ #include "WebAudioUtils.h"
+ #include "mozilla/dom/Promise.h"
+ #include "nsPrintfCString.h"
++#ifdef THE_GMP
+ #include "GMPService.h"
++#endif
+ 
+ namespace mozilla {
+ 
+@@ -181,6 +183,7 @@ MediaDecodeTask::Run()
+   return NS_OK;
+ }
+ 
++#ifdef THE_GMP
+ class BufferDecoderGMPCrashHelper : public GMPCrashHelper
+ {
+ public:
+@@ -198,6 +201,7 @@ public:
+ private:
+   nsWeakPtr mParent;
+ };
++#endif
+ 
+ bool
+ MediaDecodeTask::CreateReader()
+@@ -216,8 +220,11 @@ MediaDecodeTask::CreateReader()
+                             mLength, principal, mContentType);
+ 
+   MOZ_ASSERT(!mBufferDecoder);
+-  mBufferDecoder = new BufferDecoder(resource,
+-    new BufferDecoderGMPCrashHelper(mDecodeJob.mContext->GetParentObject()));
++  mBufferDecoder = new BufferDecoder(resource
++#ifdef THE_GMP
++,new BufferDecoderGMPCrashHelper(mDecodeJob.mContext->GetParentObject())
++#endif
++);
+ 
+   // If you change this list to add support for new decoders, please consider
+   // updating HTMLMediaElement::CreateDecoder as well.
+diff --git a/dom/webidl/moz.build b/dom/webidl/moz.build
+index 06fea2f..9a50eb9 100644
+--- a/dom/webidl/moz.build
++++ b/dom/webidl/moz.build
+@@ -286,15 +286,7 @@ WEBIDL_FILES = [
+     'MediaDeviceInfo.webidl',
+     'MediaDevices.webidl',
+     'MediaElementAudioSourceNode.webidl',
+-    'MediaEncryptedEvent.webidl',
+     'MediaError.webidl',
+-    'MediaKeyError.webidl',
+-    'MediaKeyMessageEvent.webidl',
+-    'MediaKeys.webidl',
+-    'MediaKeySession.webidl',
+-    'MediaKeysRequestStatus.webidl',
+-    'MediaKeyStatusMap.webidl',
+-    'MediaKeySystemAccess.webidl',
+     'MediaList.webidl',
+     'MediaQueryList.webidl',
+     'MediaRecorder.webidl',
+@@ -591,6 +583,17 @@ WEBIDL_FILES = [
+     'XULElement.webidl',
+ ]
+ 
++if CONFIG['MOZ_EME']:
++  WEBIDL_FILES += ['MediaEncryptedEvent.webidl',
++                   'MediaKeyError.webidl',
++                   'MediaKeyMessageEvent.webidl',
++                   'MediaKeys.webidl',
++                   'MediaKeySession.webidl',
++                   'MediaKeysRequestStatus.webidl',
++                   'MediaKeyStatusMap.webidl',
++                   'MediaKeySystemAccess.webidl',
++]
++
+ if CONFIG['MOZ_WEBEXTENSIONS']:
+   WEBIDL_FILES += ['AddonManager.webidl']
+ 
+diff --git a/gfx/layers/ipc/PAPZCTreeManager.ipdl b/gfx/layers/ipc/PAPZCTreeManager.ipdl
+index 21d899f..bef6c2e 100644
+--- a/gfx/layers/ipc/PAPZCTreeManager.ipdl
++++ b/gfx/layers/ipc/PAPZCTreeManager.ipdl
+@@ -22,6 +22,7 @@ using mozilla::layers::GeckoContentController::TapType from "mozilla/layers/Geck
+ using nsEventStatus from "mozilla/EventForwards.h";
+ using EventMessage from "mozilla/EventForwards.h";
+ using mozilla::Modifiers from "mozilla/EventForwards.h";
++using mozilla::dom::NativeThreadId from "mozilla/dom/TabMessageUtils.h";
+ using class mozilla::WidgetInputEvent from "mozilla/BasicEvents.h";
+ using class mozilla::WidgetMouseEventBase from "mozilla/MouseEvents.h";
+ using mozilla::WidgetMouseEvent::Reason from "mozilla/MouseEvents.h";
+diff --git a/ipc/app/moz.build b/ipc/app/moz.build
+index 3e64615..02372ee 100644
+--- a/ipc/app/moz.build
++++ b/ipc/app/moz.build
+@@ -29,7 +29,7 @@ LOCAL_INCLUDES += [
+ 
+ # We link GMPLoader into plugin-container on desktop so that its code is
+ # covered by the desktop DRM vendor's voucher.
+-if CONFIG['OS_TARGET'] != 'Android':
++if CONFIG['OS_TARGET'] != 'Android' and CONFIG['THE_GMP']:
+     SOURCES += [
+         '../../dom/media/gmp/GMPLoader.cpp',
+     ]
+diff --git a/ipc/contentproc/plugin-container.cpp b/ipc/contentproc/plugin-container.cpp
+index 2fb9bd4..e66e95b 100644
+--- a/ipc/contentproc/plugin-container.cpp
++++ b/ipc/contentproc/plugin-container.cpp
+@@ -20,6 +20,7 @@
+ #include <unistd.h>
+ #endif
+ 
++#ifdef THE_GMP
+ #include "GMPLoader.h"
+ 
+ mozilla::gmp::SandboxStarter*
+@@ -27,6 +28,7 @@ MakeSandboxStarter()
+ {
+     return nullptr;
+ }
++#endif
+ 
+ int
+ content_process_main(int argc, char* argv[])
+@@ -50,7 +52,7 @@ content_process_main(int argc, char* argv[])
+         SetDllDirectoryW(L"");
+     }
+ #endif
+-#if !defined(MOZ_WIDGET_ANDROID) && defined(MOZ_PLUGIN_CONTAINER)
++#if !defined(MOZ_WIDGET_ANDROID) && defined(MOZ_PLUGIN_CONTAINER) && defined(THE_GMP)
+     // On desktop, the GMPLoader lives in plugin-container, so that its
+     // code can be covered by an EME/GMP vendor's voucher.
+     nsAutoPtr<mozilla::gmp::SandboxStarter> starter(MakeSandboxStarter());
+diff --git a/layout/build/nsLayoutModule.cpp b/layout/build/nsLayoutModule.cpp
+index 8bb70f8..36b51c3 100644
+--- a/layout/build/nsLayoutModule.cpp
++++ b/layout/build/nsLayoutModule.cpp
+@@ -187,7 +187,9 @@ static void Shutdown();
+ 
+ #include "MediaManager.h"
+ 
++#ifdef THE_GMP
+ #include "GMPService.h"
++#endif
+ 
+ #include "mozilla/dom/PresentationDeviceManager.h"
+ #include "mozilla/dom/PresentationTCPSessionTransport.h"
+@@ -203,7 +205,9 @@ using mozilla::dom::workers::WorkerDebuggerManager;
+ using mozilla::dom::UDPSocketChild;
+ using mozilla::dom::time::TimeService;
+ using mozilla::net::StreamingProtocolControllerService;
++#ifdef THE_GMP
+ using mozilla::gmp::GeckoMediaPluginService;
++#endif
+ 
+ #define NS_EDITORCOMMANDTABLE_CID \
+ { 0x4f5e62b8, 0xd659, 0x4156, \
+@@ -557,8 +561,9 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsStructuredCloneContainer)
+ 
+ NS_GENERIC_FACTORY_CONSTRUCTOR(OSFileConstantsService)
+ NS_GENERIC_FACTORY_CONSTRUCTOR(UDPSocketChild)
+-
++#ifdef THE_GMP
+ NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(GeckoMediaPluginService, GeckoMediaPluginService::GetGeckoMediaPluginService)
++#endif
+ 
+ #ifdef ACCESSIBILITY
+ #include "xpcAccessibilityService.h"
+@@ -967,7 +972,9 @@ static const mozilla::Module::CIDEntry kLayoutCIDs[] = {
+   { &kNS_POWERMANAGERSERVICE_CID, false, nullptr, nsIPowerManagerServiceConstructor, Module::ALLOW_IN_GPU_PROCESS },
+   { &kOSFILECONSTANTSSERVICE_CID, true, nullptr, OSFileConstantsServiceConstructor },
+   { &kUDPSOCKETCHILD_CID, false, nullptr, UDPSocketChildConstructor },
++#ifdef THE_GMP
+   { &kGECKO_MEDIA_PLUGIN_SERVICE_CID, true, nullptr, GeckoMediaPluginServiceConstructor },
++#endif
+   { &kNS_TIMESERVICE_CID, false, nullptr, nsITimeServiceConstructor },
+   { &kNS_MEDIASTREAMCONTROLLERSERVICE_CID, false, nullptr, nsIStreamingProtocolControllerServiceConstructor },
+   { &kNS_MEDIAMANAGERSERVICE_CID, false, nullptr, nsIMediaManagerServiceConstructor },
+@@ -1104,7 +1111,9 @@ static const mozilla::Module::ContractIDEntry kLayoutContracts[] = {
+   { "@mozilla.org/accessibilityService;1", &kNS_ACCESSIBILITY_SERVICE_CID },
+   { "@mozilla.org/accessibleRetrieval;1", &kNS_ACCESSIBILITY_SERVICE_CID },
+ #endif
++#ifdef THE_GMP
+   { "@mozilla.org/gecko-media-plugin-service;1",  &kGECKO_MEDIA_PLUGIN_SERVICE_CID },
++#endif
+   { PRESENTATION_SERVICE_CONTRACTID, &kPRESENTATION_SERVICE_CID },
+   { PRESENTATION_DEVICE_MANAGER_CONTRACTID, &kPRESENTATION_DEVICE_MANAGER_CID },
+   { PRESENTATION_TCP_SESSION_TRANSPORT_CONTRACTID, &kPRESENTATION_TCP_SESSION_TRANSPORT_CID },
+diff --git a/layout/reftests/reftest.list b/layout/reftests/reftest.list
+index b2da025..ce7eae7 100644
+--- a/layout/reftests/reftest.list
++++ b/layout/reftests/reftest.list
+@@ -418,5 +418,3 @@ include invalidation/reftest.list
+ # encodings
+ include ../../dom/encoding/test/reftest/reftest.list
+ 
+-# APZ/async positioning tests
+-include ../../gfx/layers/apz/test/reftest/reftest.list
+diff --git a/mobile/android/app/mobile.js b/mobile/android/app/mobile.js
+index ef4764d..bb9bfb8 100644
+--- a/mobile/android/app/mobile.js
++++ b/mobile/android/app/mobile.js
+@@ -830,8 +830,10 @@ pref("device.storage.enabled", true);
+ // Enable meta-viewport support for font inflation code
+ pref("dom.meta-viewport.enabled", true);
+ 
++#ifdef THE_GMP
+ // Enable GMP support in the addon manager.
+ pref("media.gmp-provider.enabled", true);
++#endif
+ 
+ // The default color scheme in reader mode (light, dark, auto)
+ // auto = color automatically adjusts according to ambient light level
+diff --git a/mobile/android/base/moz.build b/mobile/android/base/moz.build
+index eac8314..3d7dd86 100644
+--- a/mobile/android/base/moz.build
++++ b/mobile/android/base/moz.build
+@@ -558,9 +558,6 @@ gbjar.sources += ['java/org/mozilla/gecko/' + x for x in [
+     'media/Codec.java',
+     'media/CodecProxy.java',
+     'media/FormatParam.java',
+-    'media/GeckoMediaDrm.java',
+-    'media/GeckoMediaDrmBridgeV21.java',
+-    'media/GeckoMediaDrmBridgeV23.java',
+     'media/JellyBeanAsyncCodec.java',
+     'media/LocalMediaDrmBridge.java',
+     'media/MediaControlService.java',
+@@ -783,6 +780,14 @@ gbjar.sources += ['java/org/mozilla/gecko/' + x for x in [
+     'widget/TwoWayView.java',
+     'ZoomedView.java',
+ ]]
++
++if CONFIG['THE_GMP']:
++    gbjar.sources += ['java/org/mozilla/gecko/' + x for x in [
++        'media/GeckoMediaDrm.java',
++        'media/GeckoMediaDrmBridgeV21.java',
++        'media/GeckoMediaDrmBridgeV23.java',
++    ]]
++
+ # The following sources are checked in to version control but
+ # generated by a script (java/org/mozilla/gecko/widget/themed/generate_themed_views.py).
+ # If you're editing this list, make sure to edit that script.
+diff --git a/mobile/android/components/AddonUpdateService.js b/mobile/android/components/AddonUpdateService.js
+index 2505e27..942a8d2 100644
+--- a/mobile/android/components/AddonUpdateService.js
++++ b/mobile/android/components/AddonUpdateService.js
+@@ -15,8 +15,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "AddonManagerPrivate",
+ XPCOMUtils.defineLazyModuleGetter(this, "AddonRepository",
+                                   "resource://gre/modules/addons/AddonRepository.jsm");
+ 
++#ifdef THE_GMP
+ XPCOMUtils.defineLazyModuleGetter(this, "GMPInstallManager",
+                                   "resource://gre/modules/GMPInstallManager.jsm");
++#endif
+ 
+ XPCOMUtils.defineLazyModuleGetter(this, "Messaging",
+                                   "resource://gre/modules/Messaging.jsm");
+@@ -58,8 +60,10 @@ AddonUpdateService.prototype = {
+ 
+     AddonManagerPrivate.backgroundUpdateCheck();
+ 
++#ifdef THE_GMP
+     let gmp = new GMPInstallManager();
+     gmp.simpleCheckAndInstall().then(null, () => {});
++#endif
+ 
+     let interval = 1000 * getPref("getIntPref", PREF_ADDON_UPDATE_INTERVAL, 86400);
+     Messaging.sendRequest({
+diff --git a/modules/libpref/init/all.js b/modules/libpref/init/all.js
+index 187bff6..f7d932b 100644
+--- a/modules/libpref/init/all.js
++++ b/modules/libpref/init/all.js
+@@ -394,9 +394,11 @@ pref("media.libavcodec.allow-obsolete", false);
+ #if defined(MOZ_FFVPX)
+ pref("media.ffvpx.enabled", true);
+ #endif
++#ifdef THE_GMP
+ pref("media.gmp.decoder.enabled", false);
+ pref("media.gmp.decoder.aac", 0);
+ pref("media.gmp.decoder.h264", 0);
++#endif
+ #ifdef MOZ_RAW
+ pref("media.raw.enabled", true);
+ #endif
+@@ -418,7 +420,9 @@ pref("media.apple.mp4.enabled", true);
+ // we clear storage and set media.gmp.storage.version.observed=expected.
+ // This provides a mechanism to clear GMP storage when non-compatible
+ // changes are made.
++#ifdef THE_GMP
+ pref("media.gmp.storage.version.expected", 1);
++#endif
+ 
+ // Filter what triggers user notifications.
+ // See DecoderDoctorDocumentWatcher::ReportAnalysis for details.
+@@ -5236,6 +5240,7 @@ pref("browser.search.official", true);
+ //pref("media.gmp-manager.url.override", "");
+ 
+ // Update service URL for GMP install/updates:
++#ifdef THE_GMP
+ pref("media.gmp-manager.url", "https://aus5.mozilla.org/update/3/GMP/60.0/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/update.xml");
+ 
+ // When |media.gmp-manager.cert.requireBuiltIn| is true or not specified the
+@@ -5265,6 +5270,7 @@ pref("media.gmp-manager.certs.1.issuerName", "CN=DigiCert SHA2 Secure Server CA,
+ pref("media.gmp-manager.certs.1.commonName", "aus5.mozilla.org");
+ pref("media.gmp-manager.certs.2.issuerName", "CN=thawte SSL CA - G2,O=\"thawte, Inc.\",C=US");
+ pref("media.gmp-manager.certs.2.commonName", "aus5.mozilla.org");
++#endif
+ 
+ // Whether or not to perform reader mode article parsing on page load.
+ // If this pref is disabled, we will never show a reader mode icon in the toolbar.
+diff --git a/toolkit/content/jar.mn b/toolkit/content/jar.mn
+index e1d432c..98aa480 100644
+--- a/toolkit/content/jar.mn
++++ b/toolkit/content/jar.mn
+@@ -61,7 +61,7 @@ toolkit.jar:
+ #ifdef MOZ_PHOENIX
+    content/global/logopage.xhtml
+ #endif
+-   content/global/process-content.js
++*  content/global/process-content.js
+    content/global/resetProfile.css
+    content/global/resetProfile.js
+    content/global/resetProfile.xul
+@@ -131,6 +131,8 @@ toolkit.jar:
+    content/global/macWindowMenu.js
+ #endif
+    content/global/svg/svgBindings.xml          (/layout/svg/resources/content/svgBindings.xml)
++#ifdef THE_GMP
+    content/global/gmp-sources/eme-adobe.json   (gmp-sources/eme-adobe.json)
+    content/global/gmp-sources/openh264.json    (gmp-sources/openh264.json)
+    content/global/gmp-sources/widevinecdm.json (gmp-sources/widevinecdm.json)
++#endif
+diff --git a/toolkit/content/process-content.js b/toolkit/content/process-content.js
+index 2ff8f90..179662d 100644
+--- a/toolkit/content/process-content.js
++++ b/toolkit/content/process-content.js
+@@ -14,6 +14,8 @@ Cu.import("resource://gre/modules/Services.jsm");
+ 
+ const gInContentProcess = Services.appinfo.processType == Ci.nsIXULRuntime.PROCESS_TYPE_CONTENT;
+ 
++#ifdef THE_GMP
++
+ Services.cpmm.addMessageListener("gmp-plugin-crash", msg => {
+   let gmpservice = Cc["@mozilla.org/gecko-media-plugin-service;1"]
+                      .getService(Ci.mozIGeckoMediaPluginService);
+@@ -21,6 +23,8 @@ Services.cpmm.addMessageListener("gmp-plugin-crash", msg => {
+   gmpservice.RunPluginCrashCallbacks(msg.data.pluginID, msg.data.pluginName);
+ });
+ 
++#endif
++
+ if (gInContentProcess) {
+   let ProcessObserver = {
+     TOPICS: [
+diff --git a/toolkit/forgetaboutsite/ForgetAboutSite.jsm b/toolkit/forgetaboutsite/ForgetAboutSite.jsm
+index 8c78253..6c36465 100644
+--- a/toolkit/forgetaboutsite/ForgetAboutSite.jsm
++++ b/toolkit/forgetaboutsite/ForgetAboutSite.jsm
+@@ -84,6 +84,7 @@ this.ForgetAboutSite = {
+       throw new Error("Exception thrown while clearning cookies: " + ex);
+     }));
+ 
++#ifdef THE_GMP
+     // EME
+     promises.push(Task.spawn(function*() {
+       let mps = Cc["@mozilla.org/gecko-media-plugin-service;1"].
+@@ -92,6 +93,7 @@ this.ForgetAboutSite = {
+     }).catch(ex => {
+       throw new Error("Exception thrown while clearing Encrypted Media Extensions: " + ex);
+     }));
++#endif
+ 
+     // Plugin data
+     const phInterface = Ci.nsIPluginHost;
+diff --git a/toolkit/forgetaboutsite/moz.build b/toolkit/forgetaboutsite/moz.build
+index 73bb42b..0e9d2f6 100644
+--- a/toolkit/forgetaboutsite/moz.build
++++ b/toolkit/forgetaboutsite/moz.build
+@@ -7,7 +7,7 @@
+ BROWSER_CHROME_MANIFESTS += ['test/browser/browser.ini']
+ XPCSHELL_TESTS_MANIFESTS += ['test/unit/xpcshell.ini']
+ 
+-EXTRA_JS_MODULES += [
++EXTRA_PP_JS_MODULES += [
+     'ForgetAboutSite.jsm',
+ ]
+ 
+diff --git a/toolkit/modules/moz.build b/toolkit/modules/moz.build
+index e288d11..8f6048f 100644
+--- a/toolkit/modules/moz.build
++++ b/toolkit/modules/moz.build
+@@ -46,8 +46,6 @@ EXTRA_JS_MODULES += [
+     'FinderIterator.jsm',
+     'FormLikeFactory.jsm',
+     'Geometry.jsm',
+-    'GMPInstallManager.jsm',
+-    'GMPUtils.jsm',
+     'Http.jsm',
+     'InlineSpellChecker.jsm',
+     'InlineSpellCheckerContent.jsm',
+@@ -99,9 +97,15 @@ EXTRA_JS_MODULES += [
+     'WindowDraggingUtils.jsm',
+     'ZipUtils.jsm',
+ ]
++if CONFIG['THE_GMP']:
++  EXTRA_JS_MODULES += ['GMPInstallManager.jsm',
++    'GMPUtils.jsm',
++   ]
++
+ EXTRA_JS_MODULES.third_party.jsesc += ['third_party/jsesc/jsesc.js']
+ EXTRA_JS_MODULES.sessionstore += ['sessionstore/Utils.jsm']
+ 
++
+ EXTRA_PP_JS_MODULES += [
+     'NewTabUtils.jsm',
+     'Troubleshoot.jsm',
+diff --git a/toolkit/moz.configure b/toolkit/moz.configure
+index 792fb11..3f72dac 100644
+--- a/toolkit/moz.configure
++++ b/toolkit/moz.configure
+@@ -322,7 +322,20 @@ def wmf(value, target):
+ 
+ set_config('MOZ_WMF', wmf)
+ set_define('MOZ_WMF', wmf)
++# GMP
++# ==============================================================
++option('--disable-gmp',
++       help='Disable support for gmp')
+ 
++@depends('--disable-gmp', target)
++def gmp(value, target):
++    enabled = bool(value)
++    if value.origin == 'default':
++        enabled = true
++    if enabled:
++        return True
++set_config('THE_GMP', gmp)
++set_define('THE_GMP', gmp)
+ # FFmpeg H264/AAC Decoding Support
+ # ==============================================================
+ option('--disable-ffmpeg',
+diff --git a/toolkit/mozapps/extensions/extensions.manifest b/toolkit/mozapps/extensions/extensions.manifest
+index 7efb74a..2cb1c91 100644
+--- a/toolkit/mozapps/extensions/extensions.manifest
++++ b/toolkit/mozapps/extensions/extensions.manifest
+@@ -11,4 +11,6 @@ category JavaScript-global-property InstallTrigger @mozilla.org/addons/installtr
+ #ifndef MOZ_WIDGET_ANDROID
+ category addon-provider-module PluginProvider resource://gre/modules/addons/PluginProvider.jsm
+ #endif
++#ifdef THE_GMP
+ category addon-provider-module GMPProvider resource://gre/modules/addons/GMPProvider.jsm
++#endif
+diff --git a/toolkit/mozapps/extensions/internal/moz.build b/toolkit/mozapps/extensions/internal/moz.build
+index 337df31..a4e7caf 100644
+--- a/toolkit/mozapps/extensions/internal/moz.build
++++ b/toolkit/mozapps/extensions/internal/moz.build
+@@ -8,12 +8,17 @@ EXTRA_JS_MODULES.addons += [
+     'AddonLogging.jsm',
+     'AddonRepository_SQLiteMigrator.jsm',
+     'Content.js',
+-    'GMPProvider.jsm',
+     'LightweightThemeImageOptimizer.jsm',
+-    'ProductAddonChecker.jsm',
+     'SpellCheckDictionaryBootstrap.js',
+ ]
+ 
++if CONFIG['THE_GMP']:
++    EXTRA_JS_MODULES.addons += [
++        'GMPProvider.jsm',
++        'ProductAddonChecker.jsm',
++    ]
++
++
+ # Don't ship unused providers on Android
+ if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'android':
+     EXTRA_JS_MODULES.addons += [
+diff --git a/toolkit/mozapps/extensions/jar.mn b/toolkit/mozapps/extensions/jar.mn
+index c4d8874..2dc2da7 100644
+--- a/toolkit/mozapps/extensions/jar.mn
++++ b/toolkit/mozapps/extensions/jar.mn
+@@ -29,8 +29,10 @@ toolkit.jar:
+ * content/mozapps/extensions/newaddon.js                        (content/newaddon.js)
+   content/mozapps/extensions/setting.xml                        (content/setting.xml)
+   content/mozapps/extensions/pluginPrefs.xul                    (content/pluginPrefs.xul)
++#ifdef THE_GMP
+   content/mozapps/extensions/gmpPrefs.xul                       (content/gmpPrefs.xul)
+   content/mozapps/extensions/OpenH264-license.txt               (content/OpenH264-license.txt)
++#endif
+   content/mozapps/xpinstall/xpinstallConfirm.xul                (content/xpinstallConfirm.xul)
+   content/mozapps/xpinstall/xpinstallConfirm.js                 (content/xpinstallConfirm.js)
+   content/mozapps/xpinstall/xpinstallConfirm.css                (content/xpinstallConfirm.css)
+diff --git a/toolkit/mozapps/webextensions/extensions.manifest b/toolkit/mozapps/webextensions/extensions.manifest
+index 2129012..a78e562 100644
+--- a/toolkit/mozapps/webextensions/extensions.manifest
++++ b/toolkit/mozapps/webextensions/extensions.manifest
+@@ -13,6 +13,8 @@ category JavaScript-global-property InstallTrigger @mozilla.org/addons/installtr
+ #ifndef MOZ_WIDGET_ANDROID
+ category addon-provider-module PluginProvider resource://gre/modules/addons/PluginProvider.jsm
+ #endif
++#ifdef THE_GMP
+ category addon-provider-module GMPProvider resource://gre/modules/addons/GMPProvider.jsm
++#endif
+ component {8866d8e3-4ea5-48b7-a891-13ba0ac15235} amWebAPI.js
+ contract @mozilla.org/addon-web-api/manager;1 {8866d8e3-4ea5-48b7-a891-13ba0ac15235}
+diff --git a/toolkit/mozapps/webextensions/jar.mn b/toolkit/mozapps/webextensions/jar.mn
+index 0c63396..84b65fb 100644
+--- a/toolkit/mozapps/webextensions/jar.mn
++++ b/toolkit/mozapps/webextensions/jar.mn
+@@ -25,9 +25,11 @@ toolkit.jar:
+   content/mozapps/extensions/newaddon.xul                       (content/newaddon.xul)
+ * content/mozapps/extensions/newaddon.js                        (../extensions/content/newaddon.js)
+   content/mozapps/extensions/pluginPrefs.xul                    (../extensions/content/pluginPrefs.xul)
++#ifdef THE_GMP
+   content/mozapps/extensions/gmpPrefs.xul                       (../extensions/content/gmpPrefs.xul)
+   content/mozapps/extensions/OpenH264-license.txt               (../extensions/content/OpenH264-license.txt)
+ #endif
++#endif
+   content/mozapps/extensions/setting.xml                        (content/setting.xml)
+   content/mozapps/xpinstall/xpinstallConfirm.xul                (../extensions/content/xpinstallConfirm.xul)
+   content/mozapps/xpinstall/xpinstallConfirm.js                 (../extensions/content/xpinstallConfirm.js)
+diff --git a/toolkit/xre/nsEmbedFunctions.cpp b/toolkit/xre/nsEmbedFunctions.cpp
+index de906c5..b6650ea 100644
+--- a/toolkit/xre/nsEmbedFunctions.cpp
++++ b/toolkit/xre/nsEmbedFunctions.cpp
+@@ -67,8 +67,10 @@
+ #include "mozilla/ipc/XPCShellEnvironment.h"
+ #include "mozilla/WindowsDllBlocklist.h"
+ 
++#ifdef THE_GMP
+ #include "GMPProcessChild.h"
+ #include "GMPLoader.h"
++#endif
+ #include "mozilla/gfx/GPUProcessImpl.h"
+ 
+ #include "GeckoProfiler.h"
+@@ -95,9 +97,11 @@ using mozilla::dom::ContentProcess;
+ using mozilla::dom::ContentParent;
+ using mozilla::dom::ContentChild;
+ 
++#ifdef THE_GMP
+ using mozilla::gmp::GMPLoader;
+ using mozilla::gmp::CreateGMPLoader;
+ using mozilla::gmp::GMPProcessChild;
++#endif
+ 
+ using mozilla::ipc::TestShellParent;
+ using mozilla::ipc::TestShellCommandParent;
+@@ -267,6 +271,7 @@ XRE_InitChildProcess(int aArgc,
+   NS_ENSURE_ARG_POINTER(aArgv[0]);
+   MOZ_ASSERT(aChildData);
+ 
++#ifdef THE_GMP
+ #if !defined(MOZ_WIDGET_ANDROID)
+   // On non-Fennec Gecko, the GMPLoader code resides in plugin-container,
+   // and we must forward it through to the GMP code here.
+@@ -278,6 +283,7 @@ XRE_InitChildProcess(int aArgc,
+   UniquePtr<GMPLoader> loader = CreateGMPLoader(nullptr);
+   GMPProcessChild::SetGMPLoader(loader.get());
+ #endif
++#endif
+ 
+ #if defined(XP_WIN)
+   // From the --attach-console support in nsNativeAppSupportWin.cpp, but
+@@ -480,9 +486,11 @@ XRE_InitChildProcess(int aArgc,
+       // Content processes need the XPCOM/chromium frankenventloop
+       uiLoopType = MessageLoop::TYPE_MOZILLA_CHILD;
+       break;
++#ifdef THE_GMP
+   case GeckoProcessType_GMPlugin:
+       uiLoopType = MessageLoop::TYPE_DEFAULT;
+       break;
++#endif
+   default:
+       uiLoopType = MessageLoop::TYPE_UI;
+       break;
+@@ -544,9 +552,11 @@ XRE_InitChildProcess(int aArgc,
+ #endif
+         break;
+ 
++#ifdef THE_GMP
+       case GeckoProcessType_GMPlugin:
+         process = new gmp::GMPProcessChild(parentPID);
+         break;
++#endif
+ 
+       case GeckoProcessType_GPU:
+         process = new gfx::GPUProcessImpl(parentPID);
+diff --git a/xpcom/build/XREChildData.h b/xpcom/build/XREChildData.h
+index c849131..3a52919 100644
+--- a/xpcom/build/XREChildData.h
++++ b/xpcom/build/XREChildData.h
+@@ -9,18 +9,19 @@
+ 
+ #include "mozilla/UniquePtr.h"
+ 
++#ifdef THE_GMP
+ namespace mozilla {
+ namespace gmp {
+ class GMPLoader;
+ }
+ }
+-
++#endif
+ /**
+  * Data needed to start a child process.
+  */
+ struct XREChildData
+ {
+-#if !defined(MOZ_WIDGET_ANDROID)
++#if !defined(MOZ_WIDGET_ANDROID) && defined(THE_GMP)
+   /**
+    * Used to load the GMP binary.
+    */
+diff --git a/xpcom/build/nsXULAppAPI.h b/xpcom/build/nsXULAppAPI.h
+index c077c7e..e79fd4c 100644
+--- a/xpcom/build/nsXULAppAPI.h
++++ b/xpcom/build/nsXULAppAPI.h
+@@ -425,11 +425,13 @@ XRE_API(const char*,
+ XRE_API(void,
+         XRE_SetProcessType, (const char* aProcessTypeString))
+ 
++#ifdef THE_GMP
+ namespace mozilla {
+ namespace gmp {
+ class GMPLoader;
+ } // namespace gmp
+ } // namespace mozilla
++#endif
+ 
+ XRE_API(nsresult,
+         XRE_InitChildProcess, (int aArgc,
+-- 
+2.8.2.windows.1
+

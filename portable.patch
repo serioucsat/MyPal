@@ -1,9 +1,16 @@
-From cd6b327446bd14cbb9a44002770cf1aeece6acf8 Mon Sep 17 00:00:00 2001
+From f455fdae8baa76049718540324a0d8899be1537b Mon Sep 17 00:00:00 2001
 From: Fedor <fedor@mail.ru>
-Date: Tue, 11 Dec 2018 14:52:06 +0300
+Date: Wed, 23 Jan 2019 16:55:31 +0300
 Subject: [PATCH] portable
 
 ---
+ application/basilisk/components/nsBrowserGlue.js   |  8 ++-
+ .../components/preferences/in-content/main.js      | 24 +++++++++
+ .../basilisk/components/shell/nsIShellService.idl  |  2 +
+ .../components/shell/nsWindowsShellService.cpp     | 54 +++++++++++++++++++
+ .../basilisk/installer/windows/nsis/installer.nsi  | 37 ++++++++++++-
+ .../en-US/chrome/browser/shellservice.properties   |  2 +
+ .../locales/en-US/installer/custom.properties      |  2 +
  application/palemoon/components/nsBrowserGlue.js   |  9 +++-
  .../palemoon/components/preferences/advanced.js    | 28 ++++++++++
  .../components/shell/nsIWindowsShellService.idl    |  3 ++
@@ -18,8 +25,301 @@ Subject: [PATCH] portable
  toolkit/xre/nsAppRunner.h                          |  2 +-
  toolkit/xre/nsXREDirProvider.cpp                   |  4 +-
  xpcom/io/moz.build                                 |  2 +
- 14 files changed, 214 insertions(+), 18 deletions(-)
+ 21 files changed, 340 insertions(+), 21 deletions(-)
 
+diff --git a/application/basilisk/components/nsBrowserGlue.js b/application/basilisk/components/nsBrowserGlue.js
+index 3258159..f2e6553 100644
+--- a/application/basilisk/components/nsBrowserGlue.js
++++ b/application/basilisk/components/nsBrowserGlue.js
+@@ -16,7 +16,8 @@ Cu.import("resource://gre/modules/AsyncPrefs.jsm");
+ 
+ XPCOMUtils.defineLazyServiceGetter(this, "WindowsUIUtils", "@mozilla.org/windows-ui-utils;1", "nsIWindowsUIUtils");
+ XPCOMUtils.defineLazyServiceGetter(this, "AlertsService", "@mozilla.org/alerts-service;1", "nsIAlertsService");
+-
++XPCOMUtils.defineLazyServiceGetter(this, "winShellService",
++                                   "@mozilla.org/browser/shell-service;1","nsIWindowsShellService");
+ // lazy module getters
+ [
+   ["AboutHome", "resource:///modules/AboutHome.jsm"],
+@@ -1152,6 +1153,9 @@ BrowserGlue.prototype = {
+         isDefaultError = true;
+       }
+ 
++      //CENTAURY PORTABLE CODE
++      let isPortable= winShellService.isPortableMode();
++      if (!isPortable) {
+       if (isDefault) {
+         let now = (Math.floor(Date.now() / 1000)).toString();
+         Services.prefs.setCharPref("browser.shell.mostRecentDateSetAsDefault", now);
+@@ -1196,7 +1200,7 @@ BrowserGlue.prototype = {
+           DefaultBrowserCheck.prompt(RecentWindow.getMostRecentBrowserWindow());
+         }.bind(this), Ci.nsIThread.DISPATCH_NORMAL);
+       }
+-    }
++    }}
+ 
+     E10SAccessibilityCheck.onWindowsRestored();
+   },
+diff --git a/application/basilisk/components/preferences/in-content/main.js b/application/basilisk/components/preferences/in-content/main.js
+index bac771b..64c7730 100644
+--- a/application/basilisk/components/preferences/in-content/main.js
++++ b/application/basilisk/components/preferences/in-content/main.js
+@@ -632,6 +632,7 @@ var gMainPane = {
+         defaultBrowserBox.hidden = true;
+         return;
+       }
++      if (shellSvc.isPortableMode()) return;
+       let setDefaultPane = document.getElementById("setDefaultPane");
+       let isDefault = shellSvc.isDefaultBrowser(false, true);
+       setDefaultPane.selectedIndex = isDefault ? 1 : 0;
+@@ -651,9 +652,31 @@ var gMainPane = {
+       alwaysCheckPref.value = true;
+ 
+       let shellSvc = getShellService();
++      let sPortable;
+       if (!shellSvc)
+         return;
+       try {
++    isPortable = shellSvc.isPortableMode();
++    if (isPortable) {
++          Components.utils.import("resource:///modules/RecentWindow.jsm");
++          var win = RecentWindow.getMostRecentBrowserWindow();
++          var brandBundle = win.document.getElementById("bundle_brand");
++          var shellBundle = win.document.getElementById("bundle_shell");
++
++          var brandShortName = brandBundle.getString("brandShortName");
++          var promptTitle = shellBundle.getString("PortablemodeTitle");
++          var promptMessage = shellBundle.getFormattedString("PortablemodeMessage",
++                                                              [brandShortName]);
++ //       var checkEveryTime = { value: shouldCheck };
++          var ps = Services.prompt;
++          var rv = ps.confirmEx(win, promptTitle, promptMessage,
++                                ps.STD_YES_NO_BUTTONS,
++                                null, null, null, null, { });//, checkboxLabel, checkEveryTime);
++          if (rv == 0) {
++	  shellSvc.cancelPortableMode();
++          isPortable=28;
++          } else return;
++        }
+         shellSvc.setDefaultBrowser(true, false);
+       } catch (ex) {
+         Cu.reportError(ex);
+@@ -662,6 +685,7 @@ var gMainPane = {
+ 
+       let selectedIndex = shellSvc.isDefaultBrowser(false, true) ? 1 : 0;
+       document.getElementById("setDefaultPane").selectedIndex = selectedIndex;
++      if (isPortable==28) Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit |  Ci.nsIAppStartup.eRestartNotSameProfile);
+     }
+   },
+ };
+diff --git a/application/basilisk/components/shell/nsIShellService.idl b/application/basilisk/components/shell/nsIShellService.idl
+index 3e7e94b..6958921 100644
+--- a/application/basilisk/components/shell/nsIShellService.idl
++++ b/application/basilisk/components/shell/nsIShellService.idl
+@@ -11,6 +11,8 @@ interface nsIFile;
+ [scriptable, uuid(2d1a95e4-5bd8-4eeb-b0a8-c1455fd2a357)]
+ interface nsIShellService : nsISupports
+ {
++  boolean isPortableMode();
++  void cancelPortableMode();
+   /**
+    * Determines whether or not Firefox is the "Default Browser."
+    * This is simply whether or not Firefox is registered to handle
+diff --git a/application/basilisk/components/shell/nsWindowsShellService.cpp b/application/basilisk/components/shell/nsWindowsShellService.cpp
+index 879b0c7..7a474b7 100644
+--- a/application/basilisk/components/shell/nsWindowsShellService.cpp
++++ b/application/basilisk/components/shell/nsWindowsShellService.cpp
+@@ -369,6 +369,60 @@ IsDefaultBrowserWin8(bool aCheckAllTypes, bool* aIsDefaultBrowser)
+   }
+ }
+ 
++NS_IMETHODIMP
++nsWindowsShellService::CancelPortableMode()
++{
++  nsresult rv;
++
++  nsCOMPtr<nsIFile> portmodemark;
++
++  rv = NS_GetSpecialDirectory(NS_OS_CURRENT_PROCESS_DIR,
++                              getter_AddRefs(portmodemark));
++  NS_ENSURE_SUCCESS(rv, rv);
++
++  rv = portmodemark->AppendNative(NS_LITERAL_CSTRING("pmprt.mod"));
++
++  NS_ENSURE_SUCCESS(rv, rv);
++
++  bool fileExists;
++  rv = portmodemark->Exists(&fileExists);
++
++  NS_ENSURE_SUCCESS(rv, rv);
++  if (fileExists)
++  portmodemark->Remove(false);
++
++  return NS_OK;
++}
++
++NS_IMETHODIMP
++nsWindowsShellService::IsPortableMode(bool* aIsPortable)
++{
++  nsresult rv;
++  *aIsPortable=false;
++
++  nsCOMPtr<nsIFile> portmodemark;
++
++  rv = NS_GetSpecialDirectory(NS_OS_CURRENT_PROCESS_DIR,
++                              getter_AddRefs(portmodemark));
++  NS_ENSURE_SUCCESS(rv, rv);
++
++  rv = portmodemark->AppendNative(NS_LITERAL_CSTRING("pmprt.mod"));
++
++  NS_ENSURE_SUCCESS(rv, rv);
++
++  bool fileExists;
++  rv = portmodemark->Exists(&fileExists);
++  NS_ENSURE_SUCCESS(rv, rv);
++  
++//  nsAutoString path1;
++//  rv = portmodemark->GetPath(path1);
++//  ::MessageBoxW(NULL,path1.get(),L"Teest",MB_OKCANCEL);
++
++  if (fileExists){
++  *aIsPortable=true;
++  }
++  return NS_OK;
++}
+ /*
+  * Query's the AAR for the default status.
+  * This only checks for BasiliskURL and if aCheckAllTypes is set, then
+diff --git a/application/basilisk/installer/windows/nsis/installer.nsi b/application/basilisk/installer/windows/nsis/installer.nsi
+index 587a891..d8138b1 100644
+--- a/application/basilisk/installer/windows/nsis/installer.nsi
++++ b/application/basilisk/installer/windows/nsis/installer.nsi
+@@ -40,6 +40,7 @@ Var AddDesktopSC
+ Var InstallMaintenanceService
+ Var PageName
+ Var PreventRebootRequired
++Var PrtChkb
+ 
+ ; By defining NO_STARTMENU_DIR an installer that doesn't provide an option for
+ ; an application's Start Menu PROGRAMS directory and doesn't define the
+@@ -294,6 +295,15 @@ Section "-Application" APP_IDX
+                       "$(ERROR_CREATE_DIRECTORY_PREFIX)" \
+                       "$(ERROR_CREATE_DIRECTORY_SUFFIX)"
+ 
++  ${If} $InstallType == ${INSTALLTYPE_PORTABLE}
++  ${If} $PrtChkb == 1
++    FileOpen $0 "$INSTDIR\browser\pmprt.mod" w
++    FileClose $0
++  ${Else}
++    FileOpen $0 "$INSTDIR\browser\pmundprt.mod" w
++    FileClose $0
++  ${EndIf}
++  ${Else}
+   ; Register DLLs
+   ; XXXrstrong - AccessibleMarshal.dll can be used by multiple applications but
+   ; is only registered for the last application installed. When the last
+@@ -578,6 +588,7 @@ Section "-Application" APP_IDX
+       ${EndIf}
+     ${EndUnless}
+   ${EndIf}
++  ${EndIf}
+ 
+ !ifdef MOZ_MAINTENANCE_SERVICE
+   ${If} $TmpVal == "HKLM"
+@@ -903,6 +914,12 @@ Function leaveOptions
+   ${MUI_INSTALLOPTIONS_READ} $R0 "options.ini" "Field 3" "State"
+   StrCmp $R0 "1" +1 +2
+   StrCpy $InstallType ${INSTALLTYPE_CUSTOM}
++  ${MUI_INSTALLOPTIONS_READ} $R0 "options.ini" "Field 6" "State"
++  StrCmp $R0 "1" +1 +2
++  StrCpy $InstallType ${INSTALLTYPE_PORTABLE}
++  ${MUI_INSTALLOPTIONS_READ} $R0 "options.ini" "Field 7" "State"
++  StrCmp $R0 "1" +1 +2
++  StrCpy $PrtChkb 1
+ 
+   ${LeaveOptionsCommon}
+ 
+@@ -1045,6 +1062,7 @@ Function preSummary
+   DeleteINISec "$PLUGINSDIR\summary.ini" "Field 4"
+ 
+   ; Check if it is possible to write to HKLM
++  ${If} $InstallType != ${INSTALLTYPE_PORTABLE}
+   ClearErrors
+   WriteRegStr HKLM "Software\Mozilla" "${BrandShortName}InstallerTest" "Write Test"
+   ${Unless} ${Errors}
+@@ -1091,6 +1109,7 @@ Function preSummary
+     WriteINIStr "$PLUGINSDIR\summary.ini" "Field $0" Left   "0"
+     WriteINIStr "$PLUGINSDIR\summary.ini" "Field $0" Right  "-1"
+   ${EndIf}
++  ${EndIf}
+ 
+   !insertmacro MUI_HEADER_TEXT "$(SUMMARY_PAGE_TITLE)" "$(SUMMARY_PAGE_SUBTITLE)"
+ 
+@@ -1183,7 +1202,7 @@ Function .onInit
+   !insertmacro InitInstallOptionsFile "components.ini"
+   !insertmacro InitInstallOptionsFile "summary.ini"
+ 
+-  WriteINIStr "$PLUGINSDIR\options.ini" "Settings" NumFields "5"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Settings" NumFields "7"
+ 
+   WriteINIStr "$PLUGINSDIR\options.ini" "Field 1" Type   "label"
+   WriteINIStr "$PLUGINSDIR\options.ini" "Field 1" Text   "$(OPTIONS_SUMMARY)"
+@@ -1209,6 +1228,14 @@ Function .onInit
+   WriteINIStr "$PLUGINSDIR\options.ini" "Field 3" Bottom "65"
+   WriteINIStr "$PLUGINSDIR\options.ini" "Field 3" State  "0"
+ 
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 6" Type   "RadioButton"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 6" Text   "$(OPTION_PORTABLE_RADIO)"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 6" Left   "0"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 6" Right  "-1"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 6" Top    "85"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 6" Bottom "95"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 6" State  "0"
++
+   WriteINIStr "$PLUGINSDIR\options.ini" "Field 4" Type   "label"
+   WriteINIStr "$PLUGINSDIR\options.ini" "Field 4" Text   "$(OPTION_STANDARD_DESC)"
+   WriteINIStr "$PLUGINSDIR\options.ini" "Field 4" Left   "15"
+@@ -1223,6 +1250,14 @@ Function .onInit
+   WriteINIStr "$PLUGINSDIR\options.ini" "Field 5" Top    "67"
+   WriteINIStr "$PLUGINSDIR\options.ini" "Field 5" Bottom "87"
+ 
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 7" Type   "checkbox"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 7" Text   "$(OPTION_PORTABLE_DESC)"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 7" Left   "15"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 7" Right  "-1"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 7" Top    "97"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 7" Bottom "117"
++  WriteINIStr "$PLUGINSDIR\options.ini" "Field 7" State  "1"
++
+   ; Setup the shortcuts.ini file for the Custom Shortcuts Page
+   ; Don't offer to install the quick launch shortcut on Windows 7
+   ${If} ${AtLeastWin7}
+diff --git a/application/basilisk/locales/en-US/chrome/browser/shellservice.properties b/application/basilisk/locales/en-US/chrome/browser/shellservice.properties
+index e3dc14b..1ff2489 100644
+--- a/application/basilisk/locales/en-US/chrome/browser/shellservice.properties
++++ b/application/basilisk/locales/en-US/chrome/browser/shellservice.properties
+@@ -25,6 +25,8 @@ setDefaultBrowserMessage=%S is not currently set as your default browser. Would
+ setDefaultBrowserDontAsk=Always perform this check when starting %S.
+ setDefaultBrowserAlertConfirm.label=Use %S as my default browser
+ setDefaultBrowserAlertNotNow.label=Not now
++PortablemodeTitle=Portable Mode
++PortablemodeMessage=By pressing Yes you switch %S into standart non-portable mode, and browser will restart.
+ 
+ desktopBackgroundLeafNameWin=Desktop Background.bmp
+ DesktopBackgroundDownloading=Saving Picture…
+diff --git a/application/basilisk/locales/en-US/installer/custom.properties b/application/basilisk/locales/en-US/installer/custom.properties
+index 4abb1a5..e92dec4 100644
+--- a/application/basilisk/locales/en-US/installer/custom.properties
++++ b/application/basilisk/locales/en-US/installer/custom.properties
+@@ -77,6 +77,8 @@ OPTION_STANDARD_RADIO=&Standard
+ # Two lines
+ OPTION_CUSTOM_DESC=You may choose individual options to be installed. Recommended for experienced users.
+ OPTION_CUSTOM_RADIO=&Custom
++OPTION_PORTABLE_DESC=Such a portable, default browser feature disabled (no-remote).
++OPTION_PORTABLE_RADIO=&Portable
+ 
+ # LOCALIZATION NOTE:
+ # The following text replaces the Install button text on the summary page.
 diff --git a/application/palemoon/components/nsBrowserGlue.js b/application/palemoon/components/nsBrowserGlue.js
 index f0a7aa2..22151c0 100644
 --- a/application/palemoon/components/nsBrowserGlue.js

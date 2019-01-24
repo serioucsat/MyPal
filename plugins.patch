@@ -167,6 +167,19 @@ index 697bfac..ceab501 100644
  #endif
  }
  
+diff --git a/application/basilisk/app/profile/centaury.js b/application/basilisk/app/profile/centaury.js
+index fa48e0c..63057d6 100644
+--- a/application/basilisk/app/profile/centaury.js
++++ b/application/basilisk/app/profile/centaury.js
+@@ -902,6 +902,8 @@ pref("browser.flash-protected-mode-flip.done", false);
+ 
+ pref("dom.ipc.shims.enabledWarnings", false);
+ 
++pref("dom.ipc.plugins.enabled", true);
++
+ // Start the browser in e10s mode
+ pref("browser.tabs.remote.autostart", false);
+ pref("browser.tabs.remote.desktopbehavior", true);
 -- 
 2.8.2.windows.1
 

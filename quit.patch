@@ -1,0 +1,77 @@
+From 768b31c1c2c41ce1b88516492e15d7689afa423a Mon Sep 17 00:00:00 2001
+From: Fedor <fedor@mail.ru>
+Date: Wed, 23 Jan 2019 20:11:08 +0300
+Subject: [PATCH] quit
+
+---
+ application/basilisk/base/content/tabbrowser.xml | 3 +++
+ application/basilisk/components/nsBrowserGlue.js | 2 --
+ application/palemoon/base/content/tabbrowser.xml | 6 ++++++
+ application/palemoon/components/nsBrowserGlue.js | 2 --
+ 4 files changed, 9 insertions(+), 4 deletions(-)
+
+diff --git a/application/basilisk/base/content/tabbrowser.xml b/application/basilisk/base/content/tabbrowser.xml
+index 0438380..b12d0f8 100644
+--- a/application/basilisk/base/content/tabbrowser.xml
++++ b/application/basilisk/base/content/tabbrowser.xml
+@@ -5469,6 +5469,9 @@
+         <body><![CDATA[
+           let numTabs = this.childNodes.length -
+                         this.tabbrowser._removingTabs.length;
++
++
++
+           if (numTabs > 2) {
+             // This is an optimization to avoid layout flushes by calling
+             // getBoundingClientRect() when we just opened a second tab. In
+diff --git a/application/basilisk/components/nsBrowserGlue.js b/application/basilisk/components/nsBrowserGlue.js
+index 34be4ef..c5c2a21 100644
+--- a/application/basilisk/components/nsBrowserGlue.js
++++ b/application/basilisk/components/nsBrowserGlue.js
+@@ -1279,8 +1279,6 @@ BrowserGlue.prototype = {
+     }
+ 
+     this._saveSession = false;
+-    if (pagecount < 2)
+-      return;
+ 
+     if (!aQuitType)
+       aQuitType = "quit";
+diff --git a/application/palemoon/base/content/tabbrowser.xml b/application/palemoon/base/content/tabbrowser.xml
+index 988cae5..e10a0a4 100644
+--- a/application/palemoon/base/content/tabbrowser.xml
++++ b/application/palemoon/base/content/tabbrowser.xml
+@@ -3812,11 +3812,17 @@
+             // when closing the window with the last tab, then we should check
+             // if (numTabs == 1 && this._closeWindowWithLastTab) here and set
+             // this.setAttribute("closebuttons", "hidden") appropriately
++	    if (numTabs == 1 && this._closeWindowWithLastTab)
++            this.setAttribute("closebuttons", "hidden");
++            else  
+             this.setAttribute("closebuttons", "activetab");
+             break;
+           case 1:
+             if (numTabs == 1) {
+               // See remark about potentially hiding the close tab button, above.
++              if (this._closeWindowWithLastTab)
++              this.setAttribute("closebuttons", "hidden");
++              else
+               this.setAttribute("closebuttons", "alltabs");
+             } else if (numTabs == 2) {
+               // This is an optimization to avoid layout flushes by calling
+diff --git a/application/palemoon/components/nsBrowserGlue.js b/application/palemoon/components/nsBrowserGlue.js
+index 22151c0..a0c5e08 100644
+--- a/application/palemoon/components/nsBrowserGlue.js
++++ b/application/palemoon/components/nsBrowserGlue.js
+@@ -699,8 +699,6 @@ BrowserGlue.prototype = {
+     }
+ 
+     this._saveSession = false;
+-    if (pagecount < 2)
+-      return;
+ 
+     if (!aQuitType)
+       aQuitType = "quit";
+-- 
+2.8.2.windows.1
+

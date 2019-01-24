@@ -1,6 +1,6 @@
-From 25ae9f2592b9fe04dbec4468dd609ad6f52c4f5b Mon Sep 17 00:00:00 2001
+From 54291683552fda2d15a21409691a8fd954ad075c Mon Sep 17 00:00:00 2001
 From: Fedor <fedor@mail.ru>
-Date: Tue, 20 Nov 2018 13:13:58 +0300
+Date: Fri, 21 Dec 2018 10:35:23 +0300
 Subject: [PATCH] ffvpx
 
 ---
@@ -5365,7 +5365,7 @@ index 03f19b3..318188a 100644
 +#define CONFIG_LIBSMBCLIENT_PROTOCOL 0
  #endif /* FFMPEG_CONFIG_H */
 diff --git a/media/ffvpx/config_unix32.h b/media/ffvpx/config_unix32.h
-index ae49d80..5ea746a 100644
+index 1722059..f069bfa 100644
 --- a/media/ffvpx/config_unix32.h
 +++ b/media/ffvpx/config_unix32.h
 @@ -1,7 +1,7 @@
@@ -5441,7 +5441,7 @@ index ae49d80..5ea746a 100644
  #define HAVE_DISPATCH_DISPATCH_H 0
  #define HAVE_DEV_BKTR_IOCTL_BT848_H 0
  #define HAVE_DEV_BKTR_IOCTL_METEOR_H 0
-@@ -208,17 +212,27 @@
+@@ -208,6 +212,7 @@
  #define HAVE_DEV_VIDEO_METEOR_IOCTL_METEOR_H 0
  #define HAVE_DIRECT_H 0
  #define HAVE_DIRENT_H 1
@@ -5449,8 +5449,10 @@ index ae49d80..5ea746a 100644
  #define HAVE_DXGIDEBUG_H 0
  #define HAVE_DXVA_H 0
  #define HAVE_ES2_GL_H 0
- #define HAVE_GSM_H 0
- #define HAVE_IO_H 0
+@@ -216,12 +221,21 @@
+ #ifdef HAVE_LINUX_PERF_EVENT_H
+ #undef HAVE_LINUX_PERF_EVENT_H
+ #endif
 -#define HAVE_LINUX_PERF_EVENT_H 0
 +#define HAVE_MACH_MACH_TIME_H 0
  #define HAVE_MACHINE_IOCTL_BT848_H 0
@@ -5470,7 +5472,7 @@ index ae49d80..5ea746a 100644
  #define HAVE_SYS_PARAM_H 1
  #define HAVE_SYS_RESOURCE_H 1
  #define HAVE_SYS_SELECT_H 1
-@@ -262,19 +276,17 @@
+@@ -265,19 +279,17 @@
  #define HAVE_SINF 1
  #define HAVE_TRUNC 1
  #define HAVE_TRUNCF 1
@@ -5495,7 +5497,7 @@ index ae49d80..5ea746a 100644
  #define HAVE_GETADDRINFO 1
  #define HAVE_GETHRTIME 0
  #define HAVE_GETOPT 1
-@@ -289,19 +301,23 @@
+@@ -292,19 +304,23 @@
  #define HAVE_GMTIME_R 1
  #define HAVE_INET_ATON 1
  #define HAVE_ISATTY 1
@@ -5521,7 +5523,7 @@ index ae49d80..5ea746a 100644
  #define HAVE_SETCONSOLETEXTATTRIBUTE 0
  #define HAVE_SETCONSOLECTRLHANDLER 0
  #define HAVE_SETMODE 0
-@@ -314,19 +330,16 @@
+@@ -317,19 +333,16 @@
  #define HAVE_UTGETOSTYPEFROMSTRING 0
  #define HAVE_VIRTUALALLOC 0
  #define HAVE_WGLGETPROCADDRESS 0
@@ -5543,7 +5545,7 @@ index ae49d80..5ea746a 100644
  #define HAVE_BLOCKS_EXTENSION 0
  #define HAVE_EBP_AVAILABLE 1
  #define HAVE_EBX_AVAILABLE 1
-@@ -343,6 +356,7 @@
+@@ -346,6 +359,7 @@
  #define HAVE_VFP_ARGS 0
  #define HAVE_XFORM_ASM 0
  #define HAVE_XMM_CLOBBERS 0
@@ -5551,7 +5553,7 @@ index ae49d80..5ea746a 100644
  #define HAVE_KCMVIDEOCODECTYPE_HEVC 0
  #define HAVE_SOCKLEN_T 1
  #define HAVE_STRUCT_ADDRINFO 1
-@@ -358,22 +372,27 @@
+@@ -361,22 +375,27 @@
  #define HAVE_STRUCT_SOCKADDR_STORAGE 1
  #define HAVE_STRUCT_STAT_ST_MTIM_TV_NSEC 1
  #define HAVE_STRUCT_V4L2_FRMIVALENUM_DISCRETE 1
@@ -5588,7 +5590,7 @@ index ae49d80..5ea746a 100644
  #define CONFIG_AVIO_DIR_CMD_EXAMPLE 1
  #define CONFIG_AVIO_READING_EXAMPLE 1
  #define CONFIG_DECODE_AUDIO_EXAMPLE 1
-@@ -395,8 +414,24 @@
+@@ -398,8 +417,24 @@
  #define CONFIG_SCALING_VIDEO_EXAMPLE 0
  #define CONFIG_TRANSCODE_AAC_EXAMPLE 0
  #define CONFIG_TRANSCODING_EXAMPLE 0
@@ -5615,7 +5617,7 @@ index ae49d80..5ea746a 100644
  #define CONFIG_AVISYNTH 0
  #define CONFIG_FREI0R 0
  #define CONFIG_LIBCDIO 0
-@@ -410,11 +445,9 @@
+@@ -413,11 +448,9 @@
  #define CONFIG_LIBNDI_NEWTEK 0
  #define CONFIG_LIBFDK_AAC 0
  #define CONFIG_OPENSSL 0
@@ -5627,7 +5629,7 @@ index ae49d80..5ea746a 100644
  #define CONFIG_LIBVO_AMRWBENC 0
  #define CONFIG_RKMPP 0
  #define CONFIG_LIBSMBCLIENT 0
-@@ -423,13 +456,11 @@
+@@ -426,13 +459,11 @@
  #define CONFIG_GNUTLS 0
  #define CONFIG_JNI 0
  #define CONFIG_LADSPA 0
@@ -5641,7 +5643,7 @@ index ae49d80..5ea746a 100644
  #define CONFIG_LIBDC1394 0
  #define CONFIG_LIBDRM 0
  #define CONFIG_LIBFLITE 0
-@@ -440,7 +471,6 @@
+@@ -443,7 +474,6 @@
  #define CONFIG_LIBGSM 0
  #define CONFIG_LIBIEC61883 0
  #define CONFIG_LIBILBC 0
@@ -5649,7 +5651,7 @@ index ae49d80..5ea746a 100644
  #define CONFIG_LIBKVAZAAR 0
  #define CONFIG_LIBMODPLUG 0
  #define CONFIG_LIBMP3LAME 0
-@@ -458,12 +488,12 @@
+@@ -461,12 +491,12 @@
  #define CONFIG_LIBSNAPPY 0
  #define CONFIG_LIBSOXR 0
  #define CONFIG_LIBSPEEX 0
@@ -5663,7 +5665,7 @@ index ae49d80..5ea746a 100644
  #define CONFIG_LIBVORBIS 0
  #define CONFIG_LIBVPX 0
  #define CONFIG_LIBWAVPACK 0
-@@ -472,48 +502,28 @@
+@@ -475,48 +505,28 @@
  #define CONFIG_LIBZIMG 0
  #define CONFIG_LIBZMQ 0
  #define CONFIG_LIBZVBI 0
@@ -5723,7 +5725,7 @@ index ae49d80..5ea746a 100644
  #define CONFIG_FTRAPV 0
  #define CONFIG_GRAY 0
  #define CONFIG_HARDCODED_TABLES 0
-@@ -538,19 +548,20 @@
+@@ -541,19 +551,20 @@
  #define CONFIG_SWSCALE 0
  #define CONFIG_FFPLAY 0
  #define CONFIG_FFPROBE 0
@@ -5748,7 +5750,7 @@ index ae49d80..5ea746a 100644
  #define CONFIG_AUTODETECT 0
  #define CONFIG_FONTCONFIG 0
  #define CONFIG_LINUX_PERF 0
-@@ -563,44 +574,48 @@
+@@ -566,44 +577,48 @@
  #define CONFIG_XMM_CLOBBER_TEST 0
  #define CONFIG_BSFS 1
  #define CONFIG_DECODERS 1
@@ -5815,7 +5817,7 @@ index ae49d80..5ea746a 100644
  #define CONFIG_INTRAX8 0
  #define CONFIG_ISO_MEDIA 0
  #define CONFIG_IVIDSP 0
-@@ -612,30 +627,29 @@
+@@ -615,30 +630,29 @@
  #define CONFIG_LLVIDENCDSP 0
  #define CONFIG_LPC 0
  #define CONFIG_LZF 0
@@ -5853,7 +5855,7 @@ index ae49d80..5ea746a 100644
  #define CONFIG_TEXTUREDSP 0
  #define CONFIG_TEXTUREDSPENC 0
  #define CONFIG_TPELDSP 0
-@@ -648,11 +662,1695 @@
+@@ -651,11 +665,1695 @@
  #define CONFIG_VP8DSP 1
  #define CONFIG_WMA_FREQS 0
  #define CONFIG_WMV2DSP 0
@@ -9723,7 +9725,7 @@ index 574207b..c0a7186 100644
 +%define CONFIG_LIBSSH_PROTOCOL 0
 +%define CONFIG_LIBSMBCLIENT_PROTOCOL 0
 diff --git a/media/ffvpx/config_unix64.h b/media/ffvpx/config_unix64.h
-index 1c5c4cb..35ea642 100644
+index 338b669..2e76660 100644
 --- a/media/ffvpx/config_unix64.h
 +++ b/media/ffvpx/config_unix64.h
 @@ -1,7 +1,7 @@
@@ -9796,7 +9798,7 @@ index 1c5c4cb..35ea642 100644
  #define HAVE_DISPATCH_DISPATCH_H 0
  #define HAVE_DEV_BKTR_IOCTL_BT848_H 0
  #define HAVE_DEV_BKTR_IOCTL_METEOR_H 0
-@@ -208,17 +212,27 @@
+@@ -208,6 +212,7 @@
  #define HAVE_DEV_VIDEO_METEOR_IOCTL_METEOR_H 0
  #define HAVE_DIRECT_H 0
  #define HAVE_DIRENT_H 1
@@ -9804,8 +9806,10 @@ index 1c5c4cb..35ea642 100644
  #define HAVE_DXGIDEBUG_H 0
  #define HAVE_DXVA_H 0
  #define HAVE_ES2_GL_H 0
- #define HAVE_GSM_H 0
- #define HAVE_IO_H 0
+@@ -216,12 +221,21 @@
+ #ifdef HAVE_LINUX_PERF_EVENT_H
+ #undef HAVE_LINUX_PERF_EVENT_H
+ #endif
 -#define HAVE_LINUX_PERF_EVENT_H 0
 +#define HAVE_MACH_MACH_TIME_H 0
  #define HAVE_MACHINE_IOCTL_BT848_H 0
@@ -9825,7 +9829,7 @@ index 1c5c4cb..35ea642 100644
  #define HAVE_SYS_PARAM_H 1
  #define HAVE_SYS_RESOURCE_H 1
  #define HAVE_SYS_SELECT_H 1
-@@ -262,19 +276,17 @@
+@@ -265,19 +279,17 @@
  #define HAVE_SINF 1
  #define HAVE_TRUNC 1
  #define HAVE_TRUNCF 1
@@ -9850,7 +9854,7 @@ index 1c5c4cb..35ea642 100644
  #define HAVE_GETADDRINFO 1
  #define HAVE_GETHRTIME 0
  #define HAVE_GETOPT 1
-@@ -289,19 +301,23 @@
+@@ -292,19 +304,23 @@
  #define HAVE_GMTIME_R 1
  #define HAVE_INET_ATON 1
  #define HAVE_ISATTY 1
@@ -9875,7 +9879,7 @@ index 1c5c4cb..35ea642 100644
  #define HAVE_SETCONSOLETEXTATTRIBUTE 0
  #define HAVE_SETCONSOLECTRLHANDLER 0
  #define HAVE_SETMODE 0
-@@ -314,19 +330,16 @@
+@@ -317,19 +333,16 @@
  #define HAVE_UTGETOSTYPEFROMSTRING 0
  #define HAVE_VIRTUALALLOC 0
  #define HAVE_WGLGETPROCADDRESS 0
@@ -9897,7 +9901,7 @@ index 1c5c4cb..35ea642 100644
  #define HAVE_BLOCKS_EXTENSION 0
  #define HAVE_EBP_AVAILABLE 1
  #define HAVE_EBX_AVAILABLE 1
-@@ -343,6 +356,7 @@
+@@ -346,6 +359,7 @@
  #define HAVE_VFP_ARGS 0
  #define HAVE_XFORM_ASM 0
  #define HAVE_XMM_CLOBBERS 1
@@ -9905,7 +9909,7 @@ index 1c5c4cb..35ea642 100644
  #define HAVE_KCMVIDEOCODECTYPE_HEVC 0
  #define HAVE_SOCKLEN_T 1
  #define HAVE_STRUCT_ADDRINFO 1
-@@ -358,22 +372,27 @@
+@@ -361,22 +375,27 @@
  #define HAVE_STRUCT_SOCKADDR_STORAGE 1
  #define HAVE_STRUCT_STAT_ST_MTIM_TV_NSEC 1
  #define HAVE_STRUCT_V4L2_FRMIVALENUM_DISCRETE 1
@@ -9942,7 +9946,7 @@ index 1c5c4cb..35ea642 100644
  #define CONFIG_AVIO_DIR_CMD_EXAMPLE 1
  #define CONFIG_AVIO_READING_EXAMPLE 1
  #define CONFIG_DECODE_AUDIO_EXAMPLE 1
-@@ -395,8 +414,24 @@
+@@ -398,8 +417,24 @@
  #define CONFIG_SCALING_VIDEO_EXAMPLE 0
  #define CONFIG_TRANSCODE_AAC_EXAMPLE 0
  #define CONFIG_TRANSCODING_EXAMPLE 0
@@ -9969,7 +9973,7 @@ index 1c5c4cb..35ea642 100644
  #define CONFIG_AVISYNTH 0
  #define CONFIG_FREI0R 0
  #define CONFIG_LIBCDIO 0
-@@ -410,11 +445,9 @@
+@@ -413,11 +448,9 @@
  #define CONFIG_LIBNDI_NEWTEK 0
  #define CONFIG_LIBFDK_AAC 0
  #define CONFIG_OPENSSL 0
@@ -9981,7 +9985,7 @@ index 1c5c4cb..35ea642 100644
  #define CONFIG_LIBVO_AMRWBENC 0
  #define CONFIG_RKMPP 0
  #define CONFIG_LIBSMBCLIENT 0
-@@ -423,13 +456,11 @@
+@@ -426,13 +459,11 @@
  #define CONFIG_GNUTLS 0
  #define CONFIG_JNI 0
  #define CONFIG_LADSPA 0
@@ -9995,7 +9999,7 @@ index 1c5c4cb..35ea642 100644
  #define CONFIG_LIBDC1394 0
  #define CONFIG_LIBDRM 0
  #define CONFIG_LIBFLITE 0
-@@ -440,7 +471,6 @@
+@@ -443,7 +474,6 @@
  #define CONFIG_LIBGSM 0
  #define CONFIG_LIBIEC61883 0
  #define CONFIG_LIBILBC 0
@@ -10003,7 +10007,7 @@ index 1c5c4cb..35ea642 100644
  #define CONFIG_LIBKVAZAAR 0
  #define CONFIG_LIBMODPLUG 0
  #define CONFIG_LIBMP3LAME 0
-@@ -458,12 +488,12 @@
+@@ -461,12 +491,12 @@
  #define CONFIG_LIBSNAPPY 0
  #define CONFIG_LIBSOXR 0
  #define CONFIG_LIBSPEEX 0
@@ -10017,7 +10021,7 @@ index 1c5c4cb..35ea642 100644
  #define CONFIG_LIBVORBIS 0
  #define CONFIG_LIBVPX 0
  #define CONFIG_LIBWAVPACK 0
-@@ -472,48 +502,28 @@
+@@ -475,48 +505,28 @@
  #define CONFIG_LIBZIMG 0
  #define CONFIG_LIBZMQ 0
  #define CONFIG_LIBZVBI 0
@@ -10076,7 +10080,7 @@ index 1c5c4cb..35ea642 100644
  #define CONFIG_FTRAPV 0
  #define CONFIG_GRAY 0
  #define CONFIG_HARDCODED_TABLES 0
-@@ -538,19 +548,20 @@
+@@ -541,19 +551,20 @@
  #define CONFIG_SWSCALE 0
  #define CONFIG_FFPLAY 0
  #define CONFIG_FFPROBE 0
@@ -10102,7 +10106,7 @@ index 1c5c4cb..35ea642 100644
  #define CONFIG_AUTODETECT 0
  #define CONFIG_FONTCONFIG 0
  #define CONFIG_LINUX_PERF 0
-@@ -563,19 +574,22 @@
+@@ -566,19 +577,22 @@
  #define CONFIG_XMM_CLOBBER_TEST 0
  #define CONFIG_BSFS 1
  #define CONFIG_DECODERS 1
@@ -10132,7 +10136,7 @@ index 1c5c4cb..35ea642 100644
  #define CONFIG_DIRAC_PARSE 0
  #define CONFIG_DVPROFILE 0
  #define CONFIG_EXIF 0
-@@ -584,23 +598,24 @@
+@@ -587,23 +601,24 @@
  #define CONFIG_FDCTDSP 1
  #define CONFIG_FLACDSP 1
  #define CONFIG_FMTCONVERT 0
@@ -10164,7 +10168,7 @@ index 1c5c4cb..35ea642 100644
  #define CONFIG_INTRAX8 0
  #define CONFIG_ISO_MEDIA 0
  #define CONFIG_IVIDSP 0
-@@ -612,30 +627,29 @@
+@@ -615,30 +630,29 @@
  #define CONFIG_LLVIDENCDSP 0
  #define CONFIG_LPC 0
  #define CONFIG_LZF 0
@@ -10202,7 +10206,7 @@ index 1c5c4cb..35ea642 100644
  #define CONFIG_TEXTUREDSP 0
  #define CONFIG_TEXTUREDSPENC 0
  #define CONFIG_TPELDSP 0
-@@ -648,11 +662,1695 @@
+@@ -651,11 +665,1695 @@
  #define CONFIG_VP8DSP 1
  #define CONFIG_WMA_FREQS 0
  #define CONFIG_WMV2DSP 0

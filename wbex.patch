@@ -1,0 +1,26 @@
+From 2193bc17c9933c1c44f7baccb3065e25a97b1e0c Mon Sep 17 00:00:00 2001
+From: Fedor <fedor@mail.ru>
+Date: Wed, 23 Jan 2019 14:27:54 +0300
+Subject: [PATCH] Revert "[BASILISK] Disable WebEx support."
+
+This reverts commit ef75531aa855d64d9cd9c9998de5f02acf7518b7.
+---
+ application/basilisk/confvars.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/application/basilisk/confvars.sh b/application/basilisk/confvars.sh
+index 01cb456..949f9f6 100644
+--- a/application/basilisk/confvars.sh
++++ b/application/basilisk/confvars.sh
+@@ -55,7 +55,7 @@ MOZ_APP_STATIC_INI=1
+ MOZ_WEBGL_CONFORMANT=1
+ MOZ_JSDOWNLOADS=1
+ MOZ_WEBRTC=1
+-MOZ_WEBEXTENSIONS=
++MOZ_WEBEXTENSIONS=1
+ MOZ_DEVTOOLS=1
+ MOZ_SERVICES_COMMON=1
+ MOZ_SERVICES_SYNC=1
+-- 
+2.8.2.windows.1
+
