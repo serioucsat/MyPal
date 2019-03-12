@@ -171,7 +171,7 @@ Site.prototype = {
     // first check for end time, as it may modify the link
     this._checkLinkEndTime();
     // setup display variables
-    let enhanced = gAllPages.enhanced && DirectoryLinksProvider.getEnhancedLink(this.link);
+    let enhanced = gAllPages.enhanced;
     let url = this.url;
     let title = enhanced && enhanced.title ? enhanced.title :
                 this.link.type == "history" ? this.link.baseDomain :
@@ -244,7 +244,7 @@ Site.prototype = {
    */
   refreshThumbnail: function Site_refreshThumbnail() {
     // Only enhance tiles if that feature is turned on
-    let link = gAllPages.enhanced && DirectoryLinksProvider.getEnhancedLink(this.link) ||
+    let link = gAllPages.enhanced ||
                this.link;
 
     let thumbnail = this._querySelector(".newtab-thumbnail.thumbnail");
@@ -387,12 +387,6 @@ Site.prototype = {
     else if (button == 0) {
       aEvent.preventDefault();
       if (target.classList.contains("newtab-control-block")) {
-        // Notify DirectoryLinksProvider of suggested tile block, this may
-        // affect if and how suggested tiles are recommended and needs to
-        // be reported before pages are updated inside block() call
-        if (this.link.targetedSite) {
-          DirectoryLinksProvider.handleSuggestedTileBlock();
-        }
         this.block();
         action = "block";
       }
@@ -412,11 +406,6 @@ Site.prototype = {
         }
         action = "pin";
       }
-    }
-
-    // Report all link click actions
-    if (action) {
-      DirectoryLinksProvider.reportSitesAction(gGrid.sites, action, tileIndex);
     }
   },
 
