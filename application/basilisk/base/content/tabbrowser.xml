@@ -5476,6 +5476,9 @@
         <body><![CDATA[
           let numTabs = this.childNodes.length -
                         this.tabbrowser._removingTabs.length;
+
+
+
           if (numTabs > 2) {
             // This is an optimization to avoid layout flushes by calling
             // getBoundingClientRect() when we just opened a second tab. In
