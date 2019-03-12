@@ -82,7 +82,6 @@ IPDL_SOURCES += [
     'PBrowser.ipdl',
     'PBrowserOrId.ipdlh',
     'PColorPicker.ipdl',
-    'PContent.ipdl',
     'PContentBridge.ipdl',
     'PContentPermission.ipdlh',
     'PContentPermissionRequest.ipdl',
@@ -95,6 +94,11 @@ IPDL_SOURCES += [
     'PTabContext.ipdlh',
     'ServiceWorkerConfiguration.ipdlh',
 ]
+
+if CONFIG['THE_GMP']:
+  IPDL_SOURCES += ['gmp/PContent.ipdl',]
+else:
+  IPDL_SOURCES += ['nogmp/PContent.ipdl',]
 
 include('/ipc/chromium/chromium-config.mozbuild')
 

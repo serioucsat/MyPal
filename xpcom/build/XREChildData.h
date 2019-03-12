@@ -9,18 +9,19 @@
 
 #include "mozilla/UniquePtr.h"
 
+#ifdef THE_GMP
 namespace mozilla {
 namespace gmp {
 class GMPLoader;
 }
 }
-
+#endif
 /**
  * Data needed to start a child process.
  */
 struct XREChildData
 {
-#if !defined(MOZ_WIDGET_ANDROID)
+#if !defined(MOZ_WIDGET_ANDROID) && defined(THE_GMP)
   /**
    * Used to load the GMP binary.
    */

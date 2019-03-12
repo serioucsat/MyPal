@@ -798,13 +798,17 @@ this.PluginCrashReporter = {
     this.crashReports = new Map();
 
     Services.obs.addObserver(this, "plugin-crashed", false);
+#ifdef THE_GMP
     Services.obs.addObserver(this, "gmp-plugin-crash", false);
+#endif
     Services.obs.addObserver(this, "profile-after-change", false);
   },
 
   uninit() {
     Services.obs.removeObserver(this, "plugin-crashed", false);
+#ifdef THE_GMP
     Services.obs.removeObserver(this, "gmp-plugin-crash", false);
+#endif
     Services.obs.removeObserver(this, "profile-after-change", false);
     this.initialized = false;
   },
@@ -829,6 +833,7 @@ this.PluginCrashReporter = {
         }
         break;
       }
+#ifdef THE_GMP
       case "gmp-plugin-crash": {
         let propertyBag = subject;
         if (!(propertyBag instanceof Ci.nsIWritablePropertyBag2) ||
@@ -857,6 +862,7 @@ this.PluginCrashReporter = {
         }
         break;
       }
+#endif
       case "profile-after-change":
         this.uninit();
         break;

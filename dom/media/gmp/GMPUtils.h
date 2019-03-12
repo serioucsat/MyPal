@@ -32,11 +32,6 @@ bool GetEMEVoucherPath(nsIFile** aPath);
 
 bool EMEVoucherFileExists();
 
-void
-SplitAt(const char* aDelims,
-        const nsACString& aInput,
-        nsTArray<nsCString>& aOutTokens);
-
 nsCString
 ToBase64(const nsTArray<uint8_t>& aBytes);
 

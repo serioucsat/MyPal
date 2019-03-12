@@ -8,11 +8,16 @@ EXTRA_JS_MODULES.addons += [
     'AddonLogging.jsm',
     'AddonRepository_SQLiteMigrator.jsm',
     'Content.js',
-    'GMPProvider.jsm',
     'LightweightThemeImageOptimizer.jsm',
-    'ProductAddonChecker.jsm',
     'SpellCheckDictionaryBootstrap.js',
 ]
+
+if CONFIG['THE_GMP']:
+    EXTRA_JS_MODULES.addons += [
+        'GMPProvider.jsm',
+        'ProductAddonChecker.jsm',
+    ]
+
 
 # Don't ship unused providers on Android
 if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'android':
