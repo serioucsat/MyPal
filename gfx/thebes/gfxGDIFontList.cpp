@@ -37,6 +37,11 @@ using namespace mozilla;
 
 #define ROUND(x) floor((x) + 0.5)
 
+
+#ifndef CLEARTYPE_QUALITY
+#define CLEARTYPE_QUALITY 5
+#endif
+
 #define LOG_FONTLIST(args) MOZ_LOG(gfxPlatform::GetLog(eGfxLog_fontlist), \
                                LogLevel::Debug, args)
 #define LOG_FONTLIST_ENABLED() MOZ_LOG_TEST( \
@@ -217,7 +222,16 @@ GDIFontEntry::IsSymbolFont()
 gfxFont *
 GDIFontEntry::CreateFontInstance(const gfxFontStyle* aFontStyle, bool aNeedsBold)
 {
-    return new gfxGDIFont(this, aFontStyle, aNeedsBold);
+    bool isXP = !IsVistaOrLater();
+
+    bool useClearType = isXP && !aFontStyle->systemFont &&
+        (gfxWindowsPlatform::GetPlatform()->UseClearTypeAlways() ||
+         (mIsDataUserFont &&
+          gfxWindowsPlatform::GetPlatform()->UseClearTypeForDownloadableFonts()));
+
+    return new gfxGDIFont(this, aFontStyle, aNeedsBold, 
+                          (useClearType ? gfxFont::kAntialiasSubpixel
+                                        : gfxFont::kAntialiasDefault));
 }
 
 nsresult
@@ -249,7 +263,8 @@ GDIFontEntry::CopyFontTable(uint32_t aTableTag, nsTArray<uint8_t>& aBuffer)
 
 void
 GDIFontEntry::FillLogFont(LOGFONTW *aLogFont,
-                          uint16_t aWeight, gfxFloat aSize)
+                          uint16_t aWeight, gfxFloat aSize,
+                          bool aUseCleartype)
 {
     memcpy(aLogFont, &mLogFont, sizeof(LOGFONTW));
 
@@ -275,6 +290,8 @@ GDIFontEntry::FillLogFont(LOGFONTW *aLogFont,
     if (mIsDataUserFont) {
         aLogFont->lfItalic = 0;
     }
+
+    aLogFont->lfQuality = (aUseCleartype ? CLEARTYPE_QUALITY : DEFAULT_QUALITY);
 }
 
 #define MISSING_GLYPH 0x1F // glyph index returned for missing characters
@@ -860,8 +877,15 @@ gfxGDIFontList::MakePlatformFont(const nsAString& aFontName,
         gfxWindowsFontType(isCFF ? GFX_FONT_TYPE_PS_OPENTYPE : GFX_FONT_TYPE_TRUETYPE) /*type*/,
         aStyle, w, aStretch, winUserFontData, false);
 
-    if (fe) {
-      fe->mIsDataUserFont = true;
+    if (!fe)
+        return fe;
+
+    fe->mIsDataUserFont = true;
+
+    // Uniscribe doesn't place CFF fonts loaded privately
+    // via AddFontMemResourceEx on XP/Vista
+    if (isCFF && !IsWin7OrLater()) {
+        fe->mForceGDI = true;
     }
 
     return fe;
