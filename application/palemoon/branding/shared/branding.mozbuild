@@ -7,12 +7,12 @@
 @template
 def ApplicationBranding():
     JS_PREFERENCE_PP_FILES += [
-        'pref/palemoon-branding.js',
+        'pref/mypal-branding.js',
     ]
 
     if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
         FINAL_TARGET_FILES['..'] += [
-            'palemoon.VisualElementsManifest.xml',
+            'mypal.VisualElementsManifest.xml',
         ]
         FINAL_TARGET_FILES.VisualElements += [
             'VisualElements_150.png',
