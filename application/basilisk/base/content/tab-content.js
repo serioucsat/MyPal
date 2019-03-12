@@ -9,6 +9,9 @@ var {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+#ifdef MOZ_WEBEXTENSIONS
+Cu.import("resource://gre/modules/ExtensionContent.jsm");
+#endif
 
 XPCOMUtils.defineLazyModuleGetter(this, "E10SUtils",
   "resource:///modules/E10SUtils.jsm");
@@ -912,6 +915,14 @@ var UserContextIdNotifier = {
 };
 
 UserContextIdNotifier.init();
+
+#ifdef MOZ_WEBEXTENSIONS
+ExtensionContent.init(this);
+addEventListener("unload", () => {
+  ExtensionContent.uninit(this);
+  RefreshBlocker.uninit();
+});
+#endif
 
 addMessageListener("AllowScriptsToClose", () => {
   content.QueryInterface(Ci.nsIInterfaceRequestor)
