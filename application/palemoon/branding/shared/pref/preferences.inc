@@ -1,9 +1,8 @@
 // ===| General |==============================================================
 
-pref("startup.homepage_welcome_url","http://www.palemoon.org/firstrun.shtml");
+pref("startup.homepage_welcome_url","https://feodor2.github.io/Mypal/");
 
-pref("app.vendorURL", "http://www.palemoon.org/");
-
+pref("app.vendorURL", "https://github.com/Feodor2/Mypal/");
 
 // User Interface
 pref("browser.identity.ssl_domain_display", 1); //show domain verified SSL (blue)

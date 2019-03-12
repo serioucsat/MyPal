@@ -244,10 +244,10 @@ Section "Uninstall"
   ${EndIf}
 
   ; setup the application model id registration value
-  ${un.InitHashAppModelId} "$INSTDIR" "Software\Mozilla\${AppName}\TaskBarIDs"
+  ${un.InitHashAppModelId} "$INSTDIR" "Software\${AppName}\TaskBarIDs"
 
   SetShellVarContext current  ; Set SHCTX to HKCU
-  ${un.RegCleanMain} "Software\Mozilla"
+  ${un.RegCleanMain} "Software\Mypal"
   ${un.RegCleanUninstall}
   ${un.DeleteShortcuts}
 
@@ -258,54 +258,54 @@ Section "Uninstall"
   ${EndIf}
 
   ; Remove the updates directory for Vista and above
-  ${un.CleanUpdateDirectories} "Mozilla\PaleMoon" "Mozilla\updates"
+  ${un.CleanUpdateDirectories} "Mypal" "updates"
 
   ; Remove any app model id's stored in the registry for this install path
-  DeleteRegValue HKCU "Software\Mozilla\${AppName}\TaskBarIDs" "$INSTDIR"
-  DeleteRegValue HKLM "Software\Mozilla\${AppName}\TaskBarIDs" "$INSTDIR"
+  DeleteRegValue HKCU "Software\${AppName}\TaskBarIDs" "$INSTDIR"
+  DeleteRegValue HKLM "Software\${AppName}\TaskBarIDs" "$INSTDIR"
 
   ClearErrors
-  WriteRegStr HKLM "Software\Mozilla" "${BrandShortName}InstallerTest" "Write Test"
+  WriteRegStr HKLM "Software" "${BrandShortName}InstallerTest" "Write Test"
   ${If} ${Errors}
     StrCpy $TmpVal "HKCU" ; used primarily for logging
   ${Else}
     SetShellVarContext all  ; Set SHCTX to HKLM
-    DeleteRegValue HKLM "Software\Mozilla" "${BrandShortName}InstallerTest"
+    DeleteRegValue HKLM "Software" "${BrandShortName}InstallerTest"
     StrCpy $TmpVal "HKLM" ; used primarily for logging
-    ${un.RegCleanMain} "Software\Mozilla"
+    ${un.RegCleanMain} "Software\Mypal"
     ${un.RegCleanUninstall}
     ${un.DeleteShortcuts}
     ${un.SetAppLSPCategories}
   ${EndIf}
 
-  ${un.RegCleanAppHandler} "PaleMoonURL"
-  ${un.RegCleanAppHandler} "PaleMoonHTML"
+  ${un.RegCleanAppHandler} "MypalURL"
+  ${un.RegCleanAppHandler} "MypalHTML"
   ${un.RegCleanProtocolHandler} "ftp"
   ${un.RegCleanProtocolHandler} "http"
   ${un.RegCleanProtocolHandler} "https"
 
   ClearErrors
-  ReadRegStr $R9 HKCR "PaleMoonHTML" ""
+  ReadRegStr $R9 HKCR "MypalHTML" ""
   ; Don't clean up the file handlers if the PaleMoonHTML key still exists since
   ; there should be a second installation that may be the default file handler
   ${If} ${Errors}
-    ${un.RegCleanFileHandler}  ".htm"   "PaleMoonHTML"
-    ${un.RegCleanFileHandler}  ".html"  "PaleMoonHTML"
-    ${un.RegCleanFileHandler}  ".shtml" "PaleMoonHTML"
-    ${un.RegCleanFileHandler}  ".xht"   "PaleMoonHTML"
-    ${un.RegCleanFileHandler}  ".xhtml" "PaleMoonHTML"
-    ${un.RegCleanFileHandler}  ".oga"  "PaleMoonHTML"
-    ${un.RegCleanFileHandler}  ".ogg"  "PaleMoonHTML"
-    ${un.RegCleanFileHandler}  ".ogv"  "PaleMoonHTML"
-    ${un.RegCleanFileHandler}  ".pdf"  "PaleMoonHTML"
-    ${un.RegCleanFileHandler}  ".webm"  "PaleMoonHTML"
+    ${un.RegCleanFileHandler}  ".htm"   "MypalHTML"
+    ${un.RegCleanFileHandler}  ".html"  "MypalHTML"
+    ${un.RegCleanFileHandler}  ".shtml" "MypalHTML"
+    ${un.RegCleanFileHandler}  ".xht"   "MypalHTML"
+    ${un.RegCleanFileHandler}  ".xhtml" "MypalHTML"
+    ${un.RegCleanFileHandler}  ".oga"  "MypalHTML"
+    ${un.RegCleanFileHandler}  ".ogg"  "MypalHTML"
+    ${un.RegCleanFileHandler}  ".ogv"  "MypalHTML"
+    ${un.RegCleanFileHandler}  ".pdf"  "MypalHTML"
+    ${un.RegCleanFileHandler}  ".webm"  "MypalHTML"
   ${EndIf}
 
   SetShellVarContext all  ; Set SHCTX to HKLM
-  ${un.GetSecondInstallPath} "Software\Mozilla" $R9
+  ${un.GetSecondInstallPath} "Software\Mypal" $R9
   ${If} $R9 == "false"
     SetShellVarContext current  ; Set SHCTX to HKCU
-    ${un.GetSecondInstallPath} "Software\Mozilla" $R9
+    ${un.GetSecondInstallPath} "Software\Mypal" $R9
   ${EndIf}
 
   StrCpy $0 "Software\Clients\StartMenuInternet\${FileMainEXE}\shell\open\command"
@@ -351,7 +351,7 @@ Section "Uninstall"
     StrCpy $0 "Software\Microsoft\MediaPlayer\ShimInclusionList\plugin-container.exe"
     DeleteRegKey HKLM "$0"
     DeleteRegKey HKCU "$0"
-    StrCpy $0 "Software\Classes\MIME\Database\Content Type\application/x-xpinstall;app=PaleMoon"
+    StrCpy $0 "Software\Classes\MIME\Database\Content Type\application/x-xpinstall;app=Mypal"
     DeleteRegKey HKLM "$0"
     DeleteRegKey HKCU "$0"
   ${Else}
@@ -448,7 +448,7 @@ Section "Uninstall"
   ; subsequently deleted after checking. If the value is found during startup
   ; the browser will offer to Reset PaleMoon. We use the UpdateChannel to match
   ; uninstalls of PaleMoon-release with reinstalls of PaleMoon-release, for example.
-  WriteRegStr HKCU "Software\Mozilla\PaleMoon" "Uninstalled-${UpdateChannel}" "True"
+  WriteRegStr HKCU "Software\Mypal" "Uninstalled-${UpdateChannel}" "True"
 
   ${un.IsFirewallSvcRunning}
   Pop $0
