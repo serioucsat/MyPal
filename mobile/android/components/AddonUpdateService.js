@@ -15,8 +15,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "AddonManagerPrivate",
 XPCOMUtils.defineLazyModuleGetter(this, "AddonRepository",
                                   "resource://gre/modules/addons/AddonRepository.jsm");
 
+#ifdef THE_GMP
 XPCOMUtils.defineLazyModuleGetter(this, "GMPInstallManager",
                                   "resource://gre/modules/GMPInstallManager.jsm");
+#endif
 
 XPCOMUtils.defineLazyModuleGetter(this, "Messaging",
                                   "resource://gre/modules/Messaging.jsm");
@@ -58,8 +60,10 @@ AddonUpdateService.prototype = {
 
     AddonManagerPrivate.backgroundUpdateCheck();
 
+#ifdef THE_GMP
     let gmp = new GMPInstallManager();
     gmp.simpleCheckAndInstall().then(null, () => {});
+#endif
 
     let interval = 1000 * getPref("getIntPref", PREF_ADDON_UPDATE_INTERVAL, 86400);
     Messaging.sendRequest({

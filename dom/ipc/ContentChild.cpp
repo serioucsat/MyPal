@@ -60,7 +60,9 @@
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/WebBrowserPersistDocumentChild.h"
 #include "imgLoader.h"
+#ifdef THE_GMP
 #include "GMPServiceChild.h"
+#endif
 
 #include "mozilla/Unused.h"
 
@@ -167,7 +169,6 @@
 #include "mozilla/net/NeckoMessageUtils.h"
 #include "mozilla/widget/PuppetBidiKeyboard.h"
 #include "mozilla/RemoteSpellCheckEngineChild.h"
-#include "GMPServiceChild.h"
 #include "gfxPlatform.h"
 #include "nscore.h" // for NS_FREE_PERMANENT_DATA
 
@@ -177,7 +178,9 @@ using namespace mozilla::dom::ipc;
 using namespace mozilla::dom::workers;
 using namespace mozilla::media;
 using namespace mozilla::embedding;
+#ifdef THE_GMP
 using namespace mozilla::gmp;
+#endif
 using namespace mozilla::hal_sandbox;
 using namespace mozilla::ipc;
 using namespace mozilla::layers;
@@ -1126,7 +1129,7 @@ ContentChild::AllocPContentBridgeParent(mozilla::ipc::Transport* aTransport,
     ContentBridgeParent::Create(aTransport, aOtherProcess));
   return mLastBridge;
 }
-
+#ifdef THE_GMP
 PGMPServiceChild*
 ContentChild::AllocPGMPServiceChild(mozilla::ipc::Transport* aTransport,
                                     base::ProcessId aOtherProcess)
@@ -1140,6 +1143,7 @@ ContentChild::RecvGMPsChanged(nsTArray<GMPCapabilityData>&& capabilities)
   GeckoMediaPluginServiceChild::UpdateGMPCapabilities(Move(capabilities));
   return true;
 }
+#endif
 
 bool
 ContentChild::RecvInitRendering(Endpoint<PCompositorBridgeChild>&& aCompositor,

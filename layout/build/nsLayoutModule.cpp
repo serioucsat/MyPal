@@ -187,7 +187,9 @@ static void Shutdown();
 
 #include "MediaManager.h"
 
+#ifdef THE_GMP
 #include "GMPService.h"
+#endif
 
 #include "mozilla/dom/PresentationDeviceManager.h"
 #include "mozilla/dom/PresentationTCPSessionTransport.h"
@@ -203,7 +205,9 @@ using mozilla::dom::workers::WorkerDebuggerManager;
 using mozilla::dom::UDPSocketChild;
 using mozilla::dom::time::TimeService;
 using mozilla::net::StreamingProtocolControllerService;
+#ifdef THE_GMP
 using mozilla::gmp::GeckoMediaPluginService;
+#endif
 
 #define NS_EDITORCOMMANDTABLE_CID \
 { 0x4f5e62b8, 0xd659, 0x4156, \
@@ -557,8 +561,9 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsStructuredCloneContainer)
 
 NS_GENERIC_FACTORY_CONSTRUCTOR(OSFileConstantsService)
 NS_GENERIC_FACTORY_CONSTRUCTOR(UDPSocketChild)
-
+#ifdef THE_GMP
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(GeckoMediaPluginService, GeckoMediaPluginService::GetGeckoMediaPluginService)
+#endif
 
 #ifdef ACCESSIBILITY
 #include "xpcAccessibilityService.h"
@@ -967,7 +972,9 @@ static const mozilla::Module::CIDEntry kLayoutCIDs[] = {
   { &kNS_POWERMANAGERSERVICE_CID, false, nullptr, nsIPowerManagerServiceConstructor, Module::ALLOW_IN_GPU_PROCESS },
   { &kOSFILECONSTANTSSERVICE_CID, true, nullptr, OSFileConstantsServiceConstructor },
   { &kUDPSOCKETCHILD_CID, false, nullptr, UDPSocketChildConstructor },
+#ifdef THE_GMP
   { &kGECKO_MEDIA_PLUGIN_SERVICE_CID, true, nullptr, GeckoMediaPluginServiceConstructor },
+#endif
   { &kNS_TIMESERVICE_CID, false, nullptr, nsITimeServiceConstructor },
   { &kNS_MEDIASTREAMCONTROLLERSERVICE_CID, false, nullptr, nsIStreamingProtocolControllerServiceConstructor },
   { &kNS_MEDIAMANAGERSERVICE_CID, false, nullptr, nsIMediaManagerServiceConstructor },
@@ -1104,7 +1111,9 @@ static const mozilla::Module::ContractIDEntry kLayoutContracts[] = {
   { "@mozilla.org/accessibilityService;1", &kNS_ACCESSIBILITY_SERVICE_CID },
   { "@mozilla.org/accessibleRetrieval;1", &kNS_ACCESSIBILITY_SERVICE_CID },
 #endif
+#ifdef THE_GMP
   { "@mozilla.org/gecko-media-plugin-service;1",  &kGECKO_MEDIA_PLUGIN_SERVICE_CID },
+#endif
   { PRESENTATION_SERVICE_CONTRACTID, &kPRESENTATION_SERVICE_CID },
   { PRESENTATION_DEVICE_MANAGER_CONTRACTID, &kPRESENTATION_DEVICE_MANAGER_CID },
   { PRESENTATION_TCP_SESSION_TRANSPORT_CONTRACTID, &kPRESENTATION_TCP_SESSION_TRANSPORT_CID },

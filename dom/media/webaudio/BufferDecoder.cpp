@@ -8,15 +8,23 @@
 
 #include "nsISupports.h"
 #include "MediaResource.h"
+#ifdef THE_GMP
 #include "GMPService.h"
+#endif
 
 namespace mozilla {
 
 NS_IMPL_ISUPPORTS0(BufferDecoder)
 
-BufferDecoder::BufferDecoder(MediaResource* aResource, GMPCrashHelper* aCrashHelper)
+BufferDecoder::BufferDecoder(MediaResource* aResource
+#ifdef THE_GMP
+, GMPCrashHelper* aCrashHelper
+#endif
+)
   : mResource(aResource)
+#ifdef THE_GMP
   , mCrashHelper(aCrashHelper)
+#endif
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_COUNT_CTOR(BufferDecoder);
@@ -67,11 +75,12 @@ BufferDecoder::GetOwner() const
   // unknown
   return nullptr;
 }
-
+#ifdef THE_GMP
 already_AddRefed<GMPCrashHelper>
 BufferDecoder::GetCrashHelper()
 {
   return do_AddRef(mCrashHelper);
 }
+#endif
 
 } // namespace mozilla

@@ -23,6 +23,7 @@
 #include "prio.h"
 #include "base/task.h"
 #include "widevine-adapter/WidevineAdapter.h"
+#include "utils.h"
 
 using namespace mozilla::ipc;
 

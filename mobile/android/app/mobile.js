@@ -830,8 +830,10 @@ pref("device.storage.enabled", true);
 // Enable meta-viewport support for font inflation code
 pref("dom.meta-viewport.enabled", true);
 
+#ifdef THE_GMP
 // Enable GMP support in the addon manager.
 pref("media.gmp-provider.enabled", true);
+#endif
 
 // The default color scheme in reader mode (light, dark, auto)
 // auto = color automatically adjusts according to ambient light level

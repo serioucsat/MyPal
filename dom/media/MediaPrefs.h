@@ -95,14 +95,20 @@ private:
   // VideoSink
   DECL_MEDIA_PREF("media.ruin-av-sync.enabled",               RuinAvSync, bool, false);
 
+#ifdef MOZ_EME
   // Encrypted Media Extensions
   DECL_MEDIA_PREF("media.clearkey.persistent-license.enabled", ClearKeyPersistentLicenseEnabled, bool, false);
+#endif
 
   // PlatformDecoderModule
   DECL_MEDIA_PREF("media.apple.forcevda",                     AppleForceVDA, bool, false);
+#ifdef THE_GMP
   DECL_MEDIA_PREF("media.gmp.insecure.allow",                 GMPAllowInsecure, bool, false);
   DECL_MEDIA_PREF("media.gmp.async-shutdown-timeout",         GMPAsyncShutdownTimeout, uint32_t, GMP_DEFAULT_ASYNC_SHUTDOWN_TIMEOUT);
+#endif
+#ifdef MOZ_EME
   DECL_MEDIA_PREF("media.eme.enabled",                        EMEEnabled, bool, false);
+#endif
   DECL_MEDIA_PREF("media.use-blank-decoder",                  PDMUseBlankDecoder, bool, false);
   DECL_MEDIA_PREF("media.gpu-process-decoder",                PDMUseGPUDecoder, bool, false);
 #ifdef MOZ_WIDGET_ANDROID
@@ -130,9 +136,11 @@ private:
   DECL_MEDIA_PREF("media.decoder.fuzzing.enabled",            PDMFuzzingEnabled, bool, false);
   DECL_MEDIA_PREF("media.decoder.fuzzing.video-output-minimum-interval-ms", PDMFuzzingInterval, uint32_t, 0);
   DECL_MEDIA_PREF("media.decoder.fuzzing.dont-delay-inputexhausted", PDMFuzzingDelayInputExhausted, bool, true);
+#ifdef THE_GMP
   DECL_MEDIA_PREF("media.gmp.decoder.enabled",                PDMGMPEnabled, bool, true);
   DECL_MEDIA_PREF("media.gmp.decoder.aac",                    GMPAACPreferred, uint32_t, 0);
   DECL_MEDIA_PREF("media.gmp.decoder.h264",                   GMPH264Preferred, uint32_t, 0);
+#endif
 
   // MediaDecoderStateMachine
   DECL_MEDIA_PREF("media.suspend-bkgnd-video.enabled",        MDSMSuspendBackgroundVideoEnabled, bool, false);

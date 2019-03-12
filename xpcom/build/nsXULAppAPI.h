@@ -425,11 +425,13 @@ XRE_API(const char*,
 XRE_API(void,
         XRE_SetProcessType, (const char* aProcessTypeString))
 
+#ifdef THE_GMP
 namespace mozilla {
 namespace gmp {
 class GMPLoader;
 } // namespace gmp
 } // namespace mozilla
+#endif
 
 XRE_API(nsresult,
         XRE_InitChildProcess, (int aArgc,

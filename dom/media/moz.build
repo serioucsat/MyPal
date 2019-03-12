@@ -20,12 +20,8 @@ with Files('GetUserMedia*'):
     BUG_COMPONENT = component_av
 
 DIRS += [
-    'eme',
     'encoder',
     'flac',
-    'gmp',
-    'gmp-plugin',
-    'gmp-plugin-openh264',
     'imagecapture',
     'ipc',
     'mediasink',
@@ -45,6 +41,13 @@ DIRS += [
 
 if CONFIG['MOZ_FMP4']:
     DIRS += ['fmp4']
+
+if CONFIG['THE_GMP']:
+    DIRS += ['gmp',
+             'gmp-plugin',
+             'gmp-plugin-openh264',]
+    if CONFIG['MOZ_EME']:
+        DIRS += ['eme']
 
 if CONFIG['MOZ_WEBRTC']:
     DIRS += ['bridge']
@@ -136,6 +139,7 @@ EXPORTS += [
     'ThreadPoolCOMListener.h',
     'TimeUnits.h',
     'TrackUnionStream.h',
+    'utils.h',
     'VideoFrameContainer.h',
     'VideoLimits.h',
     'VideoSegment.h',
@@ -250,6 +254,8 @@ UNIFIED_SOURCES += [
     'WebVTTListener.cpp',
     'XiphExtradata.cpp',
 ]
+
+SOURCES += [ 'utils.cpp' ]
 
 if CONFIG['OS_TARGET'] == 'WINNT':
   SOURCES += [ 'ThreadPoolCOMListener.cpp' ]
