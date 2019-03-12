@@ -909,6 +909,8 @@ pref("browser.flash-protected-mode-flip.done", false);
 
 pref("dom.ipc.shims.enabledWarnings", false);
 
+pref("dom.ipc.plugins.enabled", true);
+
 // Start the browser in e10s mode
 pref("browser.tabs.remote.autostart", false);
 pref("browser.tabs.remote.desktopbehavior", true);
