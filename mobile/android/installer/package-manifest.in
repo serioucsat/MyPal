@@ -207,7 +207,6 @@
 @BINPATH@/components/satchel.xpt
 @BINPATH@/components/saxparser.xpt
 @BINPATH@/components/services-crypto-component.xpt
-@BINPATH@/components/captivedetect.xpt
 @BINPATH@/components/shistory.xpt
 @BINPATH@/components/spellchecker.xpt
 @BINPATH@/components/storage.xpt
@@ -368,9 +367,6 @@
 @BINPATH@/components/PeerConnection.js
 @BINPATH@/components/PeerConnection.manifest
 #endif
-
-@BINPATH@/components/CaptivePortalDetectComponents.manifest
-@BINPATH@/components/captivedetect.js
 
 #ifdef MOZ_WEBSPEECH
 @BINPATH@/components/dom_webspeechsynth.xpt
