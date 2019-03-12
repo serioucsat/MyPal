@@ -268,7 +268,11 @@ MediaEngineWebRTC::EnumerateVideoDevices(dom::MediaSourceEnum aMediaSource,
 bool
 MediaEngineWebRTC::SupportsDuplex()
 {
+#ifndef XP_WIN
   return mFullDuplex;
+#else
+  return IsVistaOrLater() && mFullDuplex;
+#endif
 }
 
 void

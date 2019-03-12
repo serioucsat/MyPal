@@ -461,7 +461,8 @@ gfxGDIFont::FillLogFont(LOGFONTW& aLogFont, gfxFloat aSize,
         weight = mNeedsBold ? 700 : fe->Weight();
     }
 
-    fe->FillLogFont(&aLogFont, weight, aSize);
+    fe->FillLogFont(&aLogFont, weight, aSize, 
+                    (mAntialiasOption == kAntialiasSubpixel) ? true : false);
 
     // If GDI synthetic italic is wanted, force the lfItalic field to true
     if (aUseGDIFakeItalic) {
