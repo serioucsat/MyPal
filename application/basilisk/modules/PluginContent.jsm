@@ -953,11 +953,12 @@ PluginContent.prototype = {
     if (!(aEvent instanceof this.content.PluginCrashedEvent))
       return;
 
+#ifdef THE_GMP
     if (aEvent.gmpPlugin) {
       this.GMPCrashed(aEvent);
       return;
     }
-
+#endif
     if (!(target instanceof Ci.nsIObjectLoadingContent))
       return;
 
@@ -1105,6 +1106,7 @@ PluginContent.prototype = {
     }
   },
 
+#ifdef THE_GMP
   GMPCrashed: function(aEvent) {
     let target          = aEvent.target;
     let pluginName      = aEvent.pluginName;
@@ -1116,6 +1118,7 @@ PluginContent.prototype = {
       // TODO: Throw exception? How did we get here?
       return;
     }
+#endif
 
     let messageString =
       gNavigatorBundle.formatStringFromName("crashedpluginsMessage.title",

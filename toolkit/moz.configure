@@ -322,7 +322,20 @@ def wmf(value, target):
 
 set_config('MOZ_WMF', wmf)
 set_define('MOZ_WMF', wmf)
+# GMP
+# ==============================================================
+option('--disable-gmp',
+       help='Disable support for gmp')
 
+@depends('--disable-gmp', target)
+def gmp(value, target):
+    enabled = bool(value)
+    if value.origin == 'default':
+        enabled = true
+    if enabled:
+        return True
+set_config('THE_GMP', gmp)
+set_define('THE_GMP', gmp)
 # FFmpeg H264/AAC Decoding Support
 # ==============================================================
 option('--disable-ffmpeg',

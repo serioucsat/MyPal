@@ -11,7 +11,9 @@
 #include "mozilla/Function.h"
 #include "mozilla/StaticMutex.h"
 
+#ifdef MOZ_EME
 class CDMProxy;
+#endif
 
 namespace mozilla {
 
@@ -43,7 +45,9 @@ public:
   // does not decode, we create a PDM and use that to create MediaDataDecoders
   // that we use on on aTaskQueue to decode the decrypted stream.
   // This is called on the decode task queue.
+#ifdef MOZ_EME
   void SetCDMProxy(CDMProxy* aProxy);
+#endif
 
   static constexpr int kYUV400 = 0;
   static constexpr int kYUV420 = 1;
@@ -71,7 +75,9 @@ private:
 
   bool mWMFFailedToLoad = false;
   bool mFFmpegFailedToLoad = false;
+#ifdef THE_GMP
   bool mGMPPDMFailedToStartup = false;
+#endif
 
   void EnsureInit() const;
   template<class T> friend class StaticAutoPtr;

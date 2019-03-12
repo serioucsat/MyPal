@@ -22,6 +22,7 @@ using mozilla::layers::GeckoContentController::TapType from "mozilla/layers/Geck
 using nsEventStatus from "mozilla/EventForwards.h";
 using EventMessage from "mozilla/EventForwards.h";
 using mozilla::Modifiers from "mozilla/EventForwards.h";
+using mozilla::dom::NativeThreadId from "mozilla/dom/TabMessageUtils.h";
 using class mozilla::WidgetInputEvent from "mozilla/BasicEvents.h";
 using class mozilla::WidgetMouseEventBase from "mozilla/MouseEvents.h";
 using mozilla::WidgetMouseEvent::Reason from "mozilla/MouseEvents.h";

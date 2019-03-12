@@ -20,6 +20,7 @@
 #include <unistd.h>
 #endif
 
+#ifdef THE_GMP
 #include "GMPLoader.h"
 
 mozilla::gmp::SandboxStarter*
@@ -27,6 +28,7 @@ MakeSandboxStarter()
 {
     return nullptr;
 }
+#endif
 
 int
 content_process_main(int argc, char* argv[])
@@ -50,7 +52,7 @@ content_process_main(int argc, char* argv[])
         SetDllDirectoryW(L"");
     }
 #endif
-#if !defined(MOZ_WIDGET_ANDROID) && defined(MOZ_PLUGIN_CONTAINER)
+#if !defined(MOZ_WIDGET_ANDROID) && defined(MOZ_PLUGIN_CONTAINER) && defined(THE_GMP)
     // On desktop, the GMPLoader lives in plugin-container, so that its
     // code can be covered by an EME/GMP vendor's voucher.
     nsAutoPtr<mozilla::gmp::SandboxStarter> starter(MakeSandboxStarter());

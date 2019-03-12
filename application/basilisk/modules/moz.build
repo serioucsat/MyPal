@@ -11,7 +11,6 @@ EXTRA_JS_MODULES += [
     'BrowserUsageTelemetry.jsm',
     'CastingApps.jsm',
     'ContentClick.jsm',
-    'ContentCrashHandlers.jsm',
     'ContentLinkHandler.jsm',
     'ContentObservers.jsm',
     'ContentSearch.jsm',
@@ -25,7 +24,6 @@ EXTRA_JS_MODULES += [
     'NetworkPrioritizer.jsm',
     'offlineAppCache.jsm',
     'PermissionUI.jsm',
-    'PluginContent.jsm',
     'ProcessHangMonitor.jsm',
     'ReaderParent.jsm',
     'RecentWindow.jsm',
@@ -36,6 +34,12 @@ EXTRA_JS_MODULES += [
     'URLBarZoom.jsm',
     'webrtcUI.jsm',
 ]
+
+EXTRA_PP_JS_MODULES += [
+    'ContentCrashHandlers.jsm',
+    'PluginContent.jsm',
+]
+
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
     EXTRA_JS_MODULES += [

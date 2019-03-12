@@ -67,8 +67,10 @@
 #include "mozilla/ipc/XPCShellEnvironment.h"
 #include "mozilla/WindowsDllBlocklist.h"
 
+#ifdef THE_GMP
 #include "GMPProcessChild.h"
 #include "GMPLoader.h"
+#endif
 #include "mozilla/gfx/GPUProcessImpl.h"
 
 #include "GeckoProfiler.h"
@@ -95,9 +97,11 @@ using mozilla::dom::ContentProcess;
 using mozilla::dom::ContentParent;
 using mozilla::dom::ContentChild;
 
+#ifdef THE_GMP
 using mozilla::gmp::GMPLoader;
 using mozilla::gmp::CreateGMPLoader;
 using mozilla::gmp::GMPProcessChild;
+#endif
 
 using mozilla::ipc::TestShellParent;
 using mozilla::ipc::TestShellCommandParent;
@@ -267,6 +271,7 @@ XRE_InitChildProcess(int aArgc,
   NS_ENSURE_ARG_POINTER(aArgv[0]);
   MOZ_ASSERT(aChildData);
 
+#ifdef THE_GMP
 #if !defined(MOZ_WIDGET_ANDROID)
   // On non-Fennec Gecko, the GMPLoader code resides in plugin-container,
   // and we must forward it through to the GMP code here.
@@ -277,6 +282,7 @@ XRE_InitChildProcess(int aArgc,
   // on Android), so we create it here inside XUL and pass it to the GMP code.
   UniquePtr<GMPLoader> loader = CreateGMPLoader(nullptr);
   GMPProcessChild::SetGMPLoader(loader.get());
+#endif
 #endif
 
 #if defined(XP_WIN)
@@ -480,9 +486,11 @@ XRE_InitChildProcess(int aArgc,
       // Content processes need the XPCOM/chromium frankenventloop
       uiLoopType = MessageLoop::TYPE_MOZILLA_CHILD;
       break;
+#ifdef THE_GMP
   case GeckoProcessType_GMPlugin:
       uiLoopType = MessageLoop::TYPE_DEFAULT;
       break;
+#endif
   default:
       uiLoopType = MessageLoop::TYPE_UI;
       break;
@@ -544,9 +552,11 @@ XRE_InitChildProcess(int aArgc,
 #endif
         break;
 
+#ifdef THE_GMP
       case GeckoProcessType_GMPlugin:
         process = new gmp::GMPProcessChild(parentPID);
         break;
+#endif
 
       case GeckoProcessType_GPU:
         process = new gfx::GPUProcessImpl(parentPID);

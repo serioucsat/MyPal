@@ -21,6 +21,7 @@
 #include "GMPContentParent.h"
 #include "MediaPrefs.h"
 #include "VideoUtils.h"
+#include "utils.h"
 
 using mozilla::ipc::GeckoChildProcessHost;
 
