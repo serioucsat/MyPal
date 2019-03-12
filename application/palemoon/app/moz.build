@@ -9,7 +9,7 @@ DIRS += ['profile/extensions']
 GeckoProgram(CONFIG['MOZ_APP_NAME'])
 
 JS_PREFERENCE_PP_FILES += [
-    'profile/palemoon.js',
+    'profile/mypal.js',
 ]
 
 if CONFIG['LIBXUL_SDK']:
