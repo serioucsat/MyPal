@@ -28,7 +28,7 @@
 #include "common.h"
 #include "eval.h"
 #include "log.h"
-/* #include "random_seed.h" */
+#include "ff_random_seed.h"
 #include "time_internal.h"
 #include "parseutils.h"
 #include "fftime.h"
@@ -373,7 +373,7 @@ int av_parse_color(uint8_t *rgba_color, const char *color_string, int slen,
     rgba_color[3] = 255;
 
     if (!av_strcasecmp(color_string2, "random") || !av_strcasecmp(color_string2, "bikeshed")) {
-        int rgba = 0xffffffff; /* av_get_random_seed(); */
+        int rgba = av_get_random_seed();
         rgba_color[0] = rgba >> 24;
         rgba_color[1] = rgba >> 16;
         rgba_color[2] = rgba >> 8;
@@ -590,7 +590,7 @@ int av_parse_time(int64_t *timeval, const char *timestr, int duration)
     int64_t t, now64;
     time_t now;
     struct tm dt = { 0 }, tmbuf;
-    int today = 0, negative = 0, microseconds = 0, suffix = 1000000;
+    int today = 0, negative = 0, microseconds = 0;
     int i;
     static const char * const date_fmt[] = {
         "%Y - %m - %d",
@@ -689,16 +689,6 @@ int av_parse_time(int64_t *timeval, const char *timestr, int duration)
 
     if (duration) {
         t = dt.tm_hour * 3600 + dt.tm_min * 60 + dt.tm_sec;
-        if (q[0] == 'm' && q[1] == 's') {
-            suffix = 1000;
-            microseconds /= 1000;
-            q += 2;
-        } else if (q[0] == 'u' && q[1] == 's') {
-            suffix = 1;
-            microseconds = 0;
-            q += 2;
-        } else if (*q == 's')
-            q++;
     } else {
         int is_utc = *q == 'Z' || *q == 'z';
         int tzoffset = 0;
@@ -734,7 +724,7 @@ int av_parse_time(int64_t *timeval, const char *timestr, int duration)
     if (*q)
         return AVERROR(EINVAL);
 
-    t *= suffix;
+    t *= 1000000;
     t += microseconds;
     *timeval = negative ? -t : t;
     return 0;
