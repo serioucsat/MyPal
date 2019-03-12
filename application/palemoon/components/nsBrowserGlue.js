@@ -691,8 +691,6 @@ BrowserGlue.prototype = {
     }
 
     this._saveSession = false;
-    if (pagecount < 2)
-      return;
 
     if (!aQuitType)
       aQuitType = "quit";

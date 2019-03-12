@@ -3819,11 +3819,17 @@
             // when closing the window with the last tab, then we should check
             // if (numTabs == 1 && this._closeWindowWithLastTab) here and set
             // this.setAttribute("closebuttons", "hidden") appropriately
+	    if (numTabs == 1 && this._closeWindowWithLastTab)
+            this.setAttribute("closebuttons", "hidden");
+            else  
             this.setAttribute("closebuttons", "activetab");
             break;
           case 1:
             if (numTabs == 1) {
               // See remark about potentially hiding the close tab button, above.
+              if (this._closeWindowWithLastTab)
+              this.setAttribute("closebuttons", "hidden");
+              else
               this.setAttribute("closebuttons", "alltabs");
             } else if (numTabs == 2) {
               // This is an optimization to avoid layout flushes by calling
