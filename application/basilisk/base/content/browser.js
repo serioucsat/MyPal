@@ -974,7 +974,6 @@ var gBrowserInit = {
     AboutPrivateBrowsingListener.init();
     TrackingProtection.init();
     RefreshBlocker.init();
-    CaptivePortalWatcher.init();
 
     let mm = window.getGroupMessageManager("browsers");
     mm.loadFrameScript("chrome://browser/content/tab-content.js", true);
@@ -1509,8 +1508,6 @@ var gBrowserInit = {
     TrackingProtection.uninit();
 
     RefreshBlocker.uninit();
-
-    CaptivePortalWatcher.uninit();
 
     gMenuButtonUpdateBadge.uninit();
 
@@ -2743,16 +2740,12 @@ var BrowserOnClick = {
   init: function () {
     let mm = window.messageManager;
     mm.addMessageListener("Browser:CertExceptionError", this);
-    mm.addMessageListener("Browser:OpenCaptivePortalPage", this);
     mm.addMessageListener("Browser:SiteBlockedError", this);
     mm.addMessageListener("Browser:EnableOnlineMode", this);
     mm.addMessageListener("Browser:ResetSSLPreferences", this);
     mm.addMessageListener("Browser:SSLErrorReportTelemetry", this);
     mm.addMessageListener("Browser:OverrideWeakCrypto", this);
     mm.addMessageListener("Browser:SSLErrorGoBack", this);
-
-    Services.obs.addObserver(this, "captive-portal-login-abort", false);
-    Services.obs.addObserver(this, "captive-portal-login-success", false);
   },
 
   uninit: function () {
@@ -2764,20 +2757,6 @@ var BrowserOnClick = {
     mm.removeMessageListener("Browser:SSLErrorReportTelemetry", this);
     mm.removeMessageListener("Browser:OverrideWeakCrypto", this);
     mm.removeMessageListener("Browser:SSLErrorGoBack", this);
-
-    Services.obs.removeObserver(this, "captive-portal-login-abort");
-    Services.obs.removeObserver(this, "captive-portal-login-success");
-  },
-
-  observe: function(aSubject, aTopic, aData) {
-    switch (aTopic) {
-      case "captive-portal-login-abort":
-      case "captive-portal-login-success":
-        // Broadcast when a captive portal is freed so that error pages
-        // can refresh themselves.
-        window.messageManager.broadcastAsyncMessage("Browser:CaptivePortalFreed");
-      break;
-    }
   },
 
   receiveMessage: function (msg) {
@@ -2786,9 +2765,6 @@ var BrowserOnClick = {
         this.onCertError(msg.target, msg.data.elementId,
                          msg.data.isTopFrame, msg.data.location,
                          msg.data.securityInfoAsString);
-      break;
-      case "Browser:OpenCaptivePortalPage":
-        CaptivePortalWatcher.ensureCaptivePortalTab();
       break;
       case "Browser:SiteBlockedError":
         this.onAboutBlocked(msg.data.elementId, msg.data.reason,
