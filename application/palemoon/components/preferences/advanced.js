@@ -10,6 +10,9 @@ Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/LoadContextInfo.jsm");
 Components.utils.import("resource://gre/modules/BrowserUtils.jsm");
 
+XPCOMUtils.defineLazyServiceGetter(this, "winShellSvc",
+                                   "@mozilla.org/browser/shell-service;1","nsIWindowsShellService");
+
 var gAdvancedPane = {
   _inited: false,
 
@@ -719,6 +722,7 @@ var gAdvancedPane = {
       document.getElementById("alwaysCheckDefault").disabled = true;
       return;
     }
+    if (winShellSvc.isPortableMode()) return;
     let selectedIndex =
       shellSvc.isDefaultBrowser(false, true) ? 1 : 0;
     setDefaultPane.selectedIndex = selectedIndex;
@@ -729,10 +733,33 @@ var gAdvancedPane = {
    */
   setDefaultBrowser: function()
   {
+    //MYPAL PORTABLE CODE
     let shellSvc = getShellService();
+    let sPortable;
     if (!shellSvc)
       return;
     try {
+    isPortable = winShellSvc.isPortableMode();
+    if (isPortable) {
+          Components.utils.import("resource:///modules/RecentWindow.jsm");
+          var win = RecentWindow.getMostRecentBrowserWindow();
+          var brandBundle = win.document.getElementById("bundle_brand");
+          var shellBundle = win.document.getElementById("bundle_shell");
+
+          var brandShortName = brandBundle.getString("brandShortName");
+          var promptTitle = shellBundle.getString("PortablemodeTitle");
+          var promptMessage = shellBundle.getFormattedString("PortablemodeMessage",
+                                                              [brandShortName]);
+ //       var checkEveryTime = { value: shouldCheck };
+          var ps = Services.prompt;
+          var rv = ps.confirmEx(win, promptTitle, promptMessage,
+                                ps.STD_YES_NO_BUTTONS,
+                                null, null, null, null, { });//, checkboxLabel, checkEveryTime);
+          if (rv == 0) {
+	  winShellSvc.cancelPortableMode();
+          isPortable=28;
+          } else return;
+        }
       let claimAllTypes = true;
 #ifdef XP_WIN
       // In Windows 8+, the UI for selecting default protocol is much
@@ -750,6 +777,7 @@ var gAdvancedPane = {
     let selectedIndex =
       shellSvc.isDefaultBrowser(false, true) ? 1 : 0;
     document.getElementById("setDefaultPane").selectedIndex = selectedIndex;
+    if (isPortable==28) Application.quit();
   }
 #endif
 };
