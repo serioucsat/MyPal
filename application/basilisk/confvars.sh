@@ -3,7 +3,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-MOZ_APP_BASENAME=Basilisk
+MOZ_APP_BASENAME=Centaury
 MOZ_APP_VENDOR=Moonchild
 MOZ_PHOENIX=1
 MOZ_AUSTRALIS=1
@@ -18,11 +18,11 @@ fi
 # For Basilisk we want to use 52.9.YYYY.MM.DD as MOZ_APP_VERSION in release
 # builds so add-on developers have something to target while maintaining
 # Firefox compatiblity.
-# To enable add "export BASILISK_VERSION=1" to the .mozconfig file.
+# To enable add "export CENTAURY_VERSION=1" to the .mozconfig file.
 # However, this will cause a full rebuild at 00:00 UTC every day so
 # don't export the variable if you are in development or don't care.
 # When not exported we fall back the value in the version*.txt file.
-if test -n "$BASILISK_VERSION" ; then
+if test -n "$CENTAURY_VERSION" ; then
     MOZ_APP_VERSION=52.9.`date --utc '+%Y.%m.%d'`
     MOZ_APP_VERSION_DISPLAY=`date --utc '+%Y.%m.%d'`
 else

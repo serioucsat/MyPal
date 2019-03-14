@@ -2,9 +2,9 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY  brandShorterName      "Serpent">
-<!ENTITY  brandShortName        "Serpent">
-<!ENTITY  brandFullName         "Serpent">
-<!ENTITY  vendorShortName       "Moonchild">
-<!ENTITY  vendorFullName        "Moonchild Productions">
+<!ENTITY  brandShorterName      "Centaury">
+<!ENTITY  brandShortName        "Centaury">
+<!ENTITY  brandFullName         "Centaury">
+<!ENTITY  vendorShortName       "">
+<!ENTITY  vendorFullName        "">
 <!ENTITY  trademarkInfo.part1   " ">
