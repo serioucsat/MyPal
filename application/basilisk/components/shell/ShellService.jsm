@@ -62,10 +62,10 @@ let ShellServiceInternal = {
 
     if (AppConstants.platform == "win") {
       let optOutValue = WindowsRegistry.readRegKey(Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER,
-                                                   "Software\\Mozilla\\Basilisk",
+                                                   "Software\\Mozilla\\Centaury",
                                                    "DefaultBrowserOptOut");
       WindowsRegistry.removeRegKey(Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER,
-                                   "Software\\Mozilla\\Basilisk",
+                                   "Software\\Mozilla\\Centaury",
                                    "DefaultBrowserOptOut");
       if (optOutValue == "True") {
         Services.prefs.setBoolPref("browser.shell.checkDefaultBrowser", false);

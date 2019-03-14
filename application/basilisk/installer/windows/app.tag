@@ -1,4 +1,4 @@
 ;!@Install@!UTF-8!
-Title="Basilisk"
+Title="Centaury"
 RunProgram="setup.exe"
 ;!@InstallEnd@!

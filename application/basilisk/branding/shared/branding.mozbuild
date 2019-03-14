@@ -7,12 +7,12 @@
 @template
 def ApplicationBranding():
     JS_PREFERENCE_PP_FILES += [
-        'pref/basilisk-branding.js',
+        'pref/centaury-branding.js',
     ]
 
     if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
         FINAL_TARGET_FILES['..'] += [
-            'basilisk.VisualElementsManifest.xml',
+            'centaury.VisualElementsManifest.xml',
         ]
         FINAL_TARGET_FILES.VisualElements += [
             'VisualElements_150.png',

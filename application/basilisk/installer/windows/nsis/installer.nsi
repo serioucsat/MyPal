@@ -249,7 +249,7 @@ Section "-InstallStartCleanup"
   ${InitHashAppModelId} "$INSTDIR" "Software\Mozilla\${AppName}\TaskBarIDs"
 
   ; Remove the updates directory for Vista and above
-  ${CleanUpdateDirectories} "Mozilla\Basilisk" "Mozilla\updates"
+  ${CleanUpdateDirectories} "Mozilla\Centaury" "Mozilla\updates"
 
   ${RemoveDeprecatedFiles}
   ${RemovePrecompleteEntries} "false"
@@ -387,9 +387,9 @@ Section "-Application" APP_IDX
 
   ; In Win8, the delegate execute handler picks up the value in BasiliskURL and
   ; BasiliskHTML to launch the desktop browser when it needs to.
-  ${AddDisabledDDEHandlerValues} "BasiliskHTML" "$2" "$8,1" \
+  ${AddDisabledDDEHandlerValues} "CentauryHTML" "$2" "$8,1" \
                                  "${AppRegName} Document" ""
-  ${AddDisabledDDEHandlerValues} "BasiliskURL" "$2" "$8,1" "${AppRegName} URL" \
+  ${AddDisabledDDEHandlerValues} "CentauryURL" "$2" "$8,1" "${AppRegName} URL" \
                                  "true"
 
   ; For pre win8, the following keys should only be set if we can write to HKLM.
@@ -584,7 +584,7 @@ Section "-InstallEndCleanup"
       ; If we have something other than empty string now, write the value.
       ${If} "$0" != ""
         ClearErrors
-        WriteRegStr HKCU "Software\Mozilla\Basilisk" "OldDefaultBrowserCommand" "$0"
+        WriteRegStr HKCU "Software\Mozilla\Centaury" "OldDefaultBrowserCommand" "$0"
       ${EndIf}
 
       ${LogHeader} "Setting as the default browser"
@@ -600,7 +600,7 @@ Section "-InstallEndCleanup"
     ${ElseIfNot} ${Errors}
       ${LogHeader} "Writing default-browser opt-out"
       ClearErrors
-      WriteRegStr HKCU "Software\Mozilla\Basilisk" "DefaultBrowserOptOut" "True"
+      WriteRegStr HKCU "Software\Mozilla\Centaury" "DefaultBrowserOptOut" "True"
       ${If} ${Errors}
         ${LogMsg} "Error writing default-browser opt-out"
       ${EndIf}
