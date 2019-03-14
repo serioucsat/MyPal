@@ -9,7 +9,7 @@ DIRS += ['profile/extensions']
 GeckoProgram(CONFIG['MOZ_APP_NAME'])
 
 JS_PREFERENCE_PP_FILES += [
-    'profile/basilisk.js',
+    'profile/centaury.js',
 ]
 
 SOURCES += [

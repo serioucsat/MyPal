@@ -13,9 +13,9 @@
   ; start menu tile.  In case there are 2 Basilisk installations, we only do
   ; this if the application being updated is the default.
   ReadRegStr $0 HKCU "Software\Microsoft\Windows\Shell\Associations\UrlAssociations\http\UserChoice" "ProgId"
-  ${If} $0 == "BasiliskURL"
+  ${If} $0 == "CentauryURL"
   ${AndIf} $9 != 0 ; We're not running in session 0
-    ReadRegStr $0 HKCU "Software\Classes\BasiliskURL\shell\open\command" ""
+    ReadRegStr $0 HKCU "Software\Classes\CentauryURL\shell\open\command" ""
     ${GetPathFromString} "$0" $0
     ${GetParent} "$0" $0
     ${If} ${FileExists} "$0"
@@ -282,9 +282,9 @@
   ClearErrors
   EnumRegKey $7 HKCR "${FILE_TYPE}" 0
   ${If} ${Errors}
-    WriteRegStr SHCTX "SOFTWARE\Classes\${FILE_TYPE}"  "" "BasiliskHTML"
+    WriteRegStr SHCTX "SOFTWARE\Classes\${FILE_TYPE}"  "" "CentauryHTML"
   ${EndIf}
-  WriteRegStr SHCTX "SOFTWARE\Classes\${FILE_TYPE}\OpenWithProgids" "BasiliskHTML" ""
+  WriteRegStr SHCTX "SOFTWARE\Classes\${FILE_TYPE}\OpenWithProgids" "CentauryHTML" ""
 !macroend
 !define AddAssociationIfNoneExist "!insertmacro AddAssociationIfNoneExist"
 
@@ -298,28 +298,28 @@
 
   ; Associate the file handlers with BasiliskHTML
   ReadRegStr $6 SHCTX "$0\.htm" ""
-  ${If} "$6" != "BasiliskHTML"
-    WriteRegStr SHCTX "$0\.htm"   "" "BasiliskHTML"
+  ${If} "$6" != "CentauryHTML"
+    WriteRegStr SHCTX "$0\.htm"   "" "CentauryHTML"
   ${EndIf}
 
   ReadRegStr $6 SHCTX "$0\.html" ""
-  ${If} "$6" != "BasiliskHTML"
-    WriteRegStr SHCTX "$0\.html"  "" "BasiliskHTML"
+  ${If} "$6" != "CentauryHTML"
+    WriteRegStr SHCTX "$0\.html"  "" "CentauryHTML"
   ${EndIf}
 
   ReadRegStr $6 SHCTX "$0\.shtml" ""
-  ${If} "$6" != "BasiliskHTML"
-    WriteRegStr SHCTX "$0\.shtml" "" "BasiliskHTML"
+  ${If} "$6" != "CentauryHTML"
+    WriteRegStr SHCTX "$0\.shtml" "" "CentauryHTML"
   ${EndIf}
 
   ReadRegStr $6 SHCTX "$0\.xht" ""
-  ${If} "$6" != "BasiliskHTML"
-    WriteRegStr SHCTX "$0\.xht"   "" "BasiliskHTML"
+  ${If} "$6" != "CentauryHTML"
+    WriteRegStr SHCTX "$0\.xht"   "" "CentauryHTML"
   ${EndIf}
 
   ReadRegStr $6 SHCTX "$0\.xhtml" ""
-  ${If} "$6" != "BasiliskHTML"
-    WriteRegStr SHCTX "$0\.xhtml" "" "BasiliskHTML"
+  ${If} "$6" != "CentauryHTML"
+    WriteRegStr SHCTX "$0\.xhtml" "" "CentauryHTML"
   ${EndIf}
 
   ${AddAssociationIfNoneExist} ".pdf"
@@ -331,10 +331,10 @@
 
   ; An empty string is used for the 5th param because BasiliskHTML is not a
   ; protocol handler
-  ${AddDisabledDDEHandlerValues} "BasiliskHTML" "$2" "$8,1" \
+  ${AddDisabledDDEHandlerValues} "CentauryHTML" "$2" "$8,1" \
                                  "${AppRegName} HTML Document" ""
 
-  ${AddDisabledDDEHandlerValues} "BasiliskURL" "$2" "$8,1" "${AppRegName} URL" \
+  ${AddDisabledDDEHandlerValues} "CentauryURL" "$2" "$8,1" "${AppRegName} URL" \
                                  "true"
   ; An empty string is used for the 4th & 5th params because the following
   ; protocol handlers already have a display name and the additional keys
@@ -404,17 +404,17 @@
   WriteRegStr ${RegKey} "$0\Capabilities" "ApplicationIcon" "$8,0"
   WriteRegStr ${RegKey} "$0\Capabilities" "ApplicationName" "${BrandShortName}"
 
-  WriteRegStr ${RegKey} "$0\Capabilities\FileAssociations" ".htm"   "BasiliskHTML"
-  WriteRegStr ${RegKey} "$0\Capabilities\FileAssociations" ".html"  "BasiliskHTML"
-  WriteRegStr ${RegKey} "$0\Capabilities\FileAssociations" ".shtml" "BasiliskHTML"
-  WriteRegStr ${RegKey} "$0\Capabilities\FileAssociations" ".xht"   "BasiliskHTML"
-  WriteRegStr ${RegKey} "$0\Capabilities\FileAssociations" ".xhtml" "BasiliskHTML"
+  WriteRegStr ${RegKey} "$0\Capabilities\FileAssociations" ".htm"   "CentauryHTML"
+  WriteRegStr ${RegKey} "$0\Capabilities\FileAssociations" ".html"  "CentauryHTML"
+  WriteRegStr ${RegKey} "$0\Capabilities\FileAssociations" ".shtml" "CentauryHTML"
+  WriteRegStr ${RegKey} "$0\Capabilities\FileAssociations" ".xht"   "CentauryHTML"
+  WriteRegStr ${RegKey} "$0\Capabilities\FileAssociations" ".xhtml" "CentauryHTML"
 
   WriteRegStr ${RegKey} "$0\Capabilities\StartMenu" "StartMenuInternet" "$R9"
 
-  WriteRegStr ${RegKey} "$0\Capabilities\URLAssociations" "ftp"    "BasiliskURL"
-  WriteRegStr ${RegKey} "$0\Capabilities\URLAssociations" "http"   "BasiliskURL"
-  WriteRegStr ${RegKey} "$0\Capabilities\URLAssociations" "https"  "BasiliskURL"
+  WriteRegStr ${RegKey} "$0\Capabilities\URLAssociations" "ftp"    "CentauryURL"
+  WriteRegStr ${RegKey} "$0\Capabilities\URLAssociations" "http"   "CentauryURL"
+  WriteRegStr ${RegKey} "$0\Capabilities\URLAssociations" "https"  "CentauryURL"
 
   ; Vista Registered Application
   WriteRegStr ${RegKey} "Software\RegisteredApplications" "${AppRegName}" "$0\Capabilities"
@@ -427,12 +427,12 @@
 ; icon being displayed for files associated with Basilisk (does not use SHCTX).
 !macro FixShellIconHandler RegKey
   ClearErrors
-  ReadRegStr $1 ${RegKey} "Software\Classes\BasiliskHTML\ShellEx\IconHandler" ""
+  ReadRegStr $1 ${RegKey} "Software\Classes\CentauryHTML\ShellEx\IconHandler" ""
   ${Unless} ${Errors}
-    ReadRegStr $1 ${RegKey} "Software\Classes\BasiliskHTML\DefaultIcon" ""
+    ReadRegStr $1 ${RegKey} "Software\Classes\CentauryHTML\DefaultIcon" ""
     ${GetLongPath} "$INSTDIR\${FileMainEXE}" $2
     ${If} "$1" != "$2,1"
-      WriteRegStr ${RegKey} "Software\Classes\BasiliskHTML\DefaultIcon" "" "$2,1"
+      WriteRegStr ${RegKey} "Software\Classes\CentauryHTML\DefaultIcon" "" "$2,1"
     ${EndIf}
   ${EndUnless}
 !macroend
@@ -578,13 +578,13 @@
   ${If} "$2" != ""
     ; Since there is a persistent handler remove BasiliskHTML as the default
     ; value from both HKCU and HKLM if it set to BasiliskHTML.
-    ${If} "$0" == "BasiliskHTML"
+    ${If} "$0" == "CentauryHTML"
       DeleteRegValue HKCU "Software\Classes\${FILE_TYPE}" ""
     ${EndIf}
-    ${If} "$1" == "BasiliskHTML"
+    ${If} "$1" == "CentauryHTML"
       DeleteRegValue HKLM "Software\Classes\${FILE_TYPE}" ""
     ${EndIf}
-  ${ElseIf} "$0" == "BasiliskHTML"
+  ${ElseIf} "$0" == "CentauryHTML"
     ; Since KHCU is set to BasiliskHTML remove BasiliskHTML as the default value
     ; from HKCU if HKLM is set to a value other than an empty string.
     ${If} "$1" != ""
@@ -641,17 +641,17 @@
   ; Only set the file and protocol handlers if the existing one under HKCR is
   ; for this install location.
 
-  ${IsHandlerForInstallDir} "BasiliskHTML" $R9
+  ${IsHandlerForInstallDir} "CentauryHTML" $R9
   ${If} "$R9" == "true"
     ; An empty string is used for the 5th param because BasiliskHTML is not a
     ; protocol handler.
-    ${AddDisabledDDEHandlerValues} "BasiliskHTML" "$2" "$8,1" \
+    ${AddDisabledDDEHandlerValues} "CentauryHTML" "$2" "$8,1" \
                                    "${AppRegName} HTML Document" ""
   ${EndIf}
 
-  ${IsHandlerForInstallDir} "BasiliskURL" $R9
+  ${IsHandlerForInstallDir} "CentauryURL" $R9
   ${If} "$R9" == "true"
-    ${AddDisabledDDEHandlerValues} "BasiliskURL" "$2" "$8,1" \
+    ${AddDisabledDDEHandlerValues} "CentauryURL" "$2" "$8,1" \
                                    "${AppRegName} URL" "true"
   ${EndIf}
 
@@ -687,8 +687,8 @@
   ${RegCleanAppHandler} "chrome"
 
   ; Remove protocol handler registry keys added by the MS shim
-  DeleteRegKey HKLM "Software\Classes\Basilisk.URL"
-  DeleteRegKey HKCU "Software\Classes\Basilisk.URL"
+  DeleteRegKey HKLM "Software\Classes\Centaury.URL"
+  DeleteRegKey HKCU "Software\Classes\Centaury.URL"
 
   ; Delete gopher from Capabilities\URLAssociations if it is present.
   ${StrFilter} "${FileMainEXE}" "+" "" "" $R9
@@ -702,7 +702,7 @@
   ; Delete gopher from the user's UrlAssociations if it points to BasiliskURL.
   StrCpy $0 "Software\Microsoft\Windows\Shell\Associations\UrlAssociations\gopher"
   ReadRegStr $2 HKCU "$0\UserChoice" "Progid"
-  ${If} "$2" == "BasiliskURL"
+  ${If} "$2" == "CentauryURL"
     DeleteRegKey HKCU "$0"
   ${EndIf}
 !macroend

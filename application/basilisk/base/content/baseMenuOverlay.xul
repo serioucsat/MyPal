@@ -43,7 +43,7 @@
 #endif
       <menupopup id="menu_HelpPopup" onpopupshowing="buildHelpMenu();">
         <menuitem id="menu_openHelp"
-                  oncommand="openHelpLink('firefox-help')"
+                  oncommand="openHelpLink('')"
                   onclick="checkForMiddleClick(this, event);"
                   label="&productHelp2.label;"
                   accesskey="&productHelp2.accesskey;"
@@ -53,7 +53,7 @@
                   />
 #endif
         <menuitem id="menu_keyboardShortcuts"
-                  oncommand="openHelpLink('keyboard-shortcuts')"
+                  oncommand="openHelpLink('')"
                   onclick="checkForMiddleClick(this, event);"
                   label="&helpKeyboardShortcuts.label;"
                   accesskey="&helpKeyboardShortcuts.accesskey;"/>
@@ -91,7 +91,7 @@
     <keyset id="baseMenuKeyset">
 #ifdef XP_MACOSX
         <key id="key_openHelpMac"
-             oncommand="openHelpLink('firefox-osxkey');"
+             oncommand="openHelpLink('');"
              key="&helpMac.commandkey;"
              modifiers="accel"/>
 <!-- These are used to build the Application menu under Cocoa widgets -->

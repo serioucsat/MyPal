@@ -1702,7 +1702,7 @@ function HandleAppCommandEvent(evt) {
     gFindBar.onFindCommand();
     break;
   case "Help":
-    openHelpLink('firefox-help');
+    openHelpLink('');
     break;
   case "Open":
     BrowserOpenFileWindow();
