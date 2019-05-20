@@ -83,10 +83,7 @@ var gSyncUI = {
   _wasDelayed: false,
 
   _needsSetup: function SUI__needsSetup() {
-    let firstSync = "";
-    try {
-      firstSync = Services.prefs.getCharPref("services.sync.firstSync");
-    } catch (e) { }
+    let firstSync = Services.prefs.getCharPref("services.sync.firstSync", "");
     return Weave.Status.checkSetup() == Weave.CLIENT_NOT_CONFIGURED ||
            firstSync == "notReady";
   },

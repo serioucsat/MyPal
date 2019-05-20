@@ -2449,10 +2449,7 @@ var gSearchView = {
       finishSearch();
     });
 
-    var maxRemoteResults = 0;
-    try {
-      maxRemoteResults = Services.prefs.getIntPref(PREF_MAXRESULTS);
-    } catch (e) {}
+    var maxRemoteResults = Services.prefs.getIntPref(PREF_MAXRESULTS, 0);
 
     if (maxRemoteResults <= 0) {
       finishSearch(0);

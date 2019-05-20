@@ -121,25 +121,16 @@ function convertHTMLToPlainText(html) {
 }
 
 function getAddonsToCache(aIds, aCallback) {
-  try {
-    var types = Services.prefs.getCharPref(PREF_GETADDONS_CACHE_TYPES);
-  }
-  catch (e) { }
-  if (!types)
-    types = DEFAULT_CACHE_TYPES;
-
+  var types = Services.prefs.getCharPref(PREF_GETADDONS_CACHE_TYPES, DEFAULT_CACHE_TYPES);
   types = types.split(",");
 
   AddonManager.getAddonsByIDs(aIds, function(aAddons) {
     let enabledIds = [];
+    var preference;
     for (var i = 0; i < aIds.length; i++) {
-      var preference = PREF_GETADDONS_CACHE_ID_ENABLED.replace("%ID%", aIds[i]);
-      try {
-        if (!Services.prefs.getBoolPref(preference))
-          continue;
-      } catch (e) {
-        // If the preference doesn't exist caching is enabled by default
-      }
+      preference = Services.prefs.getBoolPref(PREF_GETADDONS_CACHE_ID_ENABLED.replace("%ID%", aIds[i]), false);
+      if (!preference) 
+        continue;
 
       // The add-ons manager may not know about this ID yet if it is a pending
       // install. In that case we'll just cache it regardless
@@ -477,15 +468,7 @@ this.AddonRepository = {
    * Whether caching is currently enabled
    */
   get cacheEnabled() {
-    let preference = PREF_GETADDONS_CACHE_ENABLED;
-    let enabled = false;
-    try {
-      enabled = Services.prefs.getBoolPref(preference);
-    } catch (e) {
-      logger.warn("cacheEnabled: Couldn't get pref: " + preference);
-    }
-
-    return enabled;
+    return Services.prefs.getBoolPref(PREF_GETADDONS_CACHE_ENABLED, false);
   },
 
   // A cache of the add-ons stored in the database
@@ -534,10 +517,7 @@ this.AddonRepository = {
   metadataAge: function() {
     let now = Math.round(Date.now() / 1000);
 
-    let lastUpdate = 0;
-    try {
-      lastUpdate = Services.prefs.getIntPref(PREF_METADATA_LASTUPDATE);
-    } catch (e) {}
+    let lastUpdate = Services.prefs.getIntPref(PREF_METADATA_LASTUPDATE, 0);
 
     // Handle clock jumps
     if (now < lastUpdate) {
@@ -547,10 +527,8 @@ this.AddonRepository = {
   },
 
   isMetadataStale: function() {
-    let threshold = DEFAULT_METADATA_UPDATETHRESHOLD_SEC;
-    try {
-      threshold = Services.prefs.getIntPref(PREF_METADATA_UPDATETHRESHOLD_SEC);
-    } catch (e) {}
+    let threshold = Services.prefs.getIntPref(PREF_METADATA_UPDATETHRESHOLD_SEC,
+                                              DEFAULT_METADATA_UPDATETHRESHOLD_SEC);
     return (this.metadataAge() > threshold);
   },
 
@@ -1507,10 +1485,8 @@ this.AddonRepository = {
 
   // Create url from preference, returning null if preference does not exist
   _formatURLPref: function(aPreference, aSubstitutions) {
-    let url = null;
-    try {
-      url = Services.prefs.getCharPref(aPreference);
-    } catch (e) {
+    let url = Services.prefs.getCharPref(aPreference, "");
+    if (!url) {
       logger.warn("_formatURLPref: Couldn't get pref: " + aPreference);
       return null;
     }
@@ -1604,10 +1580,7 @@ var AddonDatabase = {
          // Create a blank addons.json file
          this._saveDBToDisk();
 
-         let dbSchema = 0;
-         try {
-           dbSchema = Services.prefs.getIntPref(PREF_GETADDONS_DB_SCHEMA);
-         } catch (e) {}
+         let dbSchema = Services.prefs.getIntPref(PREF_GETADDONS_DB_SCHEMA, 0);
 
          if (dbSchema < DB_MIN_JSON_SCHEMA) {
            let results = yield new Promise((resolve, reject) => {
