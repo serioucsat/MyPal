@@ -100,11 +100,6 @@
                 tbattr="tabbrowser-multiple"
                 oncommand="gBrowser.replaceTabWithWindow(TabContextMenu.contextTab);"/>
       <menuseparator id="context_sendTabToDevice_separator" hidden="true"/>
-      <menu id="context_sendTabToDevice" label="&sendTabToDevice.label;"
-            accesskey="&sendTabToDevice.accesskey;" hidden="true">
-        <menupopup id="context_sendTabToDevicePopupMenu"
-                   onpopupshowing="gFxAccounts.populateSendTabToDevicesMenu(event.target, TabContextMenu.contextTab.linkedBrowser.currentURI.spec, TabContextMenu.contextTab.linkedBrowser.contentTitle);"/>
-      </menu>
       <menuseparator/>
       <menuitem id="context_reloadAllTabs" label="&reloadAllTabs.label;" accesskey="&reloadAllTabs.accesskey;"
                 tbattr="tabbrowser-multiple-visible"
@@ -911,6 +906,18 @@
                      type="checkbox"
                      label="&fullScreenCmd.label;"
                      tooltip="dynamic-shortcut-tooltip"/>
+
+#ifdef MOZ_SERVICES_SYNC
+      <toolbarbutton id="sync-button"
+                     class="toolbarbutton-1 chromeclass-toolbar-additional"
+                     label="&syncToolbarButton.label;"
+                     oncommand="gSyncUI.handleToolbarButton();"/>>
+
+      <toolbarbutton id="sync-tabs-button"
+                     class="toolbarbutton-1 chromeclass-toolbar-additional"
+                     label="&syncTabsToolbarButton.label;"
+                     oncommand="BrowserOpenSyncTabs();"/>
+#endif
     </toolbarpalette>
   </toolbox>
 
