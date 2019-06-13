@@ -71,9 +71,6 @@ var snapshotFormatters = {
         break;
     }
 
-    $("multiprocess-box").textContent = stringBundle().formatStringFromName("multiProcessWindows",
-      [data.numRemoteWindows, data.numTotalWindows, statusText], 3);
-
     $("safemode-box").textContent = data.safeMode;
   },
 
