@@ -1527,8 +1527,9 @@ inline void
 ArenaLists::prepareForIncrementalGC()
 {
     purge();
-        for (auto i : AllAllocKinds())
+    for (auto i : AllAllocKinds()) {
         arenaLists[i].moveCursorToEnd(); 
+    }
 }
 
 /* Compacting GC */
@@ -3573,18 +3574,18 @@ RelazifyFunctions(Zone* zone, AllocKind kind)
 static bool
 ShouldCollectZone(Zone* zone, JS::gcreason::Reason reason)
 {
-	// Normally we collect all scheduled zones.
-	if (reason != JS::gcreason::COMPARTMENT_REVIVED)
-		return zone->isGCScheduled();
+    // Normally we collect all scheduled zones.
+    if (reason != JS::gcreason::COMPARTMENT_REVIVED)
+        return zone->isGCScheduled();
 	
-	// If we are repeating a GC becuase we noticed dead compartments haven't
-	// been collected, then only collect zones contianing those compartments.
-	for (CompartmentsInZoneIter comp(zone); !comp.done(); comp.next()) {
-		if (comp->scheduledForDestruction)
-			return true;
-		}
-		
-		return false;
+    // If we are repeating a GC because we noticed dead compartments haven't
+    // been collected, then only collect zones containing those compartments.
+    for (CompartmentsInZoneIter comp(zone); !comp.done(); comp.next()) {
+        if (comp->scheduledForDestruction)
+            return true;
+    }
+     
+    return false;
 }
 
 bool
@@ -3648,13 +3649,8 @@ GCRuntime::beginMarkPhase(JS::gcreason::Reason reason, AutoLockForExclusiveAcces
      * keepAtoms() will only change on the main thread, which we are currently
      * on. If the value of keepAtoms() changes between GC slices, then we'll
      * cancel the incremental GC. See IsIncrementalGCSafe.
-	 
-	 
-	 
- 
-
- 
      */
+	 
     if (isFull && !rt->keepAtoms()) {
         Zone* atomsZone = rt->atomsCompartment(lock)->zone();
         if (atomsZone->isGCScheduled()) {
@@ -3758,11 +3754,11 @@ GCRuntime::beginMarkPhase(JS::gcreason::Reason reason, AutoLockForExclusiveAcces
 
     gcstats::AutoPhase ap2(stats, gcstats::PHASE_MARK_ROOTS);
 
-    if (isIncremental) {      
-        bufferGrayRoots();  
-	    markCompartments();
-	}
-	
+    if (isIncremental) {
+        bufferGrayRoots();
+        markCompartments();
+    }
+     
     return true;
 }
 
@@ -3778,11 +3774,11 @@ GCRuntime::markCompartments()
      *   (1) the compartment has been entered (set in beginMarkPhase() above)
      *   (2) the compartment is not being collected (set in beginMarkPhase()
      *       above)
-	 *   (3) an object in the compartment was marked during root marking, either
-	 *       as a black root or a gray root (set in RootMarking.cpp), or
+     *   (3) an object in the compartment was marked during root marking, either
+     *       as a black root or a gray root (set in RootMarking.cpp), or
      *   (4) the compartment has incoming cross-compartment edges from another
-	 *       compartment that has maybeAlive set (set by this method).
-	 *
+     *       compartment that has maybeAlive set (set by this method).
+     *
      * If the maybeAlive is false, then we set the scheduledForDestruction flag.
      * At the end of the GC, we look for compartments where
      * scheduledForDestruction is true. These are compartments that were somehow
@@ -3802,35 +3798,35 @@ GCRuntime::markCompartments()
 
     /* Propagate the maybeAlive flag via cross-compartment edges. */
 	
-	Vector<JSCompartment*, 0, js::SystemAllocPolicy> workList;
-	
-   for (CompartmentsIter comp(rt, SkipAtoms); !comp.done(); comp.next()) {
-	   if (comp->maybeAlive) {
-		   if (!workList.append(comp))
-			   return;
-	   }
-   }
-   while (!workList.empty()) {
-	   JSCompartment* comp = workList.popCopy();
-	   for (JSCompartment::WrapperEnum e(comp); !e.empty(); e.popFront()) {
+    Vector<JSCompartment*, 0, js::SystemAllocPolicy> workList;
+    
+    for (CompartmentsIter comp(rt, SkipAtoms); !comp.done(); comp.next()) {
+        if (comp->maybeAlive) {
+            if (!workList.append(comp))
+                return;
+        }
+    }
+    while (!workList.empty()) {
+        JSCompartment* comp = workList.popCopy();
+        for (JSCompartment::WrapperEnum e(comp); !e.empty(); e.popFront()) {
             if (e.front().key().is<JSString*>())
                 continue;
             JSCompartment* dest = e.front().mutableKey().compartment();
             if (dest && !dest->maybeAlive) {
                 dest->maybeAlive = true;
-				if (!workList.append(dest))
-					return;
-			}
+                if (!workList.append(dest))
+                    return;
+            }
         }
     }
 
 	
     /* Set scheduleForDestruction based on maybeAlive. */
 	
-	 for (GCCompartmentsIter comp(rt); !comp.done(); comp.next()) {
-		 MOZ_ASSERT(!comp->scheduledForDestruction);
-		 if (!comp->maybeAlive && !rt->isAtomsCompartment(comp))
-			 comp->scheduledForDestruction = true;
+    for (GCCompartmentsIter comp(rt); !comp.done(); comp.next()) {
+         MOZ_ASSERT(!comp->scheduledForDestruction);
+         if (!comp->maybeAlive && !rt->isAtomsCompartment(comp))
+             comp->scheduledForDestruction = true;
     }
 }
 
@@ -5513,8 +5509,8 @@ gc::IsIncrementalGCUnsafe(JSRuntime* rt)
 {
     MOZ_ASSERT(!rt->mainThread.suppressGC);
 	
-	if (rt->keepAtoms())
-		return gc::AbortReason::KeepAtomsSet;
+    if (rt->keepAtoms())
+        return gc::AbortReason::KeepAtomsSet;
 
     if (!rt->gc.isIncrementalGCAllowed())
         return gc::AbortReason::IncrementalDisabled;
@@ -5524,15 +5520,15 @@ gc::IsIncrementalGCUnsafe(JSRuntime* rt)
 
 void
 GCRuntime::budgetIncrementalGC(JS::gcreason::Reason reason, SliceBudget& budget,
-							   AutoLockForExclusiveAccess& lock)
+                               AutoLockForExclusiveAccess& lock)
 {
     AbortReason unsafeReason = IsIncrementalGCUnsafe(rt);
-	if (unsafeReason == AbortReason::None) {
-		if (reason == JS::gcreason::COMPARTMENT_REVIVED)
-			unsafeReason = gc::AbortReason::CompartmentRevived;
-		else if (mode != JSGC_MODE_INCREMENTAL)
-			unsafeReason = gc::AbortReason::ModeChange;
-	}
+    if (unsafeReason == AbortReason::None) {
+        if (reason == JS::gcreason::COMPARTMENT_REVIVED)
+            unsafeReason = gc::AbortReason::CompartmentRevived;
+        else if (mode != JSGC_MODE_INCREMENTAL)
+            unsafeReason = gc::AbortReason::ModeChange;
+   }
 	
     if (unsafeReason != AbortReason::None) {
         resetIncrementalGC(unsafeReason, lock);
@@ -5688,10 +5684,6 @@ GCRuntime::gcCycle(bool nonincrementalByAPI, SliceBudget& budget, JS::gcreason::
     }
 
     State prevState = incrementalState;
-	
-	
-	
-	
 
     if (nonincrementalByAPI) {
         // Reset any in progress incremental GC if this was triggered via the
@@ -5799,17 +5791,17 @@ GCRuntime::checkIfGCAllowedInCurrentState(JS::gcreason::Reason reason)
 bool
 GCRuntime::shouldRepeatForDeadZone(JS::gcreason::Reason reason)
 {
-	MOZ_ASSERT_IF(reason == JS::gcreason::COMPARTMENT_REVIVED, !isIncremental);
-	
-	if (!isIncremental || isIncrementalGCInProgress())
-		return false;
-	
-	for (CompartmentsIter c(rt, SkipAtoms); !c.done(); c.next()) {
-		if (c->scheduledForDestruction)
-			return true;
-	}
-	
-	return false;
+    MOZ_ASSERT_IF(reason == JS::gcreason::COMPARTMENT_REVIVED, !isIncremental);
+    
+    if (!isIncremental || isIncrementalGCInProgress())
+         return false;
+    
+    for (CompartmentsIter c(rt, SkipAtoms); !c.done(); c.next()) {
+        if (c->scheduledForDestruction)
+            return true;
+    }
+    
+    return false;
 }
 
 void
@@ -5831,21 +5823,21 @@ GCRuntime::collect(bool nonincrementalByAPI, SliceBudget budget, JS::gcreason::R
         poked = false;
         bool wasReset = gcCycle(nonincrementalByAPI, budget, reason);
       
-		bool repeatForDeadZone = false;
+        bool repeatForDeadZone = false;
         if (poked && cleanUpEverything) {
-			/* Need to re-schedule all zones for GC. */
+            /* Need to re-schedule all zones for GC. */
             JS::PrepareForFullGC(rt->contextFromMainThread());
 
        
         } else if (shouldRepeatForDeadZone(reason) && !wasReset) {
-		   /*
-			* This code makes an extra effort to collect compartments that we
-			* thought were dead at the start of the GC. See the large comment
-			* in beginMarkPhase.
-			*/
-			repeatForDeadZone = true;
-			reason = JS::gcreason::COMPARTMENT_REVIVED;
-		}
+		    /*
+             * This code makes an extra effort to collect compartments that we
+             * thought were dead at the start of the GC. See the large comment
+             * in beginMarkPhase.
+             */
+            repeatForDeadZone = true;
+            reason = JS::gcreason::COMPARTMENT_REVIVED;
+        }
    
 
         /*
