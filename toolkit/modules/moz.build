@@ -105,9 +105,6 @@ EXTRA_PP_JS_MODULES += [
     'UpdateUtils.jsm',
 ]
 
-if not CONFIG['MOZ_WEBEXTENSIONS']:
-  EXTRA_PP_JS_MODULES += ['UpdateChannel.jsm']
-
 if CONFIG['MOZ_WIDGET_TOOLKIT'] in ('windows', 'cocoa'):
     DEFINES['CAN_DRAW_IN_TITLEBAR'] = 1
 
