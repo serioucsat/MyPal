@@ -44,6 +44,7 @@ NS_IMPL_ISUPPORTS(mozHunspellDirProvider,
 		   nsIDirectoryServiceProvider,
 		   nsIDirectoryServiceProvider2)
 
+
 NS_IMETHODIMP
 mozHunspellDirProvider::GetFile(const char *aKey, bool *aPersist,
 			       nsIFile* *aResult)
