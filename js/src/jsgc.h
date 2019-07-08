@@ -62,7 +62,7 @@ enum class State {
     D(MallocBytesTrigger) \
     D(GCBytesTrigger) \
     D(ZoneChange) \
-	D(CompartmentRevived)
+    D(CompartmentRevived)
 enum class AbortReason {
 #define MAKE_REASON(name) name,
     GC_ABORT_REASONS(MAKE_REASON)
@@ -354,6 +354,7 @@ struct SortedArenaListSegment
  * be treated as an invariant, however, as the free lists may be cleared,
  * leaving arenas previously used for allocation partially full. Sorting order
  * is restored during sweeping.
+
  * Arenas following the cursor should not be full.
  */
 class ArenaList {
@@ -454,10 +455,11 @@ class ArenaList {
         return !*cursorp_;
     }
 	
-	void moveCursorToEnd() {
-		while (!isCursorAtEnd())
-			cursorp_ = &(*cursorp_)->next;
-	}
+    void moveCursorToEnd() {
+        while (!isCursorAtEnd()) {
+            cursorp_ = &(*cursorp_)->next;
+        }
+    }
 
     // This can return nullptr.
     Arena* arenaAfterCursor() const {
