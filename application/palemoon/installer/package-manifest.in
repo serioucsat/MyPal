@@ -235,6 +235,7 @@
 
 ; [Default Preferences]
 ; All the pref files must be part of base to prevent migration bugs
+@RESPATH@/browser/defaults/permissions
 @RESPATH@/browser/@PREF_DIR@/mypal.js
 @RESPATH@/browser/@PREF_DIR@/mypal-branding.js
 @RESPATH@/greprefs.js
