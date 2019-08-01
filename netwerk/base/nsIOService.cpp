@@ -164,6 +164,7 @@ uint32_t   nsIOService::gDefaultSegmentSize = 4096;
 uint32_t   nsIOService::gDefaultSegmentCount = 24;
 
 bool nsIOService::sBlockToplevelDataUriNavigations = false;
+bool nsIOService::sBlockFTPSubresources = false;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -238,6 +239,8 @@ nsIOService::Init()
 
     Preferences::AddBoolVarCache(&sBlockToplevelDataUriNavigations,
                                  "security.data_uri.block_toplevel_data_uri_navigations", false);
+    Preferences::AddBoolVarCache(&sBlockFTPSubresources,
+                                 "security.block_ftp_subresources", true);
     Preferences::AddBoolVarCache(&mOfflineMirrorsConnectivity, OFFLINE_MIRRORS_CONNECTIVITY, true);
 
     gIOService = this;
@@ -1765,6 +1768,12 @@ nsIOService::SpeculativeAnonymousConnect2(nsIURI *aURI,
 nsIOService::BlockToplevelDataUriNavigations()
 {
   return sBlockToplevelDataUriNavigations;
+}
+
+/*static*/ bool
+nsIOService::BlockFTPSubresources()
+{
+  return sBlockFTPSubresources;
 }
 
 } // namespace net
