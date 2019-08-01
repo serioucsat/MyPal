@@ -93,6 +93,8 @@ public:
 
     static bool BlockToplevelDataUriNavigations();
 
+    static bool BlockFTPSubresources();
+
 private:
     // These shouldn't be called directly:
     // - construct using GetInstance
@@ -167,6 +169,8 @@ private:
     bool                                 mNetworkNotifyChanged;
 
     static bool                          sBlockToplevelDataUriNavigations;
+
+    static bool                          sBlockFTPSubresources;
 
     // Time a network tearing down started.
     mozilla::Atomic<PRIntervalTime> mNetTearingDownStarted;
