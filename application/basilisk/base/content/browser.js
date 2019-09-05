@@ -956,7 +956,6 @@ var gBrowserInit = {
     gPageStyleMenu.init();
     BrowserOnClick.init();
     FeedHandler.init();
-    DevEdition.init();
     AboutPrivateBrowsingListener.init();
     TrackingProtection.init();
     RefreshBlocker.init();
@@ -1477,8 +1476,6 @@ var gBrowserInit = {
     BrowserOnClick.uninit();
 
     FeedHandler.uninit();
-
-    DevEdition.uninit();
 
     TrackingProtection.uninit();
 
