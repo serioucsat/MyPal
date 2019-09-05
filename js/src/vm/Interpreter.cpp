@@ -373,7 +373,7 @@ js::RunScript(JSContext* cx, RunState& state)
 
     SPSEntryMarker marker(cx->runtime(), state.script());
 
-    state.script()->ensureNonLazyCanonicalFunction(cx);
+    state.script()->ensureNonLazyCanonicalFunction();
 
     if (jit::IsIonEnabled(cx)) {
         jit::MethodStatus status = jit::CanEnter(cx, state);
@@ -446,7 +446,7 @@ js::InternalCallOrConstruct(JSContext* cx, const CallArgs& args, MaybeConstruct 
     }
 
     /* Invoke native functions. */
-    JSFunction* fun = &args.callee().as<JSFunction>();
+    RootedFunction fun(cx, &args.callee().as<JSFunction>());
     if (construct != CONSTRUCT && fun->isClassConstructor()) {
         JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_CANT_CALL_CLASS_CONSTRUCTOR);
         return false;
@@ -457,7 +457,7 @@ js::InternalCallOrConstruct(JSContext* cx, const CallArgs& args, MaybeConstruct 
         return CallJSNative(cx, fun->native(), args);
     }
 
-    if (!fun->getOrCreateScript(cx))
+    if (!JSFunction::getOrCreateScript(cx, fun))
         return false;
 
     /* Run function until JSOP_RETRVAL, JSOP_RETURN or error. */
@@ -1543,7 +1543,7 @@ SetObjectElementOperation(JSContext* cx, HandleObject obj, HandleId id, HandleVa
         }
     }
 
-    if (obj->isNative() && !JSID_IS_INT(id) && !obj->setHadElementsAccess(cx))
+    if (obj->isNative() && !JSID_IS_INT(id) && !JSObject::setHadElementsAccess(cx, obj))
         return false;
 
     ObjectOpResult result;
@@ -3000,7 +3000,7 @@ CASE(JSOP_FUNCALL)
     {
         MOZ_ASSERT(maybeFun);
         ReservedRooted<JSFunction*> fun(&rootFunction0, maybeFun);
-        ReservedRooted<JSScript*> funScript(&rootScript0, fun->getOrCreateScript(cx));
+        ReservedRooted<JSScript*> funScript(&rootScript0, JSFunction::getOrCreateScript(cx, fun));
         if (!funScript)
             goto error;
 
@@ -4725,7 +4725,8 @@ js::RunOnceScriptPrologue(JSContext* cx, HandleScript script)
 
     // Force instantiation of the script's function's group to ensure the flag
     // is preserved in type information.
-    if (!script->functionNonDelazifying()->getGroup(cx))
+    RootedFunction fun(cx, script->functionNonDelazifying());
+    if (!JSObject::getGroup(cx, fun))
         return false;
 
     MarkObjectGroupFlags(cx, script->functionNonDelazifying(), OBJECT_FLAG_RUNONCE_INVALIDATED);
