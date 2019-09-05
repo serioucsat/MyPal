@@ -6350,7 +6350,7 @@ CreateErrorNoteVA(ExclusiveContext* cx,
 }
 
 bool
-JSErrorNotes::addNoteASCII(JSContext* cx,
+JSErrorNotes::addNoteASCII(ExclusiveContext* cx,
                            const char* filename, unsigned lineno, unsigned column,
                            JSErrorCallback errorCallback, void* userRef,
                            const unsigned errorNumber, ...)
@@ -6369,7 +6369,7 @@ JSErrorNotes::addNoteASCII(JSContext* cx,
 }
 
 bool
-JSErrorNotes::addNoteLatin1(JSContext* cx,
+JSErrorNotes::addNoteLatin1(ExclusiveContext* cx,
                             const char* filename, unsigned lineno, unsigned column,
                             JSErrorCallback errorCallback, void* userRef,
                             const unsigned errorNumber, ...)
@@ -6388,7 +6388,7 @@ JSErrorNotes::addNoteLatin1(JSContext* cx,
 }
 
 bool
-JSErrorNotes::addNoteUTF8(JSContext* cx,
+JSErrorNotes::addNoteUTF8(ExclusiveContext* cx,
                           const char* filename, unsigned lineno, unsigned column,
                           JSErrorCallback errorCallback, void* userRef,
                           const unsigned errorNumber, ...)
