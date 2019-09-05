@@ -1435,18 +1435,18 @@ JSScript::loadSource(JSContext* cx, ScriptSource* ss, bool* worked)
     return true;
 }
 
-JSFlatString*
-JSScript::sourceData(JSContext* cx)
+/* static */ JSFlatString*
+JSScript::sourceData(JSContext* cx, HandleScript script)
 {
-    MOZ_ASSERT(scriptSource()->hasSourceData());
-    return scriptSource()->substring(cx, sourceStart(), sourceEnd());
+    MOZ_ASSERT(script->scriptSource()->hasSourceData());
+    return script->scriptSource()->substring(cx, script->sourceStart(), script->sourceEnd());
 }
 
-JSFlatString*
-JSScript::sourceDataWithPrelude(JSContext* cx)
+/* static */ JSFlatString*
+JSScript::sourceDataWithPrelude(JSContext* cx, HandleScript script)
 {
-    MOZ_ASSERT(scriptSource()->hasSourceData());
-    return scriptSource()->substring(cx, preludeStart(), sourceEnd());
+    MOZ_ASSERT(script->scriptSource()->hasSourceData());
+    return script->scriptSource()->substring(cx, script->preludeStart(), script->sourceEnd());
 }
 
 UncompressedSourceCache::AutoHoldEntry::AutoHoldEntry()
@@ -3268,7 +3268,7 @@ js::detail::CopyScript(JSContext* cx, HandleScript src, HandleScript dst,
                 } else {
                     if (innerFun->isInterpretedLazy()) {
                         AutoCompartment ac(cx, innerFun);
-                        if (!innerFun->getOrCreateScript(cx))
+                        if (!JSFunction::getOrCreateScript(cx, innerFun))
                             return false;
                     }
 
@@ -4296,7 +4296,7 @@ JSScript::AutoDelazify::holdScript(JS::HandleFunction fun)
             script_ = fun->nonLazyScript();
         } else {
             JSAutoCompartment ac(cx_, fun);
-            script_ = fun->getOrCreateScript(cx_);
+            script_ = JSFunction::getOrCreateScript(cx_, fun);
             if (script_) {
                 oldDoNotRelazify_ = script_->doNotRelazify_;
                 script_->setDoNotRelazify(true);

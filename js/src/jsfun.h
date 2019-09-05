@@ -306,7 +306,8 @@ class JSFunction : public js::NativeObject
             nonLazyScript()->setAsyncKind(asyncKind);
     }
 
-    bool getUnresolvedLength(JSContext* cx, js::MutableHandleValue v);
+    static bool getUnresolvedLength(JSContext* cx, js::HandleFunction fun,
+                                    js::MutableHandleValue v);
 
     JSAtom* getUnresolvedName(JSContext* cx);
 
@@ -411,16 +412,15 @@ class JSFunction : public js::NativeObject
     //
     // - For functions known to have a JSScript, nonLazyScript() will get it.
 
-    JSScript* getOrCreateScript(JSContext* cx) {
-        MOZ_ASSERT(isInterpreted());
+    static JSScript* getOrCreateScript(JSContext* cx, js::HandleFunction fun) {
+        MOZ_ASSERT(fun->isInterpreted());
         MOZ_ASSERT(cx);
-        if (isInterpretedLazy()) {
-            JS::RootedFunction self(cx, this);
-            if (!createScriptForLazilyInterpretedFunction(cx, self))
+        if (fun->isInterpretedLazy()) {
+            if (!createScriptForLazilyInterpretedFunction(cx, fun))
                 return nullptr;
-            return self->nonLazyScript();
+            return fun->nonLazyScript();
         }
-        return nonLazyScript();
+        return fun->nonLazyScript();
     }
 
     JSScript* existingScriptNonDelazifying() const {
@@ -478,7 +478,7 @@ class JSFunction : public js::NativeObject
         return u.i.s.script_;
     }
 
-    bool getLength(JSContext* cx, uint16_t* length);
+    static bool getLength(JSContext* cx, js::HandleFunction fun, uint16_t* length);
 
     js::LazyScript* lazyScript() const {
         MOZ_ASSERT(isInterpretedLazy() && u.i.s.lazy_);
@@ -591,7 +591,7 @@ class JSFunction : public js::NativeObject
 
     JSObject* getBoundFunctionTarget() const;
     const js::Value& getBoundFunctionThis() const;
-    const js::Value& getBoundFunctionArgument(JSContext* cx, unsigned which) const;
+    const js::Value& getBoundFunctionArgument(unsigned which) const;
     size_t getBoundFunctionArgumentCount() const;
 
   private:

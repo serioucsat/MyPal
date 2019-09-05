@@ -379,7 +379,7 @@ ResolveInterpretedFunctionPrototype(JSContext* cx, HandleFunction fun, HandleId 
     if (isStarGenerator)
         objProto = GlobalObject::getOrCreateStarGeneratorObjectPrototype(cx, global);
     else
-        objProto = fun->global().getOrCreateObjectPrototype(cx);
+        objProto = GlobalObject::getOrCreateObjectPrototype(cx, global);
     if (!objProto)
         return false;
 
@@ -476,7 +476,7 @@ fun_resolve(JSContext* cx, HandleObject obj, HandleId id, bool* resolvedp)
             if (fun->hasResolvedLength())
                 return true;
 
-            if (!fun->getUnresolvedLength(cx, &v))
+            if (!JSFunction::getUnresolvedLength(cx, fun, &v))
                 return false;
         } else {
             if (fun->hasResolvedName())
@@ -826,7 +826,7 @@ CreateFunctionPrototype(JSContext* cx, JSProtoKey key)
         return nullptr;
 
     functionProto->initScript(script);
-    ObjectGroup* protoGroup = functionProto->getGroup(cx);
+    ObjectGroup* protoGroup = JSObject::getGroup(cx, functionProto);
     if (!protoGroup)
         return nullptr;
 
@@ -902,7 +902,7 @@ const Class* const js::FunctionClassPtr = &JSFunction::class_;
 JSString*
 js::FunctionToString(JSContext* cx, HandleFunction fun, bool prettyPrint)
 {
-    if (fun->isInterpretedLazy() && !fun->getOrCreateScript(cx))
+    if (fun->isInterpretedLazy() && !JSFunction::getOrCreateScript(cx, fun))
         return nullptr;
 
     if (IsAsmJSModule(fun))
@@ -973,7 +973,7 @@ js::FunctionToString(JSContext* cx, HandleFunction fun, bool prettyPrint)
     };
 
     if (haveSource) {
-        Rooted<JSFlatString*> src(cx, script->sourceDataWithPrelude(cx));
+        Rooted<JSFlatString*> src(cx, JSScript::sourceDataWithPrelude(cx, script));
         if (!src)
             return nullptr;
 
@@ -1242,34 +1242,33 @@ JSFunction::isDerivedClassConstructor()
     return derived;
 }
 
-bool
-JSFunction::getLength(JSContext* cx, uint16_t* length)
+/* static */ bool
+JSFunction::getLength(JSContext* cx, HandleFunction fun, uint16_t* length)
 {
-    JS::RootedFunction self(cx, this);
-    MOZ_ASSERT(!self->isBoundFunction());
-    if (self->isInterpretedLazy() && !self->getOrCreateScript(cx))
+    MOZ_ASSERT(!fun->isBoundFunction());
+    if (fun->isInterpretedLazy() && !getOrCreateScript(cx, fun))
         return false;
 
-    *length = self->isNative() ? self->nargs() : self->nonLazyScript()->funLength();
+    *length = fun->isNative() ? fun->nargs() : fun->nonLazyScript()->funLength();
     return true;
 }
 
-bool
-JSFunction::getUnresolvedLength(JSContext* cx, MutableHandleValue v)
+/* static */ bool
+JSFunction::getUnresolvedLength(JSContext* cx, HandleFunction fun, MutableHandleValue v)
 {
-    MOZ_ASSERT(!IsInternalFunctionObject(*this));
-    MOZ_ASSERT(!hasResolvedLength());
+    MOZ_ASSERT(!IsInternalFunctionObject(*fun));
+    MOZ_ASSERT(!fun->hasResolvedLength());
 
     // Bound functions' length can have values up to MAX_SAFE_INTEGER, so
     // they're handled differently from other functions.
-    if (isBoundFunction()) {
-        MOZ_ASSERT(getExtendedSlot(BOUND_FUN_LENGTH_SLOT).isNumber());
-        v.set(getExtendedSlot(BOUND_FUN_LENGTH_SLOT));
+    if (fun->isBoundFunction()) {
+        MOZ_ASSERT(fun->getExtendedSlot(BOUND_FUN_LENGTH_SLOT).isNumber());
+        v.set(fun->getExtendedSlot(BOUND_FUN_LENGTH_SLOT));
         return true;
     }
 
     uint16_t length;
-    if (!getLength(cx, &length))
+    if (!JSFunction::getLength(cx, fun, &length))
         return false;
 
     v.setInt32(length);
@@ -1326,13 +1325,11 @@ GetBoundFunctionArguments(const JSFunction* boundFun)
 }
 
 const js::Value&
-JSFunction::getBoundFunctionArgument(JSContext* cx, unsigned which) const
+JSFunction::getBoundFunctionArgument(unsigned which) const
 {
     MOZ_ASSERT(which < getBoundFunctionArgumentCount());
 
-    RootedArrayObject boundArgs(cx, GetBoundFunctionArguments(this));
-    RootedValue res(cx);
-    return boundArgs->getDenseElement(which);
+    return GetBoundFunctionArguments(this)->getDenseElement(which);
 }
 
 size_t
@@ -1369,7 +1366,7 @@ JSFunction::createScriptForLazilyInterpretedFunction(JSContext* cx, HandleFuncti
         }
 
         if (fun != lazy->functionNonDelazifying()) {
-            if (!lazy->functionDelazifying(cx))
+            if (!LazyScript::functionDelazifying(cx, lazy))
                 return false;
             script = lazy->functionNonDelazifying()->nonLazyScript();
             if (!script)
