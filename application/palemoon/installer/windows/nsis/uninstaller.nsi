@@ -246,7 +246,6 @@ Section "Uninstall"
     ${un.RegCleanFileHandler}  ".oga"  "MypalHTML"
     ${un.RegCleanFileHandler}  ".ogg"  "MypalHTML"
     ${un.RegCleanFileHandler}  ".ogv"  "MypalHTML"
-    ${un.RegCleanFileHandler}  ".pdf"  "MypalHTML"
     ${un.RegCleanFileHandler}  ".webm"  "MypalHTML"
   ${EndIf}
 

@@ -322,14 +322,12 @@
     WriteRegStr SHCTX "$0\.xhtml" "" "MypalHTML"
   ${EndIf}
 
-  ${AddAssociationIfNoneExist} ".pdf"
   ${AddAssociationIfNoneExist} ".oga"
   ${AddAssociationIfNoneExist} ".ogg"
   ${AddAssociationIfNoneExist} ".ogv"
-  ${AddAssociationIfNoneExist} ".pdf"
   ${AddAssociationIfNoneExist} ".webm"
 
-  ; An empty string is used for the 5th param because PaleMoonHTML is not a
+  ; An empty string is used for the 5th param because MypalHTML is not a
   ; protocol handler
   ${AddDisabledDDEHandlerValues} "MypalHTML" "$2" "$8,1" \
                                  "${AppRegName} HTML Document" ""
