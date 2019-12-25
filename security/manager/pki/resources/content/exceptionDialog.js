@@ -13,34 +13,11 @@ var gChecking;
 var gBroken;
 var gNeedReset;
 
-Components.utils.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
+const {interfaces: Ci, classes: Cc, results: Cr, utils: Cu} = Components;
 
-function badCertListener() {}
-badCertListener.prototype = {
-  getInterface: function (aIID) {
-    return this.QueryInterface(aIID);
-  },
-  QueryInterface: function(aIID) {
-    if (aIID.equals(Components.interfaces.nsIBadCertListener2) ||
-        aIID.equals(Components.interfaces.nsIInterfaceRequestor) ||
-        aIID.equals(Components.interfaces.nsISupports)) {
-      return this;
-    }
+Cu.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 
-    throw new Error(Components.results.NS_ERROR_NO_INTERFACE);
-  },
-  handle_test_result: function () {
-    if (gSSLStatus) {
-      gCert = gSSLStatus.QueryInterface(Components.interfaces.nsISSLStatus).serverCert;
-    }
-  },
-  notifyCertProblem: function MSR_notifyCertProblem(socketInfo, sslStatus, targetHost) {
-    gBroken = true;
-    gSSLStatus = sslStatus;
-    this.handle_test_result();
-    return true; // suppress error UI
-  }
-};
 
 function initExceptionDialog() {
   gNeedReset = false;
@@ -85,6 +62,28 @@ function initExceptionDialog() {
 }
 
 /**
+ * Helper function for checkCert. Set as the onerror/onload callbacks for an
+ * XMLHttpRequest. Sets gSSLStatus, gCert, gBroken, and gChecking according to
+ * the load information from the request. Probably should not be used directly.
+ *
+ * @param {XMLHttpRequest} req
+ *        The XMLHttpRequest created and sent by checkCert.
+ * @param {Event} evt
+ *        The load or error event.
+ */
+function grabCert(req, evt) {
+  if (req.channel && req.channel.securityInfo) {
+    gSSLStatus = req.channel.securityInfo
+                    .QueryInterface(Ci.nsISSLStatusProvider).SSLStatus;
+    gCert = gSSLStatus ? gSSLStatus.QueryInterface(Ci.nsISSLStatus).serverCert
+                       : null;
+  }
+  gBroken = evt.type == "error";
+  gChecking = false;
+  updateCertStatus();
+}
+
+/**
  * Attempt to download the certificate for the location specified, and populate
  * the Certificate Status section with the result.
  */
@@ -95,34 +94,18 @@ function checkCert() {
   gBroken = false;
   updateCertStatus();
 
-  var uri = getURI();
+  let uri = getURI();
 
-  var req = new XMLHttpRequest();
-  try {
-    if (uri) {
-      req.open('GET', uri.prePath, false);
-      req.channel.notificationCallbacks = new badCertListener();
-      req.send(null);
-    }
-  } catch (e) {
-    // We *expect* exceptions if there are problems with the certificate
-    // presented by the site.  Log it, just in case, but we can proceed here,
-    // with appropriate sanity checks
-    Components.utils.reportError("Attempted to connect to a site with a bad certificate in the add exception dialog. " +
-                                 "This results in a (mostly harmless) exception being thrown. " +
-                                 "Logged for information purposes only: " + e);
-  } finally {
+  if (uri) {
+    let req = new XMLHttpRequest();
+    req.open("GET", uri.prePath);
+    req.onerror = grabCert.bind(this, req);
+    req.onload = grabCert.bind(this, req);
+    req.send(null);
+  } else {
     gChecking = false;
+    updateCertStatus();
   }
-
-  if (req.channel && req.channel.securityInfo) {
-    const Ci = Components.interfaces;
-    gSSLStatus = req.channel.securityInfo
-                    .QueryInterface(Ci.nsISSLStatusProvider).SSLStatus;
-    gCert = gSSLStatus.QueryInterface(Ci.nsISSLStatus).serverCert;
-  }
-
-  updateCertStatus();
 }
 
 /**
@@ -252,7 +235,7 @@ function updateCertStatus() {
     document.getElementById("viewCertButton").disabled = false;
 
     // Notify observers about the availability of the certificate
-    Services.obs.notifyObservers(null, "cert-exception-ui-ready");
+    Services.obs.notifyObservers(null, "cert-exception-ui-ready", null);
   } else if (gChecking) {
     shortDesc = "addExceptionCheckingShort";
     longDesc  = "addExceptionCheckingLong2";
@@ -306,8 +289,8 @@ function addException() {
     return;
   }
 
-  var overrideService = Components.classes["@mozilla.org/security/certoverride;1"]
-                                  .getService(Components.interfaces.nsICertOverrideService);
+  var overrideService = Cc["@mozilla.org/security/certoverride;1"]
+                          .getService(Ci.nsICertOverrideService);
   var flags = 0;
   if (gSSLStatus.isUntrusted) {
     flags |= overrideService.ERROR_UNTRUSTED;
