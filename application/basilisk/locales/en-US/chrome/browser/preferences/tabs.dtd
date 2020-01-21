@@ -20,3 +20,10 @@
 <!ENTITY showTabsInTaskbar.label          "Show tab previews in the Windows taskbar">
 <!ENTITY showTabsInTaskbar.accesskey      "k">
 <!ENTITY tabsGroup.label          "Tabs">
+
+<!ENTITY newtabPage.label                   "When opening a new tab, show:">
+<!ENTITY newtabPage.custom.label            "A custom URL">
+<!ENTITY newtabPage.blank.label             "A blank page">
+<!ENTITY newtabPage.home.label              "The Mypal start page">
+<!ENTITY newtabPage.myhome.label            "My home page">
+<!ENTITY newtabPage.quickdial.label         "The Quickdial page">

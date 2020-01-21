@@ -92,10 +92,6 @@ DEFAULTS = dict(
         'dom.send_after_paint_to_content': True,
         'security.turn_off_all_security_so_that_viruses_can_'
         'take_over_this_computer': True,
-        'browser.newtabpage.directory.source':
-            '${webserver}/directoryLinks.json',
-        'browser.newtabpage.directory.ping': '',
-        'browser.newtabpage.introShown': True,
         'browser.safebrowsing.provider.google.gethashURL':
             'http://127.0.0.1/safebrowsing-dummy/gethash',
         'browser.safebrowsing.provider.google.updateURL':

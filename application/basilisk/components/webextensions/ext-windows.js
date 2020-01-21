@@ -2,9 +2,6 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
-XPCOMUtils.defineLazyServiceGetter(this, "aboutNewTabService",
-                                   "@mozilla.org/browser/aboutnewtab-service;1",
-                                   "nsIAboutNewTabService");
 XPCOMUtils.defineLazyModuleGetter(this, "AppConstants",
                                   "resource://gre/modules/AppConstants.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
@@ -129,7 +126,7 @@ extensions.registerSchemaAPI("windows", "addon_parent", context => {
             args.appendElement(mkstr(createData.url), /* weak = */ false);
           }
         } else {
-          args.appendElement(mkstr(aboutNewTabService.newTabURL), /* weak = */ false);
+            args.appendElement(mkstr(Services.prefs.getCharPref("browser.newtab.url")), /* weak = */ false);
         }
 
         let features = ["chrome"];

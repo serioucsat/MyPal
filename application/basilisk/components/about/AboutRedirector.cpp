@@ -7,10 +7,11 @@
 
 #include "AboutRedirector.h"
 #include "nsNetUtil.h"
-#include "nsIAboutNewTabService.h"
 #include "nsIChannel.h"
 #include "nsIURI.h"
 #include "nsIScriptSecurityManager.h"
+#include "nsIPrefService.h"
+#include "nsIPrefBranch.h"
 #include "nsIProtocolHandler.h"
 #include "mozilla/ArrayUtils.h"
 #include "nsServiceManagerUtils.h"
@@ -111,7 +112,7 @@ static RedirEntry kRedirMap[] = {
     nsIAboutModule::ENABLE_INDEXED_DB },
   {
     // the newtab's actual URL will be determined when the channel is created
-    "newtab", "about:blank",
+    "newtab", "chrome://browser/content/newtab/newTab.xhtml",
     nsIAboutModule::ALLOW_SCRIPT
   },
   {
@@ -170,37 +171,41 @@ AboutRedirector::NewChannel(nsIURI* aURI,
   nsCOMPtr<nsIIOService> ioService = do_GetIOService(&rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
+
   for (int i = 0; i < kRedirTotal; i++) {
     if (!strcmp(path.get(), kRedirMap[i].id)) {
       nsAutoCString url;
 
       if (path.EqualsLiteral("newtab")) {
-        // let the aboutNewTabService decide where to redirect
-        nsCOMPtr<nsIAboutNewTabService> aboutNewTabService =
-          do_GetService("@mozilla.org/browser/aboutnewtab-service;1", &rv);
-        NS_ENSURE_SUCCESS(rv, rv);
-        rv = aboutNewTabService->GetDefaultURL(url);
-        NS_ENSURE_SUCCESS(rv, rv);
+        nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
+        if (prefs) {
 
-        // if about:newtab points to an external resource we have to make sure
-        // the content is signed and trusted
-        bool remoteEnabled = false;
-        rv = aboutNewTabService->GetRemoteEnabled(&remoteEnabled);
-        NS_ENSURE_SUCCESS(rv, rv);
-        if (remoteEnabled) {
-          NS_ENSURE_ARG_POINTER(aLoadInfo);
-          aLoadInfo->SetVerifySignedContent(true);
+          // if about:newtab points to an external resource we have to make sure
+          // the content is signed and trusted
+          int customurl;
+          rv = prefs->GetIntPref("browser.newtab.choice",&customurl);
+          NS_ENSURE_SUCCESS(rv, rv);
+
+          if (customurl==0) {
+            NS_ENSURE_ARG_POINTER(aLoadInfo);
+            aLoadInfo->SetVerifySignedContent(true);
+            rv = prefs->GetCharPref("browser.newtab.url",
+                                     getter_Copies(url));
+            NS_ENSURE_SUCCESS(rv, rv);
+          }
         }
-      }
+      }  
       // fall back to the specified url in the map
       if (url.IsEmpty()) {
         url.AssignASCII(kRedirMap[i].url);
       }
 
+
       nsCOMPtr<nsIChannel> tempChannel;
       nsCOMPtr<nsIURI> tempURI;
       rv = NS_NewURI(getter_AddRefs(tempURI), url);
       NS_ENSURE_SUCCESS(rv, rv);
+
 
       // If tempURI links to an external URI (i.e. something other than
       // chrome:// or resource://) then set the LOAD_REPLACE flag on the
@@ -222,6 +227,7 @@ AboutRedirector::NewChannel(nsIURI* aURI,
                                  nullptr, // aCallbacks
                                  loadFlags);
       NS_ENSURE_SUCCESS(rv, rv);
+
 
       tempChannel->SetOriginalURI(aURI);
 

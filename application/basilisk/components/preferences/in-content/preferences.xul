@@ -65,6 +65,7 @@
 
   <script type="application/javascript"
           src="chrome://browser/content/utilityOverlay.js"/>
+  <script type="application/javascript" src="chrome://browser/content/preferences/in-content/newtaburl.js"/>
   <script type="application/javascript"
           src="chrome://browser/content/preferences/in-content/preferences.js"/>
   <script src="chrome://browser/content/preferences/in-content/subdialogs.js"/>
