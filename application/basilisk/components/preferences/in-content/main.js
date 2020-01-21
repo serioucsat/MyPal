@@ -82,6 +82,7 @@ var gMainPane = {
     Components.classes["@mozilla.org/observer-service;1"]
               .getService(Components.interfaces.nsIObserverService)
               .notifyObservers(window, "main-pane-loaded", null);
+    gMainPane.readNewtabUrl();
   },
 
   enableE10SChange: function ()
@@ -533,6 +534,19 @@ var gMainPane = {
   writeLinkTarget: function() {
     var linkTargeting = document.getElementById("linkTargeting");
     return linkTargeting.checked ? 3 : 2;
+  },
+
+  /**
+   * Determines the value of the New Tab display drop-down based
+   * on the value of browser.newtab.url.
+   */
+  readNewtabUrl: function() {
+    let newtabUrlChoice = document.getElementById("browser.newtab.choice");
+    newtabUrlChoice.value = gNewtabUrl.getNewtabChoice();
+    if (newtabUrlChoice.value == 0) {
+      document.getElementById("newtabPageCustom").hidden = false;
+    }
+    gNewtabUrl.newtabUrlChoiceIsSet = true;
   },
   /*
    * Preferences:

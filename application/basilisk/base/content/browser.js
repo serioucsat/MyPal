@@ -62,7 +62,6 @@ Cu.import("resource://gre/modules/NotificationDB.jsm");
 [
   ["Favicons", "@mozilla.org/browser/favicon-service;1", "mozIAsyncFavicons"],
   ["WindowsUIUtils", "@mozilla.org/windows-ui-utils;1", "nsIWindowsUIUtils"],
-  ["gAboutNewTabService", "@mozilla.org/browser/aboutnewtab-service;1", "nsIAboutNewTabService"],
   ["gDNSService", "@mozilla.org/network/dns-service;1", "nsIDNSService"],
 ].forEach(([name, cc, ci]) => XPCOMUtils.defineLazyServiceGetter(this, name, cc, ci));
 
@@ -2360,8 +2359,8 @@ function URLBarSetURI(aURI) {
     // Replace initial page URIs with an empty string
     // 1. only if there's no opener (bug 370555).
     // 2. if remote newtab is enabled and it's the default remote newtab page
-    let defaultRemoteURL = gAboutNewTabService.remoteEnabled &&
-                           uri.spec === gAboutNewTabService.newTabURL;
+    let defaultRemoteURL = !Services.prefs.getIntPref("browser.newtab.choice") &&
+                           uri.spec === Services.prefs.getCharPref("browser.newtab.url");
     if ((gInitialPages.includes(uri.spec) || defaultRemoteURL) &&
         checkEmptyPageOrigin(gBrowser.selectedBrowser, uri)) {
       value = "";
