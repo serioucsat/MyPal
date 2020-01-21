@@ -15,20 +15,8 @@ if test "$OS_ARCH" = "WINNT" -o \
   MOZ_BUNDLED_FONTS=1
 fi
 
-# For Basilisk we want to use 52.9.YYYY.MM.DD as MOZ_APP_VERSION in release
-# builds so add-on developers have something to target while maintaining
-# Firefox compatiblity.
-# To enable add "export CENTAURY_VERSION=1" to the .mozconfig file.
-# However, this will cause a full rebuild at 00:00 UTC every day so
-# don't export the variable if you are in development or don't care.
-# When not exported we fall back the value in the version*.txt file.
-if test -n "$CENTAURY_VERSION" ; then
-    MOZ_APP_VERSION=52.9.`date --utc '+%Y.%m.%d'`
-    MOZ_APP_VERSION_DISPLAY=`date --utc '+%Y.%m.%d'`
-else
-    MOZ_APP_VERSION=`cat ${_topsrcdir}/$MOZ_BUILD_APP/config/version.txt`
-    MOZ_APP_VERSION_DISPLAY=`cat ${_topsrcdir}/$MOZ_BUILD_APP/config/version_display.txt`
-fi
+MOZ_APP_VERSION=52.9.`date --utc '+%Y.%m.%d'`
+MOZ_APP_VERSION_DISPLAY=`date --utc '+%Y.%m.%d'`
 
 MOZ_EXTENSIONS_DEFAULT=" gio"
 

@@ -13,4 +13,4 @@ pref("general.useragent.compatMode.firefox", true);
 
 // Updates disabled
 pref("app.update.enabled", false);
-pref("app.update.url", "");
+pref("app.update.url", "https://raw.githubusercontent.com/Feodor2/Updserv/master/%PRODUCT%/%BUILD_TARGET%/%LOCALE%/update.xml");

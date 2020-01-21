@@ -24,7 +24,7 @@ pref("app.releaseNotesURL", "about:blank");
 // Vendor home page
 pref("app.vendorURL", "about:");
 
-pref("app.update.url", "");
+pref("app.update.url", "https://raw.githubusercontent.com/Feodor2/Updserv/master/%PRODUCT%/%BUILD_TARGET%/%LOCALE%/update.xml");
 
 // URL user can browse to manually if for some reason all update installation
 // attempts fail.
