@@ -41,7 +41,6 @@ XPCOMUtils.defineLazyServiceGetter(this, "winShellService",
   ["LoginHelper", "resource://gre/modules/LoginHelper.jsm"],
   ["LoginManagerParent", "resource://gre/modules/LoginManagerParent.jsm"],
   ["NetUtil", "resource://gre/modules/NetUtil.jsm"],
-  ["NewTabMessages", "resource:///modules/NewTabMessages.jsm"],
   ["NewTabUtils", "resource://gre/modules/NewTabUtils.jsm"],
   ["OS", "resource://gre/modules/osfile.jsm"],
   ["PageThumbs", "resource://gre/modules/PageThumbs.jsm"],
@@ -658,8 +657,6 @@ BrowserGlue.prototype = {
     NewTabUtils.init();
     AboutNewTab.init();
 
-    NewTabMessages.init();
-
     SessionStore.init();
     BrowserUsageTelemetry.init();
     ContentSearch.init();
@@ -1007,7 +1004,6 @@ BrowserGlue.prototype = {
     BrowserUsageTelemetry.uninit();
     UserAgentOverrides.uninit();
     PageThumbs.uninit();
-    NewTabMessages.uninit();
     AboutNewTab.uninit();
     webrtcUI.uninit();
     FormValidationHandler.uninit();

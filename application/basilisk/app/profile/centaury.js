@@ -1029,22 +1029,15 @@ pref("browser.menu.showCharacterEncoding", "chrome://browser/locale/browser.prop
 // Allow using tab-modal prompts when possible.
 pref("prompts.tab_modal.enabled", true);
 
+// Defines the url to be used for new tabs.
+pref("browser.newtab.url", "about:logopage");
+pref("browser.newtab.choice", 1);
+
 // Activates preloading of the new tab url.
 pref("browser.newtab.preload", true);
 
-// Remembers if the about:newtab intro has been shown
-// NOTE: This preference is unused but was not removed in case
-//       this information will be valuable in the future.
-pref("browser.newtabpage.introShown", false);
-
 // Toggles the content of 'about:newtab'. Shows the grid when enabled.
 pref("browser.newtabpage.enabled", true);
-
-// Toggles the enhanced content of 'about:newtab'. Shows sponsored tiles.
-sticky_pref("browser.newtabpage.enhanced", false);
-
-// enables Activity Stream inspired layout
-pref("browser.newtabpage.compact", false);
 
 // Disables capturing of page thumbnails
 pref("browser.pagethumbnails.capturing_disabled", false);
@@ -1057,21 +1050,6 @@ pref("browser.newtabpage.rows", 3);
 
 // number of columns of newtab grid
 pref("browser.newtabpage.columns", 5);
-
-// activates the remote-hosted newtab page
-pref("browser.newtabpage.remote", false);
-
-// remote newtab version targeted
-pref("browser.newtabpage.remote.version", "1");
-
-// Toggles endpoints allowed for remote newtab communications
-pref("browser.newtabpage.remote.mode", "production");
-
-// content-signature tests for remote newtab
-pref("browser.newtabpage.remote.content-signing-test", false);
-
-// verification keys for remote-hosted newtab page
-pref("browser.newtabpage.remote.keys", "");
 
 // Enable the DOM fullscreen API.
 pref("full-screen-api.enabled", true);

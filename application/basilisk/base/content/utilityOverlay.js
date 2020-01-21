@@ -13,20 +13,33 @@ Components.utils.import("resource:///modules/RecentWindow.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ShellService",
                                   "resource:///modules/ShellService.jsm");
 
-XPCOMUtils.defineLazyServiceGetter(this, "aboutNewTabService",
-                                   "@mozilla.org/browser/aboutnewtab-service;1",
-                                   "nsIAboutNewTabService");
-
 XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
                                   "resource://gre/modules/Deprecated.jsm");
 
-this.__defineGetter__("BROWSER_NEW_TAB_URL", () => {
-  if (PrivateBrowsingUtils.isWindowPrivate(window) &&
-      !PrivateBrowsingUtils.permanentPrivateBrowsing &&
-      !aboutNewTabService.overridden) {
-    return "about:privatebrowsing";
+XPCOMUtils.defineLazyGetter(this, "BROWSER_NEW_TAB_URL", function () {
+  const PREF = "browser.newtab.url";
+
+  function getNewTabPageURL() {
+    if (!Services.prefs.prefHasUserValue(PREF)) {
+      if (PrivateBrowsingUtils.isWindowPrivate(window) &&
+          !PrivateBrowsingUtils.permanentPrivateBrowsing)
+        return "about:privatebrowsing";
+    }
+    return Services.prefs.getCharPref(PREF) || "about:blank";
   }
-  return aboutNewTabService.newTabURL;
+
+  function update() {
+    BROWSER_NEW_TAB_URL = getNewTabPageURL();
+  }
+
+  Services.prefs.addObserver(PREF, update, false);
+
+  addEventListener("unload", function onUnload() {
+    removeEventListener("unload", onUnload);
+    Services.prefs.removeObserver(PREF, update);
+  });
+
+  return getNewTabPageURL();
 });
 
 var TAB_DROP_TYPE = "application/x-moz-tabbrowser-tab";
