@@ -2582,8 +2582,7 @@ Checker.prototype = {
 
     // Otherwise, construct the update URL from component parts.
     if (!url) {
-      url = Services.prefs.getDefaultBranch(null).
-            getCharPref(PREF_APP_UPDATE_URL, "");
+      url = Services.prefs.getCharPref(PREF_APP_UPDATE_URL, "");
     }
 
     if (!url || url == "") {

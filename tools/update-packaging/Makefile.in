@@ -55,7 +55,7 @@ dir-stage := $(call mkdir_deps,$(STAGE_DIR))
 
 complete-patch:: $(dir-stage)
 ifeq ($(OS_TARGET), WINNT)
-	test -f $(UNPACKAGE)
+#	test -f $(UNPACKAGE)
 	$(RM) -rf '$(PACKAGE_DIR)'
 	cd $(PACKAGE_BASE_DIR) && $(INNER_UNMAKE_PACKAGE)
 endif
@@ -66,6 +66,8 @@ endif
 ifdef MOZ_SIGN_CMD
 	$(MOZ_SIGN_CMD) -f mar '$(DIST)/$(COMPLETE_MAR)'
 endif
+	shasum --algorithm 512 '$(DIST)/$(COMPLETE_MAR)'
+	wc -c '$(DIST)/$(COMPLETE_MAR)'
 
 partial-patch:: $(dir-stage)
 	MAR=$(MAR_BIN) \
