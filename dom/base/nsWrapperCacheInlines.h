@@ -11,16 +11,6 @@
 #include "js/GCAPI.h"
 #include "js/TracingAPI.h"
 
-inline JSObject*
-nsWrapperCache::GetWrapper() const
-{
-    JSObject* obj = GetWrapperPreserveColor();
-    if (obj) {
-      JS::ExposeObjectToActiveJS(obj);
-    }
-    return obj;
-}
-
 inline bool
 nsWrapperCache::IsBlack()
 {
