@@ -206,9 +206,6 @@ pref("extensions.dss.switchPending", false);    // Non-dynamic switch pending af
 pref("extensions.{972ce4c6-7e08-4474-a285-3208198ce6fd}.name", "chrome://browser/locale/browser.properties");
 pref("extensions.{972ce4c6-7e08-4474-a285-3208198ce6fd}.description", "chrome://browser/locale/browser.properties");
 
-pref("xpinstall.whitelist.add", "addons.mozilla.org,www.palemoon.org,addons.palemoon.org");
-pref("xpinstall.whitelist.add.36", "");
-pref("xpinstall.whitelist.add.180", "");
 pref("xpinstall.whitelist.required", false);
 // Allow installing XPI add-ons by direct URL requests (no referrer)
 pref("xpinstall.whitelist.directRequest", true);
@@ -685,6 +682,15 @@ pref("plugins.update.notifyUser", false);
 //Enable tri-state option (Always/Never/Ask)
 pref("plugins.click_to_play", true);
 
+// Platform pref is to enable all plugins by default.
+// Uncomment this pref to default to click-to-play
+// pref("plugin.default.state", 1);
+
+// Don't load plugin instances with no src declared.
+// These prefs are documented in detail in all.js.
+pref("plugins.favorfallback.mode", "follow-ctp");
+pref("plugins.favorfallback.rules", "nosrc");
+
 #ifdef XP_WIN
 pref("browser.preferences.instantApply", false);
 #else
@@ -1100,6 +1106,9 @@ pref("full-screen-api.enabled", true);
 // 0-100 (currently)
 pref("permissions.places-sites-limit", 50);
 
+// Built-in default permissions.
+pref("permissions.manager.defaultsUrl", "resource://app/defaults/permissions");
+
 // Startup Crash Tracking
 // number of startup crashes that can occur before starting into safe mode automatically
 // (this pref has no effect if more than 6 hours have passed since the last crash)
@@ -1115,9 +1124,6 @@ pref("security.csp.speccompliant", true);
 
 // Block insecure active content on https pages
 pref("security.mixed_content.block_active_content", true);
-
-// Disable Microsoft Family Safety MitM support
-pref("security.family_safety.mode", 0);
 
 // Override the Gecko-default value of false for Pale Moon.
 pref("plain_text.wrap_long_lines", true);
