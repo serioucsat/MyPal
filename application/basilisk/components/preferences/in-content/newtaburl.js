@@ -16,11 +16,7 @@ var gNewtabUrl = {
   writeNewtabUrl: function(newtabUrlChoice, browserHomepageUrl) {
     try {
       if (newtabUrlChoice) {
-        if (Services.prefs.getBoolPref("browser.preferences.instantApply")) {
-          newtabUrlChoice = parseInt(newtabUrlChoice);
-        } else {
-          return;
-        }
+        newtabUrlChoice = parseInt(newtabUrlChoice);
       } else {
         if (this.newtabUrlChoiceIsSet) {
           newtabUrlChoice = Services.prefs.getIntPref("browser.newtab.choice");
@@ -29,12 +25,8 @@ var gNewtabUrl = {
         }
       }
       if (browserHomepageUrl || browserHomepageUrl == "") {
-        if (Services.prefs.getBoolPref("browser.preferences.instantApply")) {
-          if (browserHomepageUrl == "") {
-            browserHomepageUrl = "about:home";
-          }
-        } else {
-          return;
+        if (browserHomepageUrl == "") {
+          browserHomepageUrl = "about:home";
         }
       } else {
         browserHomepageUrl = Services.prefs.getComplexValue("browser.startup.homepage",
