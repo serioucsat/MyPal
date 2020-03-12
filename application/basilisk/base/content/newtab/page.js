@@ -15,7 +15,7 @@ var gPage = {
   /**
    * Initializes the page.
    */
-  init: function Page_init() {
+  init: function() {
     // Add ourselves to the list of pages to receive notifications.
     gAllPages.register(this);
 
@@ -38,7 +38,7 @@ var gPage = {
   /**
    * Listens for notifications specific to this page.
    */
-  observe: function Page_observe(aSubject, aTopic, aData) {
+  observe: function(aSubject, aTopic, aData) {
     if (aTopic == "nsPref:changed") {
 
       let enabled = gAllPages.enabled;
@@ -96,7 +96,7 @@ var gPage = {
    * Internally initializes the page. This runs only when/if the feature
    * is/gets enabled.
    */
-  _init: function Page_init() {
+  _init: function() {
     if (this._initialized)
       return;
 
@@ -133,7 +133,7 @@ var gPage = {
    * Updates the 'page-disabled' attributes of the respective DOM nodes.
    * @param aValue Whether the New Tab Page is enabled or not.
    */
-  _updateAttributes: function Page_updateAttributes(aValue) {
+  _updateAttributes: function(aValue) {
     // Set the nodes' states.
     let nodeSelector = "#newtab-grid, #newtab-search-container";
     for (let node of document.querySelectorAll(nodeSelector)) {
@@ -156,14 +156,14 @@ var gPage = {
   /**
    * Handles unload event
    */
-  _handleUnloadEvent: function Page_handleUnloadEvent() {
+  _handleUnloadEvent: function() {
     gAllPages.unregister(this);
   },
 
   /**
    * Handles all page events.
    */
-  handleEvent: function Page_handleEvent(aEvent) {
+  handleEvent: function(aEvent) {
     switch (aEvent.type) {
       case "load":
         this.onPageVisibleAndLoaded();
