@@ -38,16 +38,10 @@ def get_id(name):
     return str(uuid.uuid5(uuid.NAMESPACE_URL, name)).upper()
 
 def visual_studio_product_to_solution_version(version):
-    if version == '2015':
-        return '12.00', '14'
-    else:
-        raise Exception('Unknown version seen: %s' % version)
+    return '12.00', '14'
 
 def visual_studio_product_to_platform_toolset_version(version):
-    if version == '2015':
-        return 'v140'
-    else:
-        raise Exception('Unknown version seen: %s' % version)
+    return 'v140'
 
 class VisualStudioBackend(CommonBackend):
     """Generate Visual Studio project files.
@@ -167,16 +161,16 @@ class VisualStudioBackend(CommonBackend):
         # to buffer output from within Visual Studio (surely this is
         # configurable) and the default execution policy of PowerShell doesn't
         # allow custom scripts to be executed.
-        with self._write_file(os.path.join(out_dir, 'mach.bat'), mode='rb') as fh:
-            self._write_mach_batch(fh)
+        #with self._write_file(os.path.join(out_dir, 'mach.bat'), mode='rb') as fh:
+        #    self._write_mach_batch(fh)
 
-        with self._write_file(os.path.join(out_dir, 'mach.ps1'), mode='rb') as fh:
-            self._write_mach_powershell(fh)
+        #with self._write_file(os.path.join(out_dir, 'mach.ps1'), mode='rb') as fh:
+        #    self._write_mach_powershell(fh)
 
         # Write out a solution file to tie it all together.
-        solution_path = os.path.join(out_dir, 'mozilla.sln')
-        with self._write_file(solution_path, mode='rb') as fh:
-            self._write_solution(fh, projects)
+        #solution_path = os.path.join(out_dir, 'mozilla.sln')
+        #with self._write_file(solution_path, mode='rb') as fh:
+        #    self._write_solution(fh, projects)
 
     def _write_projects_for_sources(self, sources, prefix, out_dir):
         projects = {}
