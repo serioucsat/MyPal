@@ -12,6 +12,9 @@ EXTRA_COMPONENTS += [
 EXTRA_JS_MODULES += [
     'PushCrypto.jsm',
     'PushDB.jsm',
+]
+
+EXTRA_PP_JS_MODULES += [
     'PushRecord.jsm',
     'PushService.jsm',
 ]

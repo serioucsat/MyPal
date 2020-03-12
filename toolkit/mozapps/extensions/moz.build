@@ -37,9 +37,8 @@ EXTRA_PP_JS_MODULES += [
 ]
 
 if CONFIG['THE_GMP']:
-    EXTRA_JS_MODULES += ['GMPUtils.jsm',]
-    EXTRA_PP_JS_MODULES += ['GMPInstallManager.jsm',]
-
+    EXTRA_PP_JS_MODULES += ['GMPInstallManager.jsm',
+                            'GMPUtils.jsm',]
 
 # Additional debugging info is exposed in debug builds
 if CONFIG['MOZ_EM_DEBUG']:
