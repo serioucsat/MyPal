@@ -86,7 +86,15 @@ public:
    * This getter clears the gray bit before handing out the JSObject which means
    * that the object is guaranteed to be kept alive past the next CC.
    */
-  JSObject* GetWrapper() const;
+  inline JSObject* GetWrapper() const
+  {
+    JSObject* obj = GetWrapperPreserveColor();
+    if (obj) {
+      JS::ExposeObjectToActiveJS(obj);
+    }
+    return obj;
+  }
+
 
   /**
    * Get the cached wrapper.

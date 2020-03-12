@@ -89,7 +89,7 @@ LOCAL_INCLUDES += [
     '/media/webrtc/signaling/src/peerconnection',
 ]
 
-UNIFIED_SOURCES += [
+SOURCES += [
     'BindingUtils.cpp',
     'CallbackInterface.cpp',
     'CallbackObject.cpp',
@@ -100,12 +100,9 @@ UNIFIED_SOURCES += [
     'nsScriptError.cpp',
     'nsScriptErrorWithStack.cpp',
     'SimpleGlobalObject.cpp',
+    'StructuredClone.cpp',
     'ToJSValue.cpp',
     'WebIDLGlobalNameHash.cpp',
-]
-
-SOURCES += [
-    'StructuredClone.cpp',
 ]
 
 # Tests for maplike and setlike require bindings to be built, which means they
