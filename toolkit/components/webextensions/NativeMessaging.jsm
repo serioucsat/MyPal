@@ -13,8 +13,6 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 const {EventEmitter} = Cu.import("resource://devtools/shared/event-emitter.js", {});
 
-XPCOMUtils.defineLazyModuleGetter(this, "AppConstants",
-                                  "resource://gre/modules/AppConstants.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "AsyncShutdown",
                                   "resource://gre/modules/AsyncShutdown.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ExtensionChild",
@@ -67,7 +65,19 @@ this.HostManifestManager = {
 
   init() {
     if (!this._initializePromise) {
-      let platform = AppConstants.platform;
+#ifdef MOZ_WIDGET_GTK
+  let platform = "linux";
+#elif XP_WIN
+  let platform = "win";
+#elif XP_MACOSX
+  let platform = "macosx";
+#elif MOZ_WIDGET_ANDROID
+  let platform = "android";
+#elif XP_LINUX
+  let platform = "linux";
+#else
+  let platform = "other";
+#endif
       if (platform == "win") {
         this._lookup = this._winLookup;
       } else if (platform == "macosx" || platform == "linux") {
@@ -77,7 +87,7 @@ this.HostManifestManager = {
         ];
         this._lookup = (application, context) => this._tryPaths(application, dirs, context);
       } else {
-        throw new Error(`Native messaging is not supported on ${AppConstants.platform}`);
+        throw new Error(`Native messaging is not supported on ${platform}`);
       }
       this._initializePromise = Schemas.load(HOST_MANIFEST_SCHEMA);
     }
@@ -191,13 +201,13 @@ this.NativeApp = class extends EventEmitter {
         }
 
         let command = hostInfo.manifest.path;
-        if (AppConstants.platform == "win") {
+
+#if XP_WIN
           // OS.Path.join() ignores anything before the last absolute path
           // it sees, so if command is already absolute, it remains unchanged
           // here.  If it is relative, we get the proper absolute path here.
           command = OS.Path.join(OS.Path.dirname(hostInfo.path), command);
-        }
-
+#endif
         let subprocessOpts = {
           command: command,
           arguments: [hostInfo.path],

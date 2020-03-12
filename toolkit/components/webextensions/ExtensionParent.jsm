@@ -20,8 +20,6 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "AddonManager",
                                   "resource://gre/modules/AddonManager.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "AppConstants",
-                                  "resource://gre/modules/AppConstants.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "MessageChannel",
                                   "resource://gre/modules/MessageChannel.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "NativeApp",
@@ -52,9 +50,9 @@ const CATEGORY_EXTENSION_SCRIPTS = "webextension-scripts";
 
 let schemaURLs = new Set();
 
-if (!AppConstants.RELEASE_OR_BETA) {
+#ifndef RELEASE_OR_BETA
   schemaURLs.add("chrome://extensions/content/schemas/experiments.json");
-}
+#endif
 
 let GlobalManager;
 let ParentAPIManager;

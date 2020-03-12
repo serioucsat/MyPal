@@ -18,8 +18,6 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "AddonManager",
                                   "resource://gre/modules/AddonManager.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "AppConstants",
-                                  "resource://gre/modules/AppConstants.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ConsoleAPI",
                                   "resource://gre/modules/Console.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "LanguageDetector",
@@ -891,10 +889,19 @@ function flushJarCache(jarFile) {
 
 const PlatformInfo = Object.freeze({
   os: (function() {
-    let os = AppConstants.platform;
-    if (os == "macosx") {
-      os = "mac";
-    }
+#ifdef MOZ_WIDGET_GTK
+  let os = "linux";
+#elif XP_WIN
+  let os = "win";
+#elif XP_MACOSX
+  let os = "mac";
+#elif MOZ_WIDGET_ANDROID
+  let os = "android";
+#elif XP_LINUX
+  let os = "linux";
+#else
+  let os = "other";
+#endif
     return os;
   })(),
   arch: (function() {

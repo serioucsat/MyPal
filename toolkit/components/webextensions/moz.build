@@ -5,19 +5,22 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 EXTRA_JS_MODULES += [
-    'Extension.jsm',
     'ExtensionAPI.jsm',
     'ExtensionChild.jsm',
     'ExtensionCommon.jsm',
     'ExtensionContent.jsm',
     'ExtensionManagement.jsm',
-    'ExtensionParent.jsm',
     'ExtensionStorage.jsm',
-    'ExtensionUtils.jsm',
     'LegacyExtensionsUtils.jsm',
     'MessageChannel.jsm',
-    'NativeMessaging.jsm',
     'Schemas.jsm',
+]
+
+EXTRA_PP_JS_MODULES += [
+    'Extension.jsm',
+    'ExtensionParent.jsm',
+    'ExtensionUtils.jsm',
+    'NativeMessaging.jsm',
 ]
 
 EXTRA_COMPONENTS += [

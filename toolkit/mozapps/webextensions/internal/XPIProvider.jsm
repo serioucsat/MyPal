@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#filter substitution
+
 "use strict";
 
 const Cc = Components.classes;
@@ -54,8 +56,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "ProductAddonChecker",
                                   "resource://gre/modules/addons/ProductAddonChecker.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "UpdateUtils",
                                   "resource://gre/modules/UpdateUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "AppConstants",
-                                  "resource://gre/modules/AppConstants.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "LegacyExtensionsUtils",
                                   "resource://gre/modules/LegacyExtensionsUtils.jsm");
 
@@ -223,8 +223,9 @@ const TYPES = {
   experiment: 128,
 };
 
-if (!AppConstants.RELEASE_OR_BETA)
+#ifndef RELEASE_OR_BETA
   TYPES.apiextension = 256;
+#endif
 
 // Some add-on types that we track internally are presented as other types
 // externally
@@ -6723,7 +6724,11 @@ function AddonInstallWrapper(aInstall) {
 
 AddonInstallWrapper.prototype = {
   get __AddonInstallInternal__() {
-    return AppConstants.DEBUG ? installFor(this) : undefined;
+#ifdef DEBUG
+    return installFor(this);
+#else
+    return undefined;
+#endif
   },
 
   get type() {
@@ -7341,7 +7346,11 @@ function AddonWrapper(aAddon) {
 
 AddonWrapper.prototype = {
   get __AddonInternal__() {
-    return AppConstants.DEBUG ? addonFor(this) : undefined;
+#ifdef DEBUG
+    return addonFor(this); 
+#else
+    return undefined;
+#endif
   },
 
   get seen() {
@@ -9116,7 +9125,7 @@ WinRegInstallLocation.prototype = {
     let appName = Services.appinfo.name;
 
     // XXX Thunderbird doesn't specify a vendor string
-    if (AppConstants.MOZ_APP_NAME == "thunderbird" && appVendor == "")
+    if ("@MOZ_APP_NAME@" == "thunderbird" && appVendor == "")
       appVendor = "Mozilla";
 
     // XULRunner-based apps may intentionally not specify a vendor

@@ -30,14 +30,16 @@ EXTRA_PP_COMPONENTS += [
 EXTRA_JS_MODULES += [
     '../extensions/ChromeManifestParser.jsm',
     '../extensions/DeferredSave.jsm',
-    'AddonManager.jsm',
     'LightweightThemeManager.jsm',
 ]
 
+EXTRA_PP_JS_MODULES += [
+    'AddonManager.jsm',
+]
+
 if CONFIG['THE_GMP']:
-    EXTRA_JS_MODULES += ['../extensions/GMPUtils.jsm',
-                         'GMPInstallManager.jsm',
-    ]
+    EXTRA_JS_MODULES += ['GMPInstallManager.jsm',]
+    EXTRA_PP_JS_MODULES += ['../extensions/GMPUtils.jsm',]
 
 JAR_MANIFESTS += ['jar.mn']
 
@@ -56,5 +58,7 @@ UNIFIED_SOURCES += [
 LOCAL_INCLUDES += [
     '/dom/base',
 ]
+
+DEFINES['MOZ_UPDATE_CHANNEL'] = CONFIG['MOZ_UPDATE_CHANNEL']
 
 FINAL_LIBRARY = 'xul'
