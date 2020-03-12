@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#filter substitution
+
 "use strict";
 
 const Cc = Components.classes;
@@ -21,9 +23,7 @@ if ("@mozilla.org/xre/app-info;1" in Cc) {
   }
 }
 
-Cu.import("resource://gre/modules/AppConstants.jsm");
-
-const MOZ_COMPATIBILITY_NIGHTLY = !['aurora', 'beta', 'release', 'esr'].includes(AppConstants.MOZ_UPDATE_CHANNEL);
+const MOZ_COMPATIBILITY_NIGHTLY = !['aurora', 'beta', 'release', 'esr'].includes("@MOZ_UPDATE_CHANNEL@");
 
 const PREF_BLOCKLIST_PINGCOUNTVERSION = "extensions.blocklist.pingCountVersion";
 const PREF_DEFAULT_PROVIDERS_ENABLED  = "extensions.defaultProviders.enabled";
@@ -3391,7 +3391,11 @@ this.AddonManager = {
   STATE_ASK_TO_ACTIVATE: "askToActivate",
 
   get __AddonManagerInternal__() {
-    return AppConstants.DEBUG ? AddonManagerInternal : undefined;
+#ifdef DEBUG
+    return AddonManagerInternal;
+#else
+    return undefined;
+#endif
   },
 
   get isReady() {

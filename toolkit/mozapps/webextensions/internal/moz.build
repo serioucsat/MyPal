@@ -12,12 +12,15 @@ EXTRA_JS_MODULES.addons += [
     'AddonRepository.jsm',
     'AddonRepository_SQLiteMigrator.jsm',
     'APIExtensionBootstrap.js',
-    'GMPProvider.jsm',
     'LightweightThemeImageOptimizer.jsm',
     'WebExtensionBootstrap.js',
-    'XPIProvider.jsm',
     'XPIProviderUtils.js',
 ]
+
+if CONFIG['THE_GMP']:
+    EXTRA_PP_JS_MODULES.addons += ['GMPProvider.jsm',
+    ]
+
 
 # Don't ship unused providers on Android
 if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'android':
@@ -28,4 +31,9 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'android':
 EXTRA_PP_JS_MODULES.addons += [
     '../../extensions/internal/AddonUpdateChecker.jsm',
     'AddonConstants.jsm',
+    'XPIProvider.jsm',
 ]
+
+DEFINES['DLL_PREFIX'] = CONFIG['DLL_PREFIX']
+DEFINES['DLL_SUFFIX'] = CONFIG['DLL_SUFFIX']
+DEFINES['MOZ_APP_NAME'] = CONFIG['MOZ_APP_NAME']

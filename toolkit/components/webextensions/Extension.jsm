@@ -28,8 +28,6 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "AddonManager",
                                   "resource://gre/modules/AddonManager.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "AppConstants",
-                                  "resource://gre/modules/AppConstants.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ExtensionAPIs",
                                   "resource://gre/modules/ExtensionAPI.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ExtensionStorage",
@@ -667,10 +665,9 @@ this.Extension = class extends ExtensionData {
 
   readManifest() {
     return super.readManifest().then(manifest => {
-      if (AppConstants.RELEASE_OR_BETA) {
+#ifdef RELEASE_OR_BETA
         return manifest;
-      }
-
+#else
       // Load Experiments APIs that this extension depends on.
       return Promise.all(
         Array.from(this.apiNames, api => ExtensionAPIs.load(api))
@@ -681,6 +678,7 @@ this.Extension = class extends ExtensionData {
 
         return manifest;
       });
+#endif
     });
   }
 

@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#filter substitution
+
 "use strict";
 
 const Cc = Components.classes;
@@ -21,7 +23,6 @@ Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/GMPUtils.jsm");
 /* globals GMP_PLUGIN_IDS, GMPPrefs, GMPUtils, OPEN_H264_ID, WIDEVINE_ID */
-Cu.import("resource://gre/modules/AppConstants.jsm");
 Cu.import("resource://gre/modules/UpdateUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(
@@ -473,7 +474,7 @@ GMPWrapper.prototype = {
     };
 
     let id = this._plugin.id.substring(4);
-    let libName = AppConstants.DLL_PREFIX + id + AppConstants.DLL_SUFFIX;
+    let libName = "@DLL_PREFIX@" + id + "@DLL_SUFFIX@";
     let infoName;
     if (this._plugin.id == WIDEVINE_ID) {
       infoName = "manifest.json";
