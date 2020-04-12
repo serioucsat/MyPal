@@ -467,10 +467,6 @@
   StrCpy $0 "Software\${BrandFullNameInternal} ${AppVersion}$3\bin"
   ${WriteRegStr2} $TmpVal "$0" "PathToExe" "$8\${FileMainEXE}" 0
 
-  StrCpy $0 "Software\${BrandFullNameInternal} ${AppVersion}$3\extensions"
-  ${WriteRegStr2} $TmpVal "$0" "Components" "$8\components" 0
-  ${WriteRegStr2} $TmpVal "$0" "Plugins" "$8\plugins" 0
-
   StrCpy $0 "Software\${BrandFullNameInternal} ${AppVersion}$3"
   ${WriteRegStr2} $TmpVal "$0" "GeckoVer" "${GREVersion}" 0
   ${If} "$3" == ""
