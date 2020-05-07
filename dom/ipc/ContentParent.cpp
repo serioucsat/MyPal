@@ -111,6 +111,7 @@
 #include "nsIDOMWindow.h"
 #include "nsIExternalProtocolService.h"
 #include "nsIFormProcessor.h"
+#include "nsIFrameLoader.h"
 #include "nsIGfxInfo.h"
 #include "nsIIdleService.h"
 #include "nsIInterfaceRequestorUtils.h"
@@ -230,6 +231,7 @@ static NS_DEFINE_CID(kCClipboardCID, NS_CLIPBOARD_CID);
 using base::ChildPrivileges;
 using base::KillProcess;
 
+using namespace mozilla::dom;
 using namespace mozilla::dom::power;
 using namespace mozilla::media;
 using namespace mozilla::embedding;
