@@ -17,10 +17,10 @@
 class nsIURI;
 class nsISSLStatus;
 
-// {16955eee-6c48-4152-9309-c42a465138a1}
+// 91ea3803-9c79-45d9-97bf-88bc80269236
 #define NS_SITE_SECURITY_SERVICE_CID \
-  {0x16955eee, 0x6c48, 0x4152, \
-    {0x93, 0x09, 0xc4, 0x2a, 0x46, 0x51, 0x38, 0xa1} }
+  { 0x91ea3803, 0x9c79, 0x45d9, \
+    { 0x97, 0xbf, 0x88, 0xbc, 0x80, 0x26, 0x92, 0x36 } }
 
 /**
  * SecurityPropertyState: A utility enum for representing the different states
@@ -110,8 +110,6 @@ public:
   void ToString(nsCString &aString);
 };
 
-class nsSTSPreload;
-
 class nsSiteSecurityService : public nsISiteSecurityService
                             , public nsIObserver
 {
@@ -146,10 +144,7 @@ private:
   nsresult SetHPKPState(const char* aHost, SiteHPKPState& entry, uint32_t flags,
                         bool aIsPreload);
 
-  const nsSTSPreload *GetPreloadListEntry(const char *aHost);
-
   uint64_t mMaxMaxAge;
-  bool mUsePreloadList;
   bool mUseStsService;
   int64_t mPreloadListTimeOffset;
   bool mHPKPEnabled;
