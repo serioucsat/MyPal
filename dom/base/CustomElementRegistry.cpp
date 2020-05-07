@@ -8,8 +8,11 @@
 
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/dom/CustomElementRegistryBinding.h"
+#include "mozilla/dom/Element.h"
 #include "mozilla/dom/HTMLElementBinding.h"
 #include "mozilla/dom/WebComponentsBinding.h"
+#include "mozilla/dom/Promise.h"
+#include "nsContentUtils.h"
 #include "mozilla/dom/DocGroup.h"
 #include "nsIParserService.h"
 #include "jsapi.h"
