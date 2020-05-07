@@ -24,7 +24,7 @@ const PREF_APP_UPDATE_ENABLED             = "app.update.enabled";
 const PREF_APP_UPDATE_LOG                 = "app.update.log";
 const PREF_APP_UPDATE_NOTIFIEDUNSUPPORTED = "app.update.notifiedUnsupported";
 const PREF_APP_UPDATE_TEST_LOOP           = "app.update.test.loop";
-const PREF_APP_UPDATE_URL_MANUAL          = "app.update.url.manual";
+const PREF_APP_UPDATE_URL_MANUAL          = "app.releaseNotesURL";
 
 const PREFBRANCH_APP_UPDATE_NEVER         = "app.update.never.";
 
