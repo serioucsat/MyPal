@@ -19,7 +19,7 @@ pref("startup.homepage_welcome_url", "");
 pref("startup.homepage_welcome_url.additional", "");
 
 // Version release notes
-pref("app.releaseNotesURL", "about:blank");
+pref("app.releaseNotesURL", "https://github.com/Feodor2/Centaury/releases");
 
 // Vendor home page
 pref("app.vendorURL", "about:");
