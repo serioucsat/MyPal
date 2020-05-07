@@ -69,7 +69,7 @@ this.UpdateUtils = {
 
     let substs = [
       [/%ID%/g,                     Services.appinfo.ID],
-      [/%PRODUCT%/g,                appName],
+      [/%PRODUCT%/g,                Services.appinfo.name],
       [/%VERSION%/g,                Services.appinfo.version],
       [/%BUILD_ID%/g,               Services.appinfo.appBuildID],
       [/%BUILD_TARGET%/g,           Services.appinfo.OS + "_" + this.ABI],
