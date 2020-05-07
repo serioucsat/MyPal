@@ -2169,6 +2169,7 @@ MOZ_SERVICES_HEALTHREPORT=1
 MOZ_SERVICES_SYNC=1
 MOZ_USERINFO=1
 NSS_DISABLE_DBM=
+MOZ_CAN_DRAW_IN_TITLEBAR=
 
 case "$target_os" in
     mingw*)
@@ -2702,6 +2703,22 @@ x86_64 | arm | aarch64 | x86 | ppc* | ia64)
     ;;
 
 esac
+
+dnl ========================================================
+dnl = Client drawing in titlebar
+dnl ========================================================
+if test -n "$MOZ_CAN_DRAW_IN_TITLEBAR"; then
+    case "$OS_TARGET" in
+    WINNT|Darwin)
+        AC_DEFINE(MOZ_CAN_DRAW_IN_TITLEBAR)
+        ;;
+    *)
+        AC_MSG_ERROR([Drawing in the titlebar is only supported on Windows and Macintosh targets])
+        ;;
+    esac
+fi
+
+AC_SUBST(MOZ_CAN_DRAW_IN_TITLEBAR)
 
 dnl ========================================================
 dnl = Enable WebRTC code
