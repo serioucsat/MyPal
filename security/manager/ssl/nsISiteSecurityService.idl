@@ -23,7 +23,7 @@ namespace mozilla
 [ref] native nsCStringTArrayRef(nsTArray<nsCString>);
 [ref] native mozillaPkixTime(mozilla::pkix::Time);
 
-[scriptable, uuid(233908bd-6741-4474-a6e1-f298c6ce9eaf)]
+[scriptable, uuid(91ea3803-9c79-45d9-97bf-88bc80269236)]
 interface nsISiteSecurityService : nsISupports
 {
     const uint32_t HEADER_HSTS = 0;
@@ -106,13 +106,10 @@ interface nsISiteSecurityService : nsISupports
      * @param aURI    the URI of the target host
      * @param aFlags  options for this request as defined in nsISocketProvider:
      *                  NO_PERMANENT_STORAGE
-     * @param force   if set, forces no-HSTS state by writing a knockout value,
-     *                overriding any preload list state
      */
     void removeState(in uint32_t aType,
                      in nsIURI aURI,
-                     in uint32_t aFlags,
-                     [optional] in boolean force);
+                     in uint32_t aFlags);
 
     /**
      * See isSecureURI
@@ -153,11 +150,6 @@ interface nsISiteSecurityService : nsISupports
      * settings.
      */
     void clearAll();
-
-    /**
-     * Removes all preloaded security state.
-     */
-    void clearPreloads();
 
     /**
      * Returns an array of sha256-hashed key pins for the given domain, if any.
