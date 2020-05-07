@@ -1529,7 +1529,7 @@ GetPKPConsoleErrorTag(uint32_t failureResult, nsAString& consoleErrorTag)
 }
 
 /**
- * Process a single security header. Only two types are supported: HSTS and HPKP.
+ * Process a single security header. Only one type is supported: HSTS.
  */
 nsresult
 nsHttpChannel::ProcessSingleSecurityHeader(uint32_t aType,
@@ -1540,9 +1540,6 @@ nsHttpChannel::ProcessSingleSecurityHeader(uint32_t aType,
     switch (aType) {
         case nsISiteSecurityService::HEADER_HSTS:
             atom = nsHttp::ResolveAtom("Strict-Transport-Security");
-            break;
-        case nsISiteSecurityService::HEADER_HPKP:
-            atom = nsHttp::ResolveAtom("Public-Key-Pins");
             break;
         default:
             NS_NOTREACHED("Invalid security header type");
@@ -1566,10 +1563,6 @@ nsHttpChannel::ProcessSingleSecurityHeader(uint32_t aType,
                 case nsISiteSecurityService::HEADER_HSTS:
                     GetSTSConsoleErrorTag(failureResult, consoleErrorTag);
                     consoleErrorCategory = NS_LITERAL_STRING("Invalid HSTS Headers");
-                    break;
-                case nsISiteSecurityService::HEADER_HPKP:
-                    GetPKPConsoleErrorTag(failureResult, consoleErrorTag);
-                    consoleErrorCategory = NS_LITERAL_STRING("Invalid HPKP Headers");
                     break;
                 default:
                     return NS_ERROR_FAILURE;
@@ -1637,10 +1630,6 @@ nsHttpChannel::ProcessSecurityHeaders()
     NS_ENSURE_TRUE(sslStatus, NS_ERROR_FAILURE);
 
     rv = ProcessSingleSecurityHeader(nsISiteSecurityService::HEADER_HSTS,
-                                     sslStatus, flags);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = ProcessSingleSecurityHeader(nsISiteSecurityService::HEADER_HPKP,
                                      sslStatus, flags);
     NS_ENSURE_SUCCESS(rv, rv);
 
