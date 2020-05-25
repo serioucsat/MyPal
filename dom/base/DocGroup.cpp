@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 #include "mozilla/dom/DocGroup.h"
 #include "mozilla/dom/TabGroup.h"
 #include "mozilla/Telemetry.h"
@@ -7,9 +11,12 @@
 #include "mozilla/ClearOnShutdown.h"
 #include "nsIDocShell.h"
 #include "nsNetCID.h"
+#include "nsDOMMutationObserver.h"
 
 namespace mozilla {
 namespace dom {
+
+AutoTArray<RefPtr<DocGroup>, 2>* DocGroup::sPendingDocGroups = nullptr;
 
 /* static */ void
 DocGroup::GetKey(nsIPrincipal* aPrincipal, nsACString& aKey)
@@ -54,6 +61,24 @@ DocGroup::~DocGroup()
 }
 
 NS_IMPL_ISUPPORTS(DocGroup, nsISupports)
+
+void
+DocGroup::SignalSlotChange(const HTMLSlotElement* aSlot)
+{
+  if (mSignalSlotList.Contains(aSlot)) {
+    return;
+  }
+
+  mSignalSlotList.AppendElement(const_cast<HTMLSlotElement*>(aSlot));
+
+  if (!sPendingDocGroups) {
+    // Queue a mutation observer compound microtask.
+    nsDOMMutationObserver::QueueMutationObserverMicroTask();
+    sPendingDocGroups = new AutoTArray<RefPtr<DocGroup>, 2>;
+  }
+
+  sPendingDocGroups->AppendElement(this);
+}
 
 }
 }
