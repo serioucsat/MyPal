@@ -1041,12 +1041,7 @@ BrowserGlue.prototype = {
       });
     }
 
-    let signingRequired;
-    if (AppConstants.MOZ_REQUIRE_SIGNING) {
-      signingRequired = true;
-    } else {
-      signingRequired = Services.prefs.getBoolPref("xpinstall.signatures.required");
-    }
+    let signingRequired = Services.prefs.getBoolPref("xpinstall.signatures.required");
 
     if (signingRequired) {
       let disabledAddons = AddonManager.getStartupChanges(AddonManager.STARTUP_CHANGE_DISABLED);
