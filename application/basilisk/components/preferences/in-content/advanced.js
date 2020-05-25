@@ -49,7 +49,7 @@ var gAdvancedPane = {
     this.updateActualCacheSize();
     this.updateActualAppCacheSize();
 
-    setEventListener("layers.acceleration.disabled", "change",
+    setEventListener("layers.acceleration.enabled", "change",
                      gAdvancedPane.updateHardwareAcceleration);
     setEventListener("advancedPrefs", "select",
                      gAdvancedPane.tabSelectionChanged);
@@ -217,9 +217,9 @@ var gAdvancedPane = {
   updateHardwareAcceleration: function()
   {
     if (AppConstants.platform = "win") {
-      var fromPref = document.getElementById("layers.acceleration.disabled");
+      var fromPref = document.getElementById("layers.acceleration.enabled");
       var toPref = document.getElementById("gfx.direct2d.disabled");
-      toPref.value = fromPref.value;
+      toPref.value = !fromPref.value;
     }
   },
 
