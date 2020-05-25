@@ -106,9 +106,6 @@ WebrtcVideoConduit::~WebrtcVideoConduit()
 {
   NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
   CSFLogDebug(logTag,  "%s ", __FUNCTION__);
-
-  // Release AudioConduit first by dropping reference on MainThread, where it expects to be
-  SyncTo(nullptr);
   MOZ_ASSERT(!mSendStream && !mRecvStream, "Call DeleteStreams prior to ~WebrtcVideoConduit.");
 }
 
@@ -523,6 +520,7 @@ WebrtcVideoConduit::DeleteStreams()
   mVideoCodecStat = nullptr;
   // We can't delete the VideoEngine until all these are released!
   // And we can't use a Scoped ptr, since the order is arbitrary
+  SyncTo(nullptr);
   mPtrViEBase = nullptr;
   mPtrViECapture = nullptr;
   mPtrViECodec = nullptr;
