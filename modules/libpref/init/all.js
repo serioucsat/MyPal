@@ -1254,7 +1254,6 @@ pref("dom.event.clipboardevents.enabled",   true);
 pref("dom.event.highrestimestamp.enabled",  true);
 
 pref("dom.webcomponents.enabled",           false);
-pref("dom.webcomponents.customelements.enabled", false);
 
 pref("javascript.enabled",                  true);
 // Enable Array.prototype.values
