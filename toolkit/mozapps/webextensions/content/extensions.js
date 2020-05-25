@@ -2674,24 +2674,6 @@ var gListView = {
       }
     }, false);
 
-    document.getElementById("signing-learn-more").setAttribute("href",
-      Services.urlFormatter.formatURLPref("app.support.baseURL") + "unsigned-addons");
-
-    let findSignedAddonsLink = document.getElementById("find-alternative-addons");
-    try {
-      findSignedAddonsLink.setAttribute("href",
-        Services.urlFormatter.formatURLPref("extensions.getAddons.link.url"));
-    } catch (e) {
-      findSignedAddonsLink.classList.remove("text-link");
-    }
-
-    try {
-      document.getElementById("signing-dev-manual-link").setAttribute("href",
-        Services.prefs.getCharPref("xpinstall.signatures.devInfoURL"));
-    } catch (e) {
-      document.getElementById("signing-dev-info").hidden = true;
-    }
-
     // To-Do: remove deprecation notice content.
     document.getElementById("plugindeprecation-notice").hidden = true;
   },

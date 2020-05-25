@@ -342,17 +342,6 @@
 
             <!-- list view -->
             <vbox id="list-view" flex="1" class="view-pane" align="stretch" tabindex="0">
-              <!-- info UI for add-ons that have been disabled for being unsigned -->
-              <vbox id="disabled-unsigned-addons-info" hidden="true">
-                <label id="disabled-unsigned-addons-heading" value="&disabledUnsigned.heading;"/>
-                <description>
-                  &disabledUnsigned.description.start;<label class="text-link plain" id="find-alternative-addons">&disabledUnsigned.description.findAddonsLink;</label>&disabledUnsigned.description.end;
-                </description>
-                <hbox pack="start"><label class="text-link" id="signing-learn-more">&disabledUnsigned.learnMore;</label></hbox>
-                <description id="signing-dev-info">
-                  &disabledUnsigned.devInfo.start;<label class="text-link plain" id="signing-dev-manual-link">&disabledUnsigned.devInfo.linkToManual;</label>&disabledUnsigned.devInfo.end;
-                </description>
-              </vbox>
               <vbox id="plugindeprecation-notice" class="alert-container">
                 <hbox class="alert">
                   <description>&pluginDeprecation.description; &#160;
