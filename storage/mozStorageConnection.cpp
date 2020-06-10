@@ -1995,10 +1995,6 @@ Connection::EnableModule(const nsACString& aModuleName)
   return NS_ERROR_FAILURE;
 }
 
-// Implemented in TelemetryVFS.cpp
-already_AddRefed<QuotaObject>
-GetQuotaObjectForFile(sqlite3_file *pFile);
-
 NS_IMETHODIMP
 Connection::GetQuotaObjects(QuotaObject** aDatabaseQuotaObject,
                             QuotaObject** aJournalQuotaObject)
@@ -2019,8 +2015,6 @@ Connection::GetQuotaObjects(QuotaObject** aDatabaseQuotaObject,
     return convertResultCode(srv);
   }
 
-  RefPtr<QuotaObject> databaseQuotaObject = GetQuotaObjectForFile(file);
-
   srv = ::sqlite3_file_control(mDBConn,
                                nullptr,
                                SQLITE_FCNTL_JOURNAL_POINTER,
@@ -2029,10 +2023,6 @@ Connection::GetQuotaObjects(QuotaObject** aDatabaseQuotaObject,
     return convertResultCode(srv);
   }
 
-  RefPtr<QuotaObject> journalQuotaObject = GetQuotaObjectForFile(file);
-
-  databaseQuotaObject.forget(aDatabaseQuotaObject);
-  journalQuotaObject.forget(aJournalQuotaObject);
   return NS_OK;
 }
 
