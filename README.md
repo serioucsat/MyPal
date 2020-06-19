@@ -6,7 +6,7 @@ The goal of Mypal is to provide a current, secure, and reliable web browser for 
 
 ### Download / Updates
 
-[Download](https://github.com/Feodor2/Mypal/releases) Mypal at GitHub. Automatic updates are not currently supported, so you will need to check for new releases manually. Updates can be installed over existing Mypal installations without loss of data and settings.
+[Download](https://github.com/Feodor2/Mypal/releases) Mypal at GitHub. Automatic updates are disabled by default, but you can enable them in Tools/Preferences/Advanced, on the Update tab. Updates can be installed over existing Mypal installations without loss of data and settings.
 
 ### Documentation
 
