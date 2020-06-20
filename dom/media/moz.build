@@ -318,3 +318,4 @@ if CONFIG['_MSC_VER']:
     CXXFLAGS += ['-wd4312']
 
 FINAL_LIBRARY = 'xul'
+
