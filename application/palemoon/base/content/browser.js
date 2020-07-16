@@ -4540,6 +4540,12 @@ function onViewToolbarsPopupShowing(aEvent, aInsertPoint) {
   toolbarNodes.push(document.getElementById("addon-bar"));
 
   for (let toolbar of toolbarNodes) {
+#ifdef MOZ_WIDGET_GTK
+    if (toolbar.id == "toolbar-menubar" &&
+        document.documentElement.getAttribute("shellshowingmenubar") == "true") {
+      continue;
+    }
+#endif
     let toolbarName = toolbar.getAttribute("toolbarname");
     if (toolbarName) {
       let menuItem = document.createElement("menuitem");
