@@ -385,9 +385,9 @@ Section "-Application" APP_IDX
 
   ; In Win8, the delegate execute handler picks up the value in PaleMoonURL and
   ; PaleMoonHTML to launch the desktop browser when it needs to.
-  ${AddDisabledDDEHandlerValues} "PaleMoonHTML" "$2" "$8,1" \
+  ${AddDisabledDDEHandlerValues} "MypalHTML" "$2" "$8,1" \
                                  "${AppRegName} Document" ""
-  ${AddDisabledDDEHandlerValues} "PaleMoonURL" "$2" "$8,1" "${AppRegName} URL" \
+  ${AddDisabledDDEHandlerValues} "MypalURL" "$2" "$8,1" "${AppRegName} URL" \
                                  "true"
 
   ; For pre win8, the following keys should only be set if we can write to HKLM.
