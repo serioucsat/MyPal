@@ -1101,7 +1101,7 @@ Function .onInit
   !insertmacro InitInstallOptionsFile "shortcuts.ini"
   !insertmacro InitInstallOptionsFile "summary.ini"
 
-  WriteINIStr "$PLUGINSDIR\options.ini" "Settings" NumFields "7"
+  WriteINIStr "$PLUGINSDIR\options.ini" "Settings" NumFields "8"
 
   WriteINIStr "$PLUGINSDIR\options.ini" "Field 1" Type   "label"
   WriteINIStr "$PLUGINSDIR\options.ini" "Field 1" Text   "$(OPTIONS_SUMMARY)"
@@ -1156,6 +1156,14 @@ Function .onInit
   WriteINIStr "$PLUGINSDIR\options.ini" "Field 7" Top    "97"
   WriteINIStr "$PLUGINSDIR\options.ini" "Field 7" Bottom "117"
   WriteINIStr "$PLUGINSDIR\options.ini" "Field 7" State  "1"
+
+  WriteINIStr "$PLUGINSDIR\options.ini" "Field 8" Type   "link"
+  WriteINIStr "$PLUGINSDIR\options.ini" "Field 8" Text   "$(OPTION_PORTABLE_LINK)"
+  WriteINIStr "$PLUGINSDIR\options.ini" "Field 8" Left   "205"
+  WriteINIStr "$PLUGINSDIR\options.ini" "Field 8" Right  "-1"
+  WriteINIStr "$PLUGINSDIR\options.ini" "Field 8" Top    "103"
+  WriteINIStr "$PLUGINSDIR\options.ini" "Field 8" Bottom "123"
+  WriteINIStr "$PLUGINSDIR\options.ini" "Field 8" State  "https://github.com/Feodor2/Mypal27old/wiki/Portable"
 
   ; Setup the shortcuts.ini file for the Custom Shortcuts Page
   ; Don't offer to install the quick launch shortcut on Windows 7
