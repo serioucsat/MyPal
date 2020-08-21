@@ -1152,7 +1152,7 @@ Function .onInit
   WriteINIStr "$PLUGINSDIR\options.ini" "Field 7" Type   "checkbox"
   WriteINIStr "$PLUGINSDIR\options.ini" "Field 7" Text   "$(OPTION_PORTABLE_DESC)"
   WriteINIStr "$PLUGINSDIR\options.ini" "Field 7" Left   "15"
-  WriteINIStr "$PLUGINSDIR\options.ini" "Field 7" Right  "-1"
+  WriteINIStr "$PLUGINSDIR\options.ini" "Field 7" Right  "200"
   WriteINIStr "$PLUGINSDIR\options.ini" "Field 7" Top    "97"
   WriteINIStr "$PLUGINSDIR\options.ini" "Field 7" Bottom "117"
   WriteINIStr "$PLUGINSDIR\options.ini" "Field 7" State  "1"
