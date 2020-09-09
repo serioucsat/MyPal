@@ -104,7 +104,6 @@ user_pref("browser.safebrowsing.provider.mozilla.updateURL", "http://%(server)s/
 user_pref("privacy.trackingprotection.introURL", "http://%(server)s/trackingprotection/tour");
 // Point update checks to the local testing server for fast failures
 user_pref("extensions.update.url", "http://%(server)s/extensions-dummy/updateURL");
-user_pref("extensions.update.background.url", "http://%(server)s/extensions-dummy/updateBackgroundURL");
 user_pref("extensions.blocklist.detailsURL", "http://%(server)s/extensions-dummy/blocklistDetailsURL");
 user_pref("extensions.blocklist.itemURL", "http://%(server)s/extensions-dummy/blocklistItemURL");
 user_pref("extensions.blocklist.url", "http://%(server)s/extensions-dummy/blocklistURL");
