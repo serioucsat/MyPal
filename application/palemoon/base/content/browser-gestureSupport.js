@@ -126,8 +126,9 @@ var gGestureSupport = {
    */
   _setupGesture: function(aEvent, aGesture, aPref, aInc, aDec) {
     // Try to load user-set values from preferences
-    for (let [pref, def] in Iterator(aPref))
+    for (let [pref, def] in Iterator(aPref)) {
       aPref[pref] = this._getPref(aGesture + "." + pref, def);
+    }
 
     // Keep track of the total deltas and latching behavior
     let offset = 0;
@@ -170,10 +171,8 @@ var gGestureSupport = {
    * @return true if the swipe event may navigate the history, false othwerwise.
    */
   _swipeNavigatesHistory: function(aEvent) {
-    return this._getCommand(aEvent, ["swipe", "left"])
-              == "Browser:BackOrBackDuplicate" &&
-           this._getCommand(aEvent, ["swipe", "right"])
-              == "Browser:ForwardOrForwardDuplicate";
+    return this._getCommand(aEvent, ["swipe", "left"]) == "Browser:BackOrBackDuplicate" &&
+           this._getCommand(aEvent, ["swipe", "right"]) == "Browser:ForwardOrForwardDuplicate";
   },
 
   /**
@@ -186,19 +185,24 @@ var gGestureSupport = {
    *         otherwise.
    */
   _shouldDoSwipeGesture: function(aEvent) {
-    if (!this._swipeNavigatesHistory(aEvent))
+    if (!this._swipeNavigatesHistory(aEvent)) {
       return false;
+    }
 
     let canGoBack = gHistorySwipeAnimation.canGoBack();
     let canGoForward = gHistorySwipeAnimation.canGoForward();
     let isLTR = gHistorySwipeAnimation.isLTR;
 
-    if (canGoBack)
-      aEvent.allowedDirections |= isLTR ? aEvent.DIRECTION_LEFT :
-                                          aEvent.DIRECTION_RIGHT;
-    if (canGoForward)
-      aEvent.allowedDirections |= isLTR ? aEvent.DIRECTION_RIGHT :
-                                          aEvent.DIRECTION_LEFT;
+    if (canGoBack) {
+      aEvent.allowedDirections |= isLTR ? 
+                                  aEvent.DIRECTION_LEFT :
+                                  aEvent.DIRECTION_RIGHT;
+    }
+    if (canGoForward) {
+      aEvent.allowedDirections |= isLTR ?
+                                  aEvent.DIRECTION_RIGHT :
+                                  aEvent.DIRECTION_LEFT;
+    }
 
     return true;
   },
@@ -222,8 +226,8 @@ var gGestureSupport = {
     this._doEnd = function(aEvent) {
       gHistorySwipeAnimation.swipeEndEventReceived();
 
-      this._doUpdate = function(aEvent) {};
-      this._doEnd = function(aEvent) {};
+      this._doUpdate = function(aEvent) { };
+      this._doEnd = function(aEvent) { };
     }
   },
 
@@ -241,8 +245,9 @@ var gGestureSupport = {
     while (--num >= 0) {
       // Only select array elements where the current bit is set
       yield aArray.reduce(function(aPrev, aCurr, aIndex) {
-        if (num & 1 << aIndex)
+        if (num & 1 << aIndex) {
           aPrev.push(aCurr);
+        }
         return aPrev;
       }, []);
     }
@@ -279,8 +284,9 @@ var gGestureSupport = {
     // command for both don't exist)
     let keyCombos = [];
     ["shift", "alt", "ctrl", "meta"].forEach(function(key) {
-      if (aEvent[key + "Key"])
+      if (aEvent[key + "Key"]) {
         keyCombos.push(key);
+      }
     });
 
     // Try each combination of key presses in decreasing order for commands
@@ -291,10 +297,11 @@ var gGestureSupport = {
       let command;
       try {
         command = this._getPref(aGesture.concat(subCombo).join("."));
-      } catch (e) {}
+      } catch(e) {}
 
-      if (command)
+      if (command) {
         return command;
+      }
     }
     return null;
   },
@@ -318,8 +325,7 @@ var gGestureSupport = {
         node.dispatchEvent(cmdEvent);
       }
 
-    }
-    else {
+    } else {
       goDoCommand(aCommand);
     }
   },
@@ -331,7 +337,7 @@ var gGestureSupport = {
    * @param aEvent
    *        The continual motion update event to handle
    */
-  _doUpdate: function(aEvent) {},
+  _doUpdate: function(aEvent) { },
 
   /**
    * Handle gesture end events.  This function will be set by _setupSwipe.
@@ -339,7 +345,7 @@ var gGestureSupport = {
    * @param aEvent
    *        The gesture end event to handle
    */
-  _doEnd: function(aEvent) {},
+  _doEnd: function(aEvent) { },
 
   /**
    * Convert the swipe gesture into a browser action based on the direction.
@@ -380,13 +386,11 @@ var gGestureSupport = {
    * @param aDir
    *        The direction for the swipe event
    */
-  _coordinateSwipeEventWithAnimation:
-  function(aEvent, aDir) {
+  _coordinateSwipeEventWithAnimation: function(aEvent, aDir) {
     if ((gHistorySwipeAnimation.isAnimationRunning()) &&
         (aDir == "RIGHT" || aDir == "LEFT")) {
       gHistorySwipeAnimation.processSwipeEvent(aEvent, aDir);
-    }
-    else {
+    } else {
       this.processSwipeEvent(aEvent, aDir);
     }
   },
@@ -406,11 +410,13 @@ var gGestureSupport = {
     try {
       // Determine what type of data to load based on default value's type
       let type = typeof aDef;
-      let getFunc = "get" + (type == "boolean" ? "Bool" :
-                             type == "number" ? "Int" : "Char") + "Pref";
+      let getFunc = "get" + (type == "boolean" ? 
+                                     "Bool" :
+                                     type == "number" ?
+                                             "Int" :
+                                             "Char") + "Pref";
       return gPrefService[getFunc](branch + aPref);
-    }
-    catch (e) {
+    } catch(e) {
       return aDef;
     }
   },
@@ -422,15 +428,18 @@ var gGestureSupport = {
    *        The MozRotateGestureUpdate event triggering this call
    */
   rotate: function(aEvent) {
-    if (!(content.document instanceof ImageDocument))
+    if (!(content.document instanceof ImageDocument)) {
       return;
+    }
 
     let contentElement = content.document.body.firstElementChild;
-    if (!contentElement)
+    if (!contentElement) {
       return;
+    }
     // If we're currently snapping, cancel that snap
-    if (contentElement.classList.contains("completeRotation"))
+    if (contentElement.classList.contains("completeRotation")) {
       this._clearCompleteRotation();
+    }
 
     this.rotation = Math.round(this.rotation + aEvent.delta);
     contentElement.style.transform = "rotate(" + this.rotation + "deg)";
@@ -441,37 +450,41 @@ var gGestureSupport = {
    * Perform a rotation end for ImageDocuments
    */
   rotateEnd: function() {
-    if (!(content.document instanceof ImageDocument))
+    if (!(content.document instanceof ImageDocument)) {
       return;
+    }
 
     let contentElement = content.document.body.firstElementChild;
-    if (!contentElement)
+    if (!contentElement) {
       return;
+    }
 
     let transitionRotation = 0;
 
     // The reason that 360 is allowed here is because when rotating between
     // 315 and 360, setting rotate(0deg) will cause it to rotate the wrong
     // direction around--spinning wildly.
-    if (this.rotation <= 45)
+    if (this.rotation <= 45) {
       transitionRotation = 0;
-    else if (this.rotation > 45 && this.rotation <= 135)
+    } else if (this.rotation > 45 && this.rotation <= 135) {
       transitionRotation = 90;
-    else if (this.rotation > 135 && this.rotation <= 225)
+    } else if (this.rotation > 135 && this.rotation <= 225) {
       transitionRotation = 180;
-    else if (this.rotation > 225 && this.rotation <= 315)
+    } else if (this.rotation > 225 && this.rotation <= 315) {
       transitionRotation = 270;
-    else
+    } else {
       transitionRotation = 360;
+    }
 
     // If we're going fast enough, and we didn't already snap ahead of rotation,
     // then snap ahead of rotation to simulate momentum
     if (this._lastRotateDelta > this._rotateMomentumThreshold &&
-        this.rotation > transitionRotation)
+        this.rotation > transitionRotation) {
       transitionRotation += 90;
-    else if (this._lastRotateDelta < -1 * this._rotateMomentumThreshold &&
-             this.rotation < transitionRotation)
+    } else if (this._lastRotateDelta < -1 * this._rotateMomentumThreshold &&
+               this.rotation < transitionRotation) {
       transitionRotation -= 90;
+    }
 
     // Only add the completeRotation class if it is is necessary
     if (transitionRotation != this.rotation) {
@@ -499,8 +512,9 @@ var gGestureSupport = {
    */
   set rotation(aVal) {
     this._currentRotation = aVal % 360;
-    if (this._currentRotation < 0)
+    if (this._currentRotation < 0) {
       this._currentRotation += 360;
+    }
     return this._currentRotation;
   },
 
@@ -509,8 +523,9 @@ var gGestureSupport = {
    * image
    */
   restoreRotationState: function() {
-    if (!(content.document instanceof ImageDocument))
+    if (!(content.document instanceof ImageDocument)) {
       return;
+    }
 
     let contentElement = content.document.body.firstElementChild;
     let transformValue = content.window.getComputedStyle(contentElement, null)
@@ -538,8 +553,9 @@ var gGestureSupport = {
                          content.document instanceof ImageDocument &&
                          content.document.body &&
                          content.document.body.firstElementChild;
-    if (!contentElement)
+    if (!contentElement) {
       return;
+    }
     contentElement.classList.remove("completeRotation");
     contentElement.removeEventListener("transitionend", this._clearCompleteRotation);
   },
@@ -556,8 +572,9 @@ var gHistorySwipeAnimation = {
    * by the platform/configuration.
    */
   init: function() {
-    if (!this._isSupported())
+    if (!this._isSupported()) {
       return;
+    }
 
     this.active = false;
     this.isLTR = document.documentElement.matches(":-moz-locale-dir(ltr)");
@@ -604,8 +621,7 @@ var gHistorySwipeAnimation = {
       this._canGoBack = this.canGoBack();
       this._canGoForward = this.canGoForward();
       this._handleFastSwiping();
-    }
-    else {
+    } else {
       this._historyIndex = gBrowser.webNavigation.sessionHistory.index;
       this._canGoBack = this.canGoBack();
       this._canGoForward = this.canGoForward();
@@ -635,18 +651,22 @@ var gHistorySwipeAnimation = {
    *        swipe gesture.
    */
   updateAnimation: function(aVal) {
-    if (!this.isAnimationRunning())
+    if (!this.isAnimationRunning()) {
       return;
+    }
 
     if ((aVal >= 0 && this.isLTR) ||
         (aVal <= 0 && !this.isLTR)) {
-      if (aVal > 1)
-        aVal = 1; // Cap value to avoid sliding the page further than allowed.
+      if (aVal > 1) {
+        // Cap value to avoid sliding the page further than allowed.
+        aVal = 1;
+      }
 
-      if (this._canGoBack)
+      if (this._canGoBack) {
         this._prevBox.collapsed = false;
-      else
+      } else {
         this._prevBox.collapsed = true;
+      }
 
       // The current page is pushed to the right (LTR) or left (RTL),
       // the intention is to go back.
@@ -655,10 +675,11 @@ var gHistorySwipeAnimation = {
 
       // The forward page should be pushed offscreen all the way to the right.
       this._positionBox(this._nextBox, 1);
-    }
-    else {
-      if (aVal < -1)
-        aVal = -1; // Cap value to avoid sliding the page further than allowed.
+    } else {
+      if (aVal < -1) {
+        // Cap value to avoid sliding the page further than allowed.
+        aVal = -1;
+      }
       // The intention is to go forward. If there is a page to go forward to,
       // it should slide in from the right (LTR) or left (RTL).
       // Otherwise, the current page should slide to the left (LTR) or
@@ -670,8 +691,7 @@ var gHistorySwipeAnimation = {
         let offset = this.isLTR ? 1 : -1;
         this._positionBox(this._curBox, 0);
         this._positionBox(this._nextBox, offset + aVal); // aval is negative
-      }
-      else {
+      } else {
         this._prevBox.collapsed = true;
         this._positionBox(this._curBox, aVal);
       }
@@ -736,12 +756,13 @@ var gHistorySwipeAnimation = {
    *        The direction for the swipe event
    */
   processSwipeEvent: function(aEvent, aDir) {
-    if (aDir == "RIGHT")
+    if (aDir == "RIGHT") {
       this._historyIndex += this.isLTR ? 1 : -1;
-    else if (aDir == "LEFT")
+    } else if (aDir == "LEFT") {
       this._historyIndex += this.isLTR ? -1 : 1;
-    else
+    } else {
       return;
+    }
     this._lastSwipeDir = aDir;
   },
 
@@ -751,8 +772,9 @@ var gHistorySwipeAnimation = {
    * @return true if there is a previous page in history, false otherwise.
    */
   canGoBack: function() {
-    if (this.isAnimationRunning())
+    if (this.isAnimationRunning()) {
       return this._doesIndexExistInHistory(this._historyIndex - 1);
+    }
     return gBrowser.webNavigation.canGoBack;
   },
 
@@ -762,8 +784,9 @@ var gHistorySwipeAnimation = {
    * @return true if there is a next page in history, false otherwise.
    */
   canGoForward: function() {
-    if (this.isAnimationRunning())
+    if (this.isAnimationRunning()) {
       return this._doesIndexExistInHistory(this._historyIndex + 1);
+    }
     return gBrowser.webNavigation.canGoForward;
   },
 
@@ -773,10 +796,11 @@ var gHistorySwipeAnimation = {
    * any. This will also result in the animation overlay to be torn down.
    */
   swipeEndEventReceived: function() {
-    if (this._lastSwipeDir != "")
+    if (this._lastSwipeDir != "") {
       this._navigateToHistoryIndex();
-    else
+    } else {
       this.stopAnimation();
+    }
   },
 
   /**
@@ -789,8 +813,7 @@ var gHistorySwipeAnimation = {
   _doesIndexExistInHistory: function(aIndex) {
     try {
       gBrowser.webNavigation.sessionHistory.getEntryAtIndex(aIndex, false);
-    }
-    catch(ex) {
+    } catch(ex) {
       return false;
     }
     return true;
@@ -801,10 +824,11 @@ var gHistorySwipeAnimation = {
    * |this|.
    */
   _navigateToHistoryIndex: function() {
-    if (this._doesIndexExistInHistory(this._historyIndex))
+    if (this._doesIndexExistInHistory(this._historyIndex)) {
       gBrowser.webNavigation.gotoIndex(this._historyIndex);
-    else
+    } else {
       this.stopAnimation();
+    }
   },
 
   /**
@@ -860,8 +884,9 @@ var gHistorySwipeAnimation = {
     this._curBox = null;
     this._prevBox = null;
     this._nextBox = null;
-    if (this._container)
+    if (this._container) {
       this._container.parentNode.removeChild(this._container);
+    }
     this._container = null;
     this._boxWidth = -1;
   },
@@ -958,16 +983,16 @@ var gHistorySwipeAnimation = {
    * @param aCanvas
    *        The snapshot to add to the list and compress.
    */
-  _assignSnapshotToCurrentBrowser:
-  function(aCanvas) {
+  _assignSnapshotToCurrentBrowser: function(aCanvas) {
     let browser = gBrowser.selectedBrowser;
     let currIndex = browser.webNavigation.sessionHistory.index;
 
     this._removeTrackedSnapshot(currIndex, browser);
     this._addSnapshotRefToArray(currIndex, browser);
 
-    if (!("snapshots" in browser))
+    if (!("snapshots" in browser)) {
       browser.snapshots = [];
+    }
     let snapshots = browser.snapshots;
     // Temporarily store the canvas as the compressed snapshot.
     // This avoids a blank page if the user swipes quickly
@@ -1024,10 +1049,13 @@ var gHistorySwipeAnimation = {
           (aIndex < 0 || aIndex == arr[i].index)) {
         delete aBrowser.snapshots[arr[i].index];
         arr.splice(i, 1);
-        if (requiresExactIndexMatch)
-          return; // Found and removed the only element.
-        i--; // Make sure to revisit the index that we just removed an
-             // element at.
+        if (requiresExactIndexMatch) {
+          // Found and removed the only element.
+          return;
+        }
+        // Make sure to revisit the index that we just removed an
+        // element at.
+        i--;
       }
     }
   },
@@ -1041,8 +1069,7 @@ var gHistorySwipeAnimation = {
    * @param aBrowser
    *        The browser the new snapshot was taken in.
    */
-  _addSnapshotRefToArray:
-  function(aIndex, aBrowser) {
+  _addSnapshotRefToArray: function(aIndex, aBrowser) {
     let id = { index: aIndex,
                browser: aBrowser };
     let arr = this._trackedSnapshots;
@@ -1067,12 +1094,14 @@ var gHistorySwipeAnimation = {
    * @return A new Image object representing the converted blob.
    */
   _convertToImg: function(aBlob) {
-    if (!aBlob)
+    if (!aBlob) {
       return null;
+    }
 
     // Return aBlob if it's still a canvas and not a compressed blob yet.
-    if (aBlob instanceof HTMLCanvasElement)
+    if (aBlob instanceof HTMLCanvasElement) {
       return aBlob;
+    }
 
     let img = new Image();
     let url = "";
@@ -1081,8 +1110,7 @@ var gHistorySwipeAnimation = {
       img.onload = function() {
         URL.revokeObjectURL(url);
       };
-    }
-    finally {
+    } finally {
       img.src = url;
       return img;
     }
@@ -1122,50 +1150,42 @@ var gHistorySwipeAnimation = {
    *        The snapshot to set the current page to. If this parameter is null,
    *        the previously stored snapshot for this index (if any) will be used.
    */
-  _installCurrentPageSnapshot:
-  function(aCanvas) {
+  _installCurrentPageSnapshot: function(aCanvas) {
     let currSnapshot = aCanvas;
     let scale = window.devicePixelRatio;
     if (!currSnapshot) {
-      let snapshots = gBrowser.selectedBrowser.snapshots || {};
+      let snapshots = gBrowser.selectedBrowser.snapshots || { };
       let currIndex = this._historyIndex;
       if (currIndex in snapshots) {
         currSnapshot = this._convertToImg(snapshots[currIndex].image);
         scale = snapshots[currIndex].scale;
       }
     }
-    this._scaleSnapshot(currSnapshot, scale, this._curBox ? this._curBox :
-                                                            null);
-    document.mozSetImageElement("historySwipeAnimationCurrentPageSnapshot",
-                                  currSnapshot);
+    this._scaleSnapshot(currSnapshot, scale, this._curBox ? this._curBox : null);
+    document.mozSetImageElement("historySwipeAnimationCurrentPageSnapshot", currSnapshot);
   },
 
   /**
    * Sets the snapshots of the previous and next pages to the snapshots
    * previously stored for their respective indeces.
    */
-  _installPrevAndNextSnapshots:
-  function() {
+  _installPrevAndNextSnapshots: function() {
     let snapshots = gBrowser.selectedBrowser.snapshots || [];
     let currIndex = this._historyIndex;
     let prevIndex = currIndex - 1;
     let prevSnapshot = null;
     if (prevIndex in snapshots) {
       prevSnapshot = this._convertToImg(snapshots[prevIndex].image);
-      this._scaleSnapshot(prevSnapshot, snapshots[prevIndex].scale,
-                          this._prevBox);
+      this._scaleSnapshot(prevSnapshot, snapshots[prevIndex].scale, this._prevBox);
     }
-    document.mozSetImageElement("historySwipeAnimationPreviousPageSnapshot",
-                                prevSnapshot);
+    document.mozSetImageElement("historySwipeAnimationPreviousPageSnapshot", prevSnapshot);
 
     let nextIndex = currIndex + 1;
     let nextSnapshot = null;
     if (nextIndex in snapshots) {
       nextSnapshot = this._convertToImg(snapshots[nextIndex].image);
-      this._scaleSnapshot(nextSnapshot, snapshots[nextIndex].scale,
-                          this._nextBox);
+      this._scaleSnapshot(nextSnapshot, snapshots[nextIndex].scale, this._nextBox);
     }
-    document.mozSetImageElement("historySwipeAnimationNextPageSnapshot",
-                                nextSnapshot);
+    document.mozSetImageElement("historySwipeAnimationNextPageSnapshot", nextSnapshot);
   },
 };

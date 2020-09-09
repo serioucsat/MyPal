@@ -72,10 +72,12 @@ const BOOKMARKS_BACKUP_MAX_BACKUPS = 10;
 const BrowserGlueServiceFactory = {
   _instance: null,
   createInstance: function(outer, iid) {
-    if (outer != null)
+    if (outer != null) {
       throw Components.results.NS_ERROR_NO_AGGREGATION;
+    }
     return this._instance == null ?
-      this._instance = new BrowserGlue() : this._instance;
+           this._instance = new BrowserGlue() :
+           this._instance;
   }
 };
 
@@ -117,8 +119,9 @@ BrowserGlue.prototype = {
   _migrationImportsDefaultBookmarks: false,
 
   _setPrefToSaveSession: function(aForce) {
-    if (!this._saveSession && !aForce)
+    if (!this._saveSession && !aForce) {
       return;
+    }
 
     Services.prefs.setBoolPref("browser.sessionstore.resume_session_once", true);
 
@@ -134,8 +137,9 @@ BrowserGlue.prototype = {
     if (Services.prefs.prefHasUserValue("services.sync.autoconnectDelay")) {
       let prefDelay = Services.prefs.getIntPref("services.sync.autoconnectDelay");
 
-      if (prefDelay > 0)
+      if (prefDelay > 0) {
         return;
+      }
     }
 
     // delays are in seconds
@@ -187,7 +191,7 @@ BrowserGlue.prototype = {
           let appStartup = Cc["@mozilla.org/toolkit/app-startup;1"].
                            getService(Ci.nsIAppStartup);
           appStartup.trackStartupCrashEnd();
-        } catch (e) {
+        } catch(e) {
           Cu.reportError("Could not end startup crash tracking in quit-application-granted: " + e);
         }
         DateTimePickerHelper.uninit();
@@ -216,8 +220,9 @@ BrowserGlue.prototype = {
         subject.data = true;
         break;
       case "places-init-complete":
-        if (!this._migrationImportsDefaultBookmarks)
+        if (!this._migrationImportsDefaultBookmarks) {
           this._initPlaces(false);
+        }
 
         Services.obs.removeObserver(this, "places-init-complete");
         this._isPlacesInitObserver = false;
@@ -252,18 +257,16 @@ BrowserGlue.prototype = {
         break;
       case "browser-glue-test": // used by tests
         if (data == "post-update-notification") {
-          if (Services.prefs.prefHasUserValue("app.update.postupdate"))
+          if (Services.prefs.prefHasUserValue("app.update.postupdate")) {
             this._showUpdateNotification();
-        }
-        else if (data == "force-ui-migration") {
+          }
+        } else if (data == "force-ui-migration") {
           this._migrateUI();
-        }
-        else if (data == "force-distribution-customization") {
+        } else if (data == "force-distribution-customization") {
           this._distributionCustomizer.applyPrefDefaults();
           this._distributionCustomizer.applyCustomizations();
           // To apply distribution bookmarks use "places-init-complete".
-        }
-        else if (data == "force-places-init") {
+        } else if (data == "force-places-init") {
           this._initPlaces(false);
         }
         break;
@@ -299,16 +302,19 @@ BrowserGlue.prototype = {
         // No need to initialize the search service, since it's guaranteed to be
         // initialized already when this notification fires.
         let ss = Services.search;
-        if (ss.currentEngine.name == ss.defaultEngine.name)
+        if (ss.currentEngine.name == ss.defaultEngine.name) {
           return;
-        if (data == "engine-current")
+        }
+        if (data == "engine-current") {
           ss.defaultEngine = ss.currentEngine;
-        else
+        } else {
           ss.currentEngine = ss.defaultEngine;
+        }
         break;
       case "browser-search-service":
-        if (data != "init-complete")
+        if (data != "init-complete") {
           return;
+        }
         Services.obs.removeObserver(this, "browser-search-service");
         this._syncSearchEngines();
         break;
@@ -377,21 +383,26 @@ BrowserGlue.prototype = {
     os.removeObserver(this, "weave:engine:clients:display-uri");
 #endif
     os.removeObserver(this, "session-save");
-    if (this._isIdleObserver)
+    if (this._isIdleObserver) {
       this._idleService.removeIdleObserver(this, BOOKMARKS_BACKUP_IDLE_TIME);
-    if (this._isPlacesInitObserver)
+    }
+    if (this._isPlacesInitObserver) {
       os.removeObserver(this, "places-init-complete");
-    if (this._isPlacesLockedObserver)
+    }
+    if (this._isPlacesLockedObserver) {
       os.removeObserver(this, "places-database-locked");
-    if (this._isPlacesShutdownObserver)
+    }
+    if (this._isPlacesShutdownObserver) {
       os.removeObserver(this, "places-shutdown");
+    }
     os.removeObserver(this, "handle-xul-text-link");
     os.removeObserver(this, "profile-before-change");
     os.removeObserver(this, "browser-search-engine-modified");
     try {
       os.removeObserver(this, "browser-search-service");
+    } catch(ex) {
       // may have already been removed by the observer
-    } catch (ex) {}
+    }
   },
 
   _onAppDefaults: function() {
@@ -444,9 +455,12 @@ BrowserGlue.prototype = {
         let cookies;
         try {
           cookies = aHttpChannel.getRequestHeader("Cookie");
-        } catch (e) { /* no cookie sent */ }
-        if (cookies && cookies.indexOf("MoodleSession") > -1)
+        } catch(e) {
+          // no cookie sent
+        }
+        if (cookies && cookies.indexOf("MoodleSession") > -1) {
           return aOriginalUA.replace(/Goanna\/[^ ]*/, "Goanna/20100101");
+        }
         return null;
       });
     }
@@ -454,8 +468,9 @@ BrowserGlue.prototype = {
 
   _trackSlowStartup: function() {
     if (Services.startup.interrupted ||
-        Services.prefs.getBoolPref("browser.slowStartup.notificationDisabled"))
+        Services.prefs.getBoolPref("browser.slowStartup.notificationDisabled")) {
       return;
+    }
 
     let currentTime = Date.now() - Services.startup.getStartupInfo().process;
     let averageTime = 0;
@@ -463,13 +478,14 @@ BrowserGlue.prototype = {
     try {
       averageTime = Services.prefs.getIntPref("browser.slowStartup.averageTime");
       samples = Services.prefs.getIntPref("browser.slowStartup.samples");
-    } catch (e) { }
+    } catch(e) {}
 
     averageTime = (averageTime * samples + currentTime) / ++samples;
 
     if (samples >= Services.prefs.getIntPref("browser.slowStartup.maxSamples")) {
-      if (averageTime > Services.prefs.getIntPref("browser.slowStartup.timeThreshold"))
+      if (averageTime > Services.prefs.getIntPref("browser.slowStartup.timeThreshold")) {
         this._showSlowStartupNotification();
+      }
       averageTime = 0;
       samples = 0;
     }
@@ -480,8 +496,9 @@ BrowserGlue.prototype = {
 
   _showSlowStartupNotification: function() {
     let win = this.getMostRecentBrowserWindow();
-    if (!win)
+    if (!win) {
       return;
+    }
 
     let productName = gBrandBundle.GetStringFromName("brandFullName");
     let message = win.gNavigatorBundle.getFormattedString("slowStartup.message", [productName]);
@@ -512,7 +529,7 @@ BrowserGlue.prototype = {
   // the first browser window has finished initializing
   _onFirstWindowLoaded: function() {
 #ifdef XP_WIN
-    // For windows seven, initialize the jump list module.
+    // For Windows, initialize the jump list module.
     const WINTASKBAR_CONTRACTID = "@mozilla.org/windows-taskbar;1";
     if (WINTASKBAR_CONTRACTID in Cc &&
         Cc[WINTASKBAR_CONTRACTID].getService(Ci.nsIWinTaskbar).available) {
@@ -546,8 +563,9 @@ BrowserGlue.prototype = {
   // All initial windows have opened.
   _onWindowsRestored: function() {
     // Show update notification, if needed.
-    if (Services.prefs.prefHasUserValue("app.update.postupdate"))
+    if (Services.prefs.prefHasUserValue("app.update.postupdate")) {
       this._showUpdateNotification();
+    }
 
     // Load the "more info" page for a locked places.sqlite
     // This property is set earlier by places-database-locked topic.
@@ -563,8 +581,9 @@ BrowserGlue.prototype = {
       AddonManager.getAddonsByIDs(changedIDs, function(aAddons) {
         aAddons.forEach(function(aAddon) {
           // If the add-on isn't user disabled or can't be enabled then skip it.
-          if (!aAddon.userDisabled || !(aAddon.permissions & AddonManager.PERM_CAN_ENABLE))
+          if (!aAddon.userDisabled || !(aAddon.permissions & AddonManager.PERM_CAN_ENABLE)) {
             return;
+          }
 
           win.openUILinkIn("about:newaddon?id=" + aAddon.id, "tab");
         })
@@ -589,15 +608,16 @@ BrowserGlue.prototype = {
                  getService(Ci.nsISessionStartup);
         willRecoverSession =
           (ss.sessionType == Ci.nsISessionStartup.RECOVER_SESSION);
+      } catch(ex) {
+        // never mind; suppose SessionStore is broken
       }
-      catch (ex) { /* never mind; suppose SessionStore is broken */ }
 
       // startup check, check all assoc
       let isDefault = false;
       let isDefaultError = false;
       try {
         isDefault = ShellService.isDefaultBrowser(true, false);
-      } catch (ex) {
+      } catch(ex) {
         isDefaultError = true;
       }
 
@@ -639,7 +659,7 @@ BrowserGlue.prototype = {
               // Windows 8 is version 6.2.
               let version = Services.sysinfo.getProperty("version");
               claimAllTypes = (parseFloat(version) < 6.2);
-            } catch (ex) { }
+            } catch (ex) {}
 #endif
             ShellService.setDefaultBrowser(claimAllTypes, false);
           }
@@ -651,8 +671,9 @@ BrowserGlue.prototype = {
 
   _onQuitRequest: function(aCancelQuit, aQuitType) {
     // If user has already dismissed quit request, then do nothing
-    if ((aCancelQuit instanceof Ci.nsISupportsPRBool) && aCancelQuit.data)
+    if ((aCancelQuit instanceof Ci.nsISupportsPRBool) && aCancelQuit.data) {
       return;
+    }
 
     // There are several cases where we won't show a dialog here:
     // 1. There is only 1 tab open in 1 window
@@ -672,8 +693,9 @@ BrowserGlue.prototype = {
     // "the last window is closing but we're not quitting (a non-browser window is open)"
     // and also "we're quitting by closing the last window".
 
-    if (aQuitType == "restart")
+    if (aQuitType == "restart") {
       return;
+    }
 
     var windowcount = 0;
     var pagecount = 0;
@@ -683,17 +705,20 @@ BrowserGlue.prototype = {
       windowcount++;
 
       var browser = browserEnum.getNext();
-      if (!PrivateBrowsingUtils.isWindowPrivate(browser))
+      if (!PrivateBrowsingUtils.isWindowPrivate(browser)) {
         allWindowsPrivate = false;
+      }
       var tabbrowser = browser.document.getElementById("content");
-      if (tabbrowser)
+      if (tabbrowser) {
         pagecount += tabbrowser.browsers.length - tabbrowser._numPinnedTabs;
+      }
     }
 
     this._saveSession = false;
 
-    if (!aQuitType)
+    if (!aQuitType) {
       aQuitType = "quit";
+    }
 
     // browser.warnOnQuit is a hidden global boolean to override all quit prompts
     // browser.showQuitWarning specifically covers quitting
@@ -701,8 +726,9 @@ BrowserGlue.prototype = {
 
     var sessionWillBeRestored = Services.prefs.getIntPref("browser.startup.page") == 3 ||
                                 Services.prefs.getBoolPref("browser.sessionstore.resume_session_once");
-    if (sessionWillBeRestored || !Services.prefs.getBoolPref("browser.warnOnQuit"))
+    if (sessionWillBeRestored || !Services.prefs.getBoolPref("browser.warnOnQuit")) {
       return;
+    }
 
     let win = Services.wm.getMostRecentWindow("navigator:browser");
 
@@ -761,21 +787,22 @@ BrowserGlue.prototype = {
     }
 
     switch (choice) {
-    case 2: // Quit
-      if (neverAsk.value)
-        Services.prefs.setBoolPref("browser.showQuitWarning", false);
-      break;
-    case 1: // Cancel
-      aCancelQuit.QueryInterface(Ci.nsISupportsPRBool);
-      aCancelQuit.data = true;
-      break;
-    case 0: // Save & Quit
-      this._saveSession = true;
-      if (neverAsk.value) {
-        // always save state when shutting down
-        Services.prefs.setIntPref("browser.startup.page", 3);
-      }
-      break;
+      case 2: // Quit
+        if (neverAsk.value) {
+          Services.prefs.setBoolPref("browser.showQuitWarning", false);
+        }
+        break;
+      case 1: // Cancel
+        aCancelQuit.QueryInterface(Ci.nsISupportsPRBool);
+        aCancelQuit.data = true;
+        break;
+      case 0: // Save & Quit
+        this._saveSession = true;
+        if (neverAsk.value) {
+          // always save state when shutting down
+          Services.prefs.setIntPref("browser.startup.page", 3);
+        }
+        break;
     }
   },
 
@@ -787,32 +814,33 @@ BrowserGlue.prototype = {
     try {
       // If the updates.xml file is deleted then getUpdateAt will throw.
       var update = um.getUpdateAt(0).QueryInterface(Ci.nsIPropertyBag);
-    }
-    catch (e) {
+    } catch(e) {
       // This should never happen.
       Cu.reportError("Unable to find update: " + e);
       return;
     }
 
     var actions = update.getProperty("actions");
-    if (!actions || actions.indexOf("silent") != -1)
+    if (!actions || actions.indexOf("silent") != -1) {
       return;
+    }
 
-    var formatter = Cc["@mozilla.org/toolkit/URLFormatterService;1"].
-                    getService(Ci.nsIURLFormatter);
+    var formatter = Cc["@mozilla.org/toolkit/URLFormatterService;1"]
+                      .getService(Ci.nsIURLFormatter);
     var appName = gBrandBundle.GetStringFromName("brandShortName");
 
     function getNotifyString(aPropData) {
       var propValue = update.getProperty(aPropData.propName);
       if (!propValue) {
-        if (aPropData.prefName)
+        if (aPropData.prefName) {
           propValue = formatter.formatURLPref(aPropData.prefName);
-        else if (aPropData.stringParams)
+        } else if (aPropData.stringParams) {
           propValue = gBrowserBundle.formatStringFromName(aPropData.stringName,
                                                           aPropData.stringParams,
                                                           aPropData.stringParams.length);
-        else
+        } else {
           propValue = gBrowserBundle.GetStringFromName(aPropData.stringName);
+        }
       }
       return propValue;
     }
@@ -848,23 +876,25 @@ BrowserGlue.prototype = {
       notification.persistence = -1; // Until user closes it
     }
 
-    if (actions.indexOf("showAlert") == -1)
+    if (actions.indexOf("showAlert") == -1) {
       return;
+    }
 
-    let title = getNotifyString({propName: "alertTitle",
-                                 stringName: "puAlertTitle",
-                                 stringParams: [appName]});
-    let text = getNotifyString({propName: "alertText",
-                                stringName: "puAlertText",
-                                stringParams: [appName]});
-    let url = getNotifyString({propName: "alertURL",
-                               prefName: "startup.homepage_override_url"});
+    let title = getNotifyString({ propName: "alertTitle",
+                                  stringName: "puAlertTitle",
+                                  stringParams: [appName] });
+    let text = getNotifyString({ propName: "alertText",
+                                 stringName: "puAlertText",
+                                 stringParams: [appName] });
+    let url = getNotifyString({ propName: "alertURL",
+                                prefName: "startup.homepage_override_url" });
 
     var self = this;
     function clickCallback(subject, topic, data) {
       // This callback will be called twice but only once with this topic
-      if (topic != "alertclickcallback")
+      if (topic != "alertclickcallback") {
         return;
+      }
       let win = self.getMostRecentBrowserWindow();
       win.openUILinkIn(data, "tab");
     }
@@ -874,8 +904,7 @@ BrowserGlue.prototype = {
       // be displayed per the idl.
       AlertsService.showAlertNotification(null, title, text,
                                           true, url, clickCallback);
-    }
-    catch (e) {
+    } catch(e) {
       Cu.reportError(e);
     }
   },
@@ -958,15 +987,13 @@ BrowserGlue.prototype = {
           // restore from JSON/JSONLZ4 backup
           yield BookmarkJSONUtils.importFromFile(bookmarksBackupFile, true);
           importBookmarks = false;
-        }
-        else {
+        } else {
           // We have created a new database but we don't have any backup available
           importBookmarks = true;
           if (yield OS.File.exists(BookmarkHTMLUtils.defaultPath)) {
             // If bookmarks.html is available in current profile import it...
             importBookmarksHTML = true;
-          }
-          else {
+          } else {
             // ...otherwise we will restore defaults
             restoreDefaultBookmarks = true;
           }
@@ -984,35 +1011,34 @@ BrowserGlue.prototype = {
         try {
           this._distributionCustomizer.applyBookmarks();
           this.ensurePlacesDefaultQueriesInitialized();
-        } catch (e) {
+        } catch(e) {
           Cu.reportError(e);
         }
-      }
-      else {
+      } else {
         // An import operation is about to run.
         // Don't try to recreate smart bookmarks if autoExportHTML is true or
         // smart bookmarks are disabled.
         var autoExportHTML = Services.prefs.getBoolPref("browser.bookmarks.autoExportHTML", false);
         var smartBookmarksVersion = Services.prefs.getIntPref("browser.places.smartBookmarksVersion", 0);
-        if (!autoExportHTML && smartBookmarksVersion != -1)
+        if (!autoExportHTML && smartBookmarksVersion != -1) {
           Services.prefs.setIntPref("browser.places.smartBookmarksVersion", 0);
+        }
 
         var bookmarksUrl = null;
         if (restoreDefaultBookmarks) {
           // User wants to restore bookmarks.html file from default profile folder
           bookmarksUrl = "resource:///defaults/profile/bookmarks.html";
-        }
-        else if (yield OS.File.exists(BookmarkHTMLUtils.defaultPath)) {
+        } else if (yield OS.File.exists(BookmarkHTMLUtils.defaultPath)) {
           bookmarksUrl = OS.Path.toFileURI(BookmarkHTMLUtils.defaultPath);
         }
 
         if (bookmarksUrl) {
           // Import from bookmarks.html file.
           try {
-            BookmarkHTMLUtils.importFromURL(bookmarksUrl, true).then(null,
+            BookmarkHTMLUtils.importFromURL(bookmarksUrl, true).then(
+              null,
               function onFailure() {
-                Cu.reportError(
-                    new Error("Bookmarks.html file could be corrupt."));
+                Cu.reportError(new Error("Bookmarks.html file could be corrupt."));
               }
             ).then(
               function onComplete() {
@@ -1023,18 +1049,17 @@ BrowserGlue.prototype = {
                   // Ensure that smart bookmarks are created once the operation
                   // is complete.
                   this.ensurePlacesDefaultQueriesInitialized();
-                } catch (e) {
+                } catch(e) {
                   Cu.reportError(e);
                 }
               }.bind(this)
             );
-          } catch (e) {
+          } catch(e) {
             Cu.reportError(
                 new Error("Bookmarks.html file could be corrupt." + "\n" +
                 e.message));
           }
-        }
-        else {
+        } else {
           Cu.reportError(new Error("Unable to find bookmarks.html file."));
         }
 
@@ -1144,10 +1169,12 @@ BrowserGlue.prototype = {
         let maxBackups = BOOKMARKS_BACKUP_MAX_BACKUPS;
         try {
           maxBackups = Services.prefs.getIntPref("browser.bookmarks.max_backups");
+        } catch(ex) {
+          // Use default.
         }
-        catch(ex) { /* Use default. */ }
 
-        yield PlacesBackups.create(maxBackups); // Don't force creation.
+        // Don't force creation.
+        yield PlacesBackups.create(maxBackups);
       }
     });
   },
@@ -1164,9 +1191,9 @@ BrowserGlue.prototype = {
     var accessKey = placesBundle.GetStringFromName("lockPromptInfoButton.accessKey");
 
     var helpTopic = "places-locked";
-    var url = Cc["@mozilla.org/toolkit/URLFormatterService;1"].
-              getService(Components.interfaces.nsIURLFormatter).
-              formatURLPref("app.support.baseURL");
+    var url = Cc["@mozilla.org/toolkit/URLFormatterService;1"]
+                .getService(Components.interfaces.nsIURLFormatter)
+                .formatURLPref("app.support.baseURL");
     url += helpTopic;
 
     var win = this.getMostRecentBrowserWindow();
@@ -1196,8 +1223,9 @@ BrowserGlue.prototype = {
     try {
       currentUIVersion = Services.prefs.getIntPref("browser.migration.version");
     } catch(ex) {}
-    if (currentUIVersion >= UI_VERSION)
+    if (currentUIVersion >= UI_VERSION) {
       return;
+    }
 
     this._rdf = Cc["@mozilla.org/rdf/rdf-service;1"].getService(Ci.nsIRDFService);
     this._dataSource = this._rdf.GetDataSource("rdf:local-store");
@@ -1414,8 +1442,7 @@ BrowserGlue.prototype = {
         } else if (ihaValue.includes("image/jxr")) {
           Services.prefs.clearUserPref(ihaPref);
         }
-      }
-      catch (ex) {}
+      } catch(ex) {}
     }
 #endif
 
@@ -1471,8 +1498,9 @@ BrowserGlue.prototype = {
       return;
     }
     function clickCallback(subject, topic, data) {
-      if (topic != "alertclickcallback")
+      if (topic != "alertclickcallback") {
         return;
+      }
       let win = RecentWindow.getMostRecentBrowserWindow();
       win.openUILinkIn(data, "tab");
     }
@@ -1487,8 +1515,7 @@ BrowserGlue.prototype = {
     try {
       AlertsService.showAlertNotification(imageURL, title, text,
                                           true, url, clickCallback);
-    }
-    catch (e) {
+    } catch(e) {
       Cu.reportError(e);
     }
   },
@@ -1498,8 +1525,7 @@ BrowserGlue.prototype = {
     var url = "about:permissions";
     try {
       url = url + "?filter=" + aPrincipal.URI.host;
-    }
-    catch (e) {}
+    } catch(e) {}
     win.openUILinkIn(url, "tab");
   },
 
@@ -1507,14 +1533,15 @@ BrowserGlue.prototype = {
     try {
       return !!Cc["@mozilla.org/system-alerts-service;1"].getService(
         Ci.nsIAlertsService);
-    } catch (e) {}
+    } catch(e) {}
     return false;
   },
 
   _getPersist: function(aSource, aProperty) {
     var target = this._dataSource.GetTarget(aSource, aProperty, true);
-    if (target instanceof Ci.nsIRDFLiteral)
+    if (target instanceof Ci.nsIRDFLiteral) {
       return target.Value;
+    }
     return null;
   },
 
@@ -1523,12 +1550,12 @@ BrowserGlue.prototype = {
     try {
       var oldTarget = this._dataSource.GetTarget(aSource, aProperty, true);
       if (oldTarget) {
-        if (aTarget)
+        if (aTarget) {
           this._dataSource.Change(aSource, aProperty, oldTarget, this._rdf.GetLiteral(aTarget));
-        else
+        } else {
           this._dataSource.Unassert(aSource, aProperty, oldTarget);
-      }
-      else {
+        }
+      } else {
         this._dataSource.Assert(aSource, aProperty, this._rdf.GetLiteral(aTarget), true);
       }
 
@@ -1540,8 +1567,7 @@ BrowserGlue.prototype = {
       if (!this._dataSource.HasAssertion(docResource, persistResource, aSource, true)) {
         this._dataSource.Assert(docResource, persistResource, aSource, true);
       }
-    }
-    catch(ex) {}
+    } catch(ex) {}
   },
 
   // ------------------------------
@@ -1643,9 +1669,8 @@ BrowserGlue.prototype = {
             smartBookmark.itemId = itemId;
             smartBookmark.parent = PlacesUtils.bookmarks.getFolderIdForItem(itemId);
             smartBookmark.position = PlacesUtils.bookmarks.getItemIndex(itemId);
-          }
-          else {
-            // We don't remove old Smart Bookmarks because user could still
+          } else {
+            // We don't remove old Smart Bookmarks because the user could still
             // find them useful, or could have personalized them.
             // Instead we remove the Smart Bookmark annotation.
             PlacesUtils.annotations.removeItemAnnotation(itemId, SMART_BOOKMARKS_ANNO);
@@ -1660,8 +1685,9 @@ BrowserGlue.prototype = {
           // bookmark if it has been removed.
           if (smartBookmarksCurrentVersion > 0 &&
               smartBookmark.newInVersion <= smartBookmarksCurrentVersion &&
-              !smartBookmark.itemId)
+              !smartBookmark.itemId) {
             continue;
+          }
 
           // Remove old version of the smart bookmark if it exists, since it
           // will be replaced in place.
@@ -1699,11 +1725,9 @@ BrowserGlue.prototype = {
 
     try {
       PlacesUtils.bookmarks.runInBatchMode(batch, null);
-    }
-    catch(ex) {
+    } catch(ex) {
       Components.utils.reportError(ex);
-    }
-    finally {
+    } finally {
       Services.prefs.setIntPref(SMART_BOOKMARKS_PREF, SMART_BOOKMARKS_VERSION);
       Services.prefs.savePrefFile(null);
     }
@@ -1732,7 +1756,7 @@ BrowserGlue.prototype = {
 
       // The payload is wrapped weirdly because of how Sync does notifications.
       tabbrowser.addTab(data.wrappedJSObject.object.uri);
-    } catch (ex) {
+    } catch(ex) {
       Cu.reportError("Error displaying tab received by Sync: " + ex);
     }
   },
@@ -1750,7 +1774,6 @@ BrowserGlue.prototype = {
 }
 
 function ContentPermissionPrompt() {}
-
 ContentPermissionPrompt.prototype = {
   classID:          Components.ID("{d8903bf6-68d5-4e97-bcd1-e4d3012f721a}"),
 
@@ -1793,7 +1816,7 @@ ContentPermissionPrompt.prototype = {
    * @param aOptions               Options for the PopupNotification
    */
   _showPrompt: function(aRequest, aMessage, aPermission, aActions,
-                                       aNotificationId, aAnchorId, aOptions) {
+                        aNotificationId, aAnchorId, aOptions) {
     function onFullScreen() {
       popup.remove();
     }
@@ -1856,8 +1879,9 @@ ContentPermissionPrompt.prototype = {
       // If there's no mainAction, this is the autoAllow warning prompt.
       let autoAllow = !mainAction;
 
-      if (!aOptions)
+      if (!aOptions) {
         aOptions = {};
+      }
 
       aOptions.removeOnDismissal = autoAllow;
       aOptions.eventCallback = type => {
@@ -1888,14 +1912,13 @@ ContentPermissionPrompt.prototype = {
     var message;
 
     // Share location action.
-    var actions = [{
-      stringId: "geolocation.shareLocation",
-      action: null,
-      expireType: null,
-      callback: function() {
-        // Telemetry stub (left here for safety and compatibility reasons)
-      },
-    }];
+    var actions = [{ stringId: "geolocation.shareLocation",
+                     action: null,
+                     expireType: null,
+                     callback: function() {
+                       // Telemetry stub (left here for safety and compatibility reasons)
+                     }
+                  }];
 
     if (requestingURI.schemeIs("file")) {
       message = gBrowserBundle.formatStringFromName("geolocation.shareWithFile",
@@ -1910,7 +1933,7 @@ ContentPermissionPrompt.prototype = {
         expireType: null,
         callback: function() {
           // Telemetry stub (left here for safety and compatibility reasons)
-        },
+        }
       });
 
       // Never share location action.
@@ -1920,13 +1943,11 @@ ContentPermissionPrompt.prototype = {
         expireType: null,
         callback: function() {
           // Telemetry stub (left here for safety and compatibility reasons)
-        },
+        }
       });
     }
 
-    var options = {
-                    learnMoreURL: Services.urlFormatter.formatURLPref("browser.geolocation.warning.infoURL"),
-                  };
+    var options = { learnMoreURL: Services.urlFormatter.formatURLPref("browser.geolocation.warning.infoURL") };
 
     this._showPrompt(aRequest, message, "geo", actions, "geolocation",
                      "geo-notification-icon", options);
@@ -1950,7 +1971,7 @@ ContentPermissionPrompt.prototype = {
           action: Ci.nsIPermissionManager.ALLOW_ACTION,
           expireType: Ci.nsIPermissionManager.EXPIRE_SESSION,
           callback: function() {},
-        },
+        }
       ];
     } else {
       actions = [
@@ -1971,7 +1992,7 @@ ContentPermissionPrompt.prototype = {
           action: Ci.nsIPermissionManager.DENY_ACTION,
           expireType: null,
           callback: function() {},
-        },
+        }
       ];
     }
     var options = {
@@ -2012,7 +2033,7 @@ ContentPermissionPrompt.prototype = {
           action: Ci.nsIPermissionManager.DENY_ACTION,
           expireType: null,
           callback: function() {},
-        },
+        }
       ];
     }
 
@@ -2076,9 +2097,8 @@ ContentPermissionPrompt.prototype = {
         this._promptPointerLock(request, autoAllow);
         break;
     }
-  },
-
-};
+  }
+}; // ContentPermissionPrompt
 
 var components = [BrowserGlue, ContentPermissionPrompt];
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory(components);
