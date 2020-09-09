@@ -3732,12 +3732,6 @@ toolbar[brighttext] #addonbar-closebutton {
 
 @media not all and (-moz-windows-compositor) {
   @media (-moz-windows-default-theme) {
-    #main-window {
-      background-color: rgb(185,209,234);
-    }
-    #main-window:-moz-window-inactive {
-      background-color: rgb(215,228,242);
-    }
 
     #toolbar-menubar:not([autohide=true]):not(:-moz-lwtheme),
     #TabsToolbar[tabsontop=true]:not(:-moz-lwtheme),
