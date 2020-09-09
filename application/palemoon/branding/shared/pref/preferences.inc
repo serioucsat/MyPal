@@ -11,7 +11,7 @@ pref("browser.identity.ssl_domain_display", 1); //show domain verified SSL (blue
 
 // ===| Application Update Service |===========================================
 
-pref("app.update.url", "https://aus.palemoon.org/?application=%PRODUCT%&version=%VERSION%&arch=%BUILD_TARGET%&buildid=%BUILD_ID%&channel=%CHANNEL%");
+pref("app.update.url", "");
 
 // The time interval between the downloading of mar file chunks in the
 // background (in seconds)
@@ -25,7 +25,7 @@ pref("app.update.promptWaitTime", 172800);
 // ===| Add-ons Manager |======================================================
 
 // Add-on window fixes
-pref("extensions.getMoreThemesURL", "https://addons.palemoon.org/themes/");
+pref("extensions.getMoreThemesURL", "");
 
 pref("extensions.update.autoUpdateDefault", true); // Automatically update extensions by default
 pref("extensions.getAddons.maxResults", 10);
@@ -65,12 +65,12 @@ pref("image.mem.decode_bytes_at_a_time", 65536); //larger chunks
 // ===| Sync |=================================================================
 
 // Pale Moon Sync server URLs
-pref("services.sync.serverURL","https://pmsync.palemoon.org/sync/index.php/");
-pref("services.sync.jpake.serverURL","https://keyserver.palemoon.org/");
-pref("services.sync.termsURL", "http://www.palemoon.org/sync/terms.shtml");
-pref("services.sync.privacyURL", "http://www.palemoon.org/sync/privacy.shtml");
-pref("services.sync.statusURL", "https://pmsync.palemoon.org/status/");
-pref("services.sync.syncKeyHelpURL", "http://www.palemoon.org/sync/help/recoverykey.shtml");
+pref("services.sync.serverURL","");
+pref("services.sync.jpake.serverURL","");
+pref("services.sync.termsURL", "");
+pref("services.sync.privacyURL", "");
+pref("services.sync.statusURL", "");
+pref("services.sync.syncKeyHelpURL", "");
 
 pref("services.sync.APILevel", 1); // FSyncMS doesn't support 'info/configuration' requests
 

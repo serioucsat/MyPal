@@ -1400,19 +1400,6 @@ BrowserGlue.prototype = {
       }
     }
 
-    if (currentUIVersion < 16) {
-      // Migrate Sync from pmsync.palemoon.net to pmsync.palemoon.org
-      try {
-        let syncURL = Services.prefs.getCharPref("services.sync.clusterURL");
-        let newSyncURL = syncURL.replace(/pmsync\.palemoon\.net/i,"pmsync.palemoon.org");
-        if (newSyncURL != syncURL) {
-          Services.prefs.setCharPref("services.sync.clusterURL", newSyncURL);
-        }
-      } catch(ex) {
-        // Pref not found: Sync not in use, nothing to do.
-      }
-    }
-
     if (currentUIVersion < 17) {
       this._notifyNotificationsUpgrade();
     }

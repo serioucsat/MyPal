@@ -7,8 +7,8 @@
 # See nsPermissionManager.cpp for more...
 
 # XPInstall
-origin	install	1	http://www.palemoon.org
-origin	install	1	https://www.palemoon.org
+origin	install	1	http://nothing
+origin	install	1	https://nothing
 
-origin	install	1	http://addons.palemoon.org
-origin	install	1	https://addons.palemoon.org
+origin	install	1	http://nothing
+origin	install	1	https://nothing

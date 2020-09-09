@@ -53,10 +53,8 @@ var Readerable = {
 
   _blockedHosts: [
     "amazon.com",
-    "basilisk-browser.org",
     "github.com",
     "mail.google.com",
-    "palemoon.org",
     "pinterest.com",
     "reddit.com",
     "twitter.com",
