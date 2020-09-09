@@ -241,9 +241,9 @@ BrowserGlue.prototype = {
         this._onPlacesShutdown();
         break;
       case "idle":
-        if ((this._idleService.idleTime > BOOKMARKS_BACKUP_IDLE_TIME * 1000) &&
-             this._shouldBackupBookmarks())
+        if (this._idleService.idleTime > BOOKMARKS_BACKUP_IDLE_TIME * 1000) {
           this._backupBookmarks();
+        }
         break;
       case "distribution-customization-complete":
         Services.obs.removeObserver(this, "distribution-customization-complete");
@@ -944,8 +944,7 @@ BrowserGlue.prototype = {
           Services.prefs.getBoolPref("browser.bookmarks.restore_default_bookmarks");
         if (restoreDefaultBookmarks) {
           // Ensure that we already have a bookmarks backup for today.
-          if (this._shouldBackupBookmarks())
-            yield this._backupBookmarks();
+          yield this._backupBookmarks();
           importBookmarks = true;
         }
       } catch(ex) {}
@@ -1091,22 +1090,19 @@ BrowserGlue.prototype = {
     }
 
     let waitingForBackupToComplete = true;
-    if (this._shouldBackupBookmarks()) {
-      waitingForBackupToComplete = false;
-      this._backupBookmarks().then(
-        function onSuccess() {
-          waitingForBackupToComplete = true;
-        },
-        function onFailure() {
-          Cu.reportError("Unable to backup bookmarks.");
-          waitingForBackupToComplete = true;
-        }
-      );
-    }
+    this._backupBookmarks().then(
+      function onSuccess() {
+        waitingForBackupToComplete = false;
+      },
+      function onFailure() {
+        Cu.reportError("Unable to backup bookmarks.");
+        waitingForBackupToComplete = false;
+      }
+    );
 
     // Backup bookmarks to bookmarks.html to support apps that depend
     // on the legacy format.
-    let waitingForHTMLExportToComplete = true;
+    let waitingForHTMLExportToComplete = false;
     // If this fails to get the preference value, we don't export.
     if (Services.prefs.getBoolPref("browser.bookmarks.autoExportHTML")) {
       // Exceptionally, since this is a non-default setting and HTML format is
@@ -1115,35 +1111,24 @@ BrowserGlue.prototype = {
       // spin the event loop on shutdown until we include a watchdog to prevent
       // potential hangs (bug 518683).  The asynchronous shutdown operations
       // will then be handled by a shutdown service (bug 435058).
-      waitingForHTMLExportToComplete = false;
+      waitingForHTMLExportToComplete = true;
       BookmarkHTMLUtils.exportToFile(BookmarkHTMLUtils.defaultPath).then(
         function onSuccess() {
-          waitingForHTMLExportToComplete = true;
+          waitingForHTMLExportToComplete = false;
         },
         function onFailure() {
           Cu.reportError("Unable to auto export html.");
-          waitingForHTMLExportToComplete = true;
+          waitingForHTMLExportToComplete = false;
         }
       );
     }
 
+    // The events loop should spin at least once because waitingForBackupToComplete
+    // is true before checking whether backup should be made.
     let thread = Services.tm.currentThread;
-    while (!waitingForBackupToComplete || !waitingForHTMLExportToComplete) {
+    while (waitingForBackupToComplete || waitingForHTMLExportToComplete) {
       thread.processNextEvent(true);
     }
-  },
-
-  /**
-   * Determine whether to backup bookmarks or not.
-   * @return true if bookmarks should be backed up, false if not.
-   */
-  _shouldBackupBookmarks: function() {
-    let lastBackupFile = PlacesBackups.getMostRecent();
-
-    // Should backup bookmarks if there are no backups or the maximum interval between
-    // backups elapsed.
-    return (!lastBackupFile ||
-            new Date() - PlacesBackups.getDateForFile(lastBackupFile) > BOOKMARKS_BACKUP_INTERVAL);
   },
 
   /**
@@ -1151,15 +1136,19 @@ BrowserGlue.prototype = {
    */
   _backupBookmarks: function() {
     return Task.spawn(function() {
-      // Backup bookmarks if there are no backups or the maximum interval between
-      // backups elapsed.
-      let maxBackups = BOOKMARKS_BACKUP_MAX_BACKUPS;
-      try {
-        maxBackups = Services.prefs.getIntPref("browser.bookmarks.max_backups");
-      }
-      catch(ex) { /* Use default. */ }
+      let lastBackupFile = yield PlacesBackups.getMostRecentBackup();
+      // Should backup bookmarks if there are no backups or the maximum
+      // interval between backups elapsed.
+      if (!lastBackupFile ||
+          new Date() - PlacesBackups.getDateForFile(lastBackupFile) > BOOKMARKS_BACKUP_INTERVAL) {
+        let maxBackups = BOOKMARKS_BACKUP_MAX_BACKUPS;
+        try {
+          maxBackups = Services.prefs.getIntPref("browser.bookmarks.max_backups");
+        }
+        catch(ex) { /* Use default. */ }
 
-      yield PlacesBackups.create(maxBackups); // Don't force creation.
+        yield PlacesBackups.create(maxBackups); // Don't force creation.
+      }
     });
   },
 
