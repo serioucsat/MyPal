@@ -2878,6 +2878,8 @@ public:
   virtual void ScheduleIntersectionObserverNotification() = 0;
   virtual void NotifyIntersectionObservers() = 0;
 
+  bool ModuleScriptsEnabled();
+
   bool ShouldThrowOnDynamicMarkupInsertion()
   {
     return mThrowOnDynamicMarkupInsertionCounter;
