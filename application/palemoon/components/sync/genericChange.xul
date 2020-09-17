@@ -105,7 +105,7 @@
       <description>
         &existingRecoveryKey.description;
         <label class="text-link"
-               href="http://www.palemoon.org/sync/help/recoverykey.shtml">
+               href="">
           &addDevice.showMeHow.label;
         </label>
       </description>

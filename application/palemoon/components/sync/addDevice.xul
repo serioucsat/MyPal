@@ -43,7 +43,7 @@
       &pairDevice.dialog.description.label;
       <label class="text-link"
              value="&addDevice.showMeHow.label;"
-             href="http://www.palemoon.org/sync/help/easy-setup.shtml"/>
+             href=""/>
     </description>
     <separator class="groove-thin"/>
     <description>

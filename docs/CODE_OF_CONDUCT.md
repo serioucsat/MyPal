@@ -44,7 +44,7 @@ This Code of Conduct applies within project spaces (forum, website, IRC, reposit
 
 We expect our community to apply a good measure of self-regulation when it comes to the conduct displayed by its members. We believe that any community of adults is capable of applying the concepts of common sense, common decency and common courtesy to interactions between its members.
 That said, there are always exception situations possible where things need to be escalated, which is where this section comes into play.
-Incidents involving abusive, harassing, or otherwise unacceptable behavior that need to be escalated for resolution may be reported by contacting the project owner at moonchild@palemoon.org. The project owner will then review and investigate all complaints and related communication of the case, and will respond in a way that they deem appropriate for the circumstances.
+Incidents involving abusive, harassing, or otherwise unacceptable behavior that need to be escalated for resolution may be reported by contacting the project owner. The project owner will then review and investigate all complaints and related communication of the case, and will respond in a way that they deem appropriate for the circumstances.
 
 ## Confidentiality
 

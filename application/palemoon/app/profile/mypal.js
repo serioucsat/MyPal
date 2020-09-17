@@ -37,7 +37,7 @@ pref("extensions.strictCompatibility", false);
 // for it to be compatible by default.
 pref("extensions.minCompatibleAppVersion", "1.5");
 
-#define AM_DOMAIN addons.palemoon.org
+#define AM_DOMAIN nothing.isnothing
 #define AM_AUS_ARGS reqVersion=%REQ_VERSION%&id=%ITEM_ID%&version=%ITEM_VERSION%&maxAppVersion=%ITEM_MAXAPPVERSION%&status=%ITEM_STATUS%&appID=%APP_ID%&appVersion=%APP_VERSION%&appOS=%APP_OS%&appABI=%APP_ABI%&locale=%APP_LOCALE%&currentAppVersion=%CURRENT_APP_VERSION%&updateType=%UPDATE_TYPE%&compatMode=%COMPATIBILITY_MODE%
 
 // Preferences for AMO integration
@@ -59,9 +59,9 @@ pref("extensions.blocklist.level.updated", false);
 // Controls what level the blocklist switches from warning about items to forcibly
 // blocking them.
 pref("extensions.blocklist.level", 2);
-pref("extensions.blocklist.url", "https://blocklist.palemoon.org/?version=%VERSION%");
-pref("extensions.blocklist.detailsURL", "https://blocklist.palemoon.org/about.shtml");
-pref("extensions.blocklist.itemURL", "https://blocklist.palemoon.org/info/?id=%blockID%");
+pref("extensions.blocklist.url", "");
+pref("extensions.blocklist.detailsURL", "");
+pref("extensions.blocklist.itemURL", "");
 
 pref("extensions.update.autoUpdateDefault", true);
 
@@ -79,7 +79,7 @@ pref("browser.getdevtools.url","https://@AM_DOMAIN@/?component=integration&type=
 pref("browser.feedback.url", "https://github.com/Feodor2/Mypal/issues");
 
 // Help button in slow startup dialog
-pref("browser.slowstartup.help.url", "http://www.palemoon.org/support/slowstartup.shtml");
+pref("browser.slowstartup.help.url", "");
 
 // Whether to escape to a content-less page if a user presses "Get me out of here"
 // on a network error page (e.g. cert error)
@@ -139,7 +139,7 @@ pref("app.update.cert.maxErrors", 5);
 // when the |app.update.cert.checkAttributes| preference is set to false. Also,
 // the |app.update.url.override| preference should ONLY be used for testing.
 pref("app.update.certs.1.issuerName", "CN=COMODO RSA Domain Validation Secure Server CA,O=COMODO CA Limited,L=Salford,ST=Greater Manchester,C=GB");
-pref("app.update.certs.1.commonName", "*.palemoon.org");
+pref("app.update.certs.1.commonName", "");
 
 // Whether or not app updates are enabled
 pref("app.update.enabled", true);
@@ -160,7 +160,7 @@ pref("app.update.silent", false);
 pref("app.update.staging.enabled", true);
 
 // Update service URL:
-pref("app.update.url", "https://aus.palemoon.org/?application=%PRODUCT%&version=%VERSION%&arch=%BUILD_TARGET%&buildid=%BUILD_ID%&channel=%CHANNEL%");
+pref("app.update.url", "");
 // app.update.url.manual is in branding section
 // app.update.url.details is in branding section
 
@@ -807,9 +807,9 @@ pref("gecko.handlerService.schemes.ircs.3.uriTemplate", "chrome://browser-region
 // By default, we don't want protocol/content handlers to be registered from a different host, see bug 402287
 pref("gecko.handlerService.allowRegisterFromDifferentHost", false);
 
-pref("browser.geolocation.warning.infoURL", "http://www.palemoon.org/info-url/geolocation.shtml");
-pref("browser.mixedcontent.warning.infoURL", "http://www.palemoon.org/info-url/mixedcontent.shtml");
-pref("browser.push.warning.infoURL", "https://www.palemoon.org/info-url/push.shtml");
+pref("browser.geolocation.warning.infoURL", "");
+pref("browser.mixedcontent.warning.infoURL", "");
+pref("browser.push.warning.infoURL", "");
 
 pref("browser.EULA.version", 3);
 pref("browser.rights.version", 3);
@@ -989,7 +989,7 @@ pref("browser.taskbar.lists.refreshInSeconds", 120);
 
 #ifdef MOZ_SERVICES_SYNC
 // Info when outdated sync detected
-pref("services.sync.outdated.url", "http://www.palemoon.org/sync/update/");
+pref("services.sync.outdated.url", "");
 // The sync engines to use.
 pref("services.sync.registerEngines", "Bookmarks,Form,History,Password,Prefs,Tab,Addons");
 // Preferences to be synced by default
