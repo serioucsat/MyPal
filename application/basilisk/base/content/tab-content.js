@@ -869,6 +869,10 @@ addEventListener("unload", () => {
   ExtensionContent.uninit(this);
   RefreshBlocker.uninit();
 });
+#else
+addEventListener("unload", () => {
+  RefreshBlocker.uninit();
+});
 #endif
 
 addMessageListener("AllowScriptsToClose", () => {
