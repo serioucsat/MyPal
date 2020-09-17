@@ -6,7 +6,7 @@
 #filter emptyLines
 
 // Set defines to construct URLs
-#define BRANDING_BASEURL basilisk-browser.org
+#define BRANDING_BASEURL mypal-browser.org
 #define BRANDING_SITEURL www.@BRANDING_BASEURL@
 
 // Shared Branding Preferences

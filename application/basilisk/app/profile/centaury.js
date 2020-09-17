@@ -36,7 +36,7 @@ pref("extensions.minCompatibleAppVersion", "4.0");
 
 pref("xpinstall.customConfirmationUI", true);
 
-#define AM_DOMAIN addons.basilisk-browser.org
+#define AM_DOMAIN mypal-browser.org
 #define AM_AUS_ARGS reqVersion=%REQ_VERSION%&id=%ITEM_ID%&version=%ITEM_VERSION%&maxAppVersion=%ITEM_MAXAPPVERSION%&status=%ITEM_STATUS%&appID=%APP_ID%&appVersion=%APP_VERSION%&appOS=%APP_OS%&appABI=%APP_ABI%&locale=%APP_LOCALE%&currentAppVersion=%CURRENT_APP_VERSION%&updateType=%UPDATE_TYPE%&compatMode=%COMPATIBILITY_MODE%
 
 // Preferences for AMO integration
@@ -80,7 +80,7 @@ pref("browser.getdevtools.url","https://@AM_DOMAIN@/?component=integration&type=
 pref("app.update.checkInstallTime", true);
 
 // The number of days a binary is permitted to be old without checking is defined in
-// basilisk-branding.js (app.update.checkInstallTime.days)
+// mypal-branding.js (app.update.checkInstallTime.days)
 
 // The minimum delay in seconds for the timer to fire between the notification
 // of each consumer of the timer manager.
@@ -95,7 +95,7 @@ pref("app.update.timerFirstInterval", 30000);
 // App-specific update preferences
 
 // The interval to check for updates (app.update.interval) is defined in
-// basilisk-branding.js
+// mypal-branding.js
 
 // Alternative windowtype for an application update user interface window. When
 // a window with this windowtype is open the application update service won't
