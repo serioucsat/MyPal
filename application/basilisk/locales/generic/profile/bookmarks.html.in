@@ -18,9 +18,6 @@
 <dl><p>
     <dt><h3 personal_toolbar_folder="true">@bookmarks_toolbarfolder@</h3></dt>
     <dd>@bookmarks_toolbarfolder_description@
-        <dl>
-            <p><dt><a href="http://www.basilisk-browser.org/">Basilisk</a></dt>
-        </dl>
     <p><dt><h3>@firefox_heading@</h3></dt>
         <dl><p>
             <dt><a href="https://support.mozilla.org/@AB_CD@/products/firefox" icon="@mozilla_icon@">@firefox_help@</a>
