@@ -60,6 +60,8 @@ typedef struct pthread_t {
  * not mutexes */
 typedef CRITICAL_SECTION pthread_mutex_t;
 
+#define PTHREAD_MUTEX_INITIALIZER {0}
+
 /* This is the CONDITION_VARIABLE typedef for using Windows' native
  * conditional variables on kernels 6.0+. */
 #if HAVE_CONDITION_VARIABLE_PTR

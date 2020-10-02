@@ -44,7 +44,6 @@ SOURCES += [
     'hash.c',
     'hmac.c',
     'hwcontext.c',
-    'hwcontext_cuda.c',
     'imgutils.c',
     'integer.c',
     'intmath.c',
@@ -80,6 +79,7 @@ SOURCES += [
     'tree.c',
     'twofish.c',
     'utils.c',
+    'video_enc_params.c',
     'xga_font_data.c',
     'xtea.c',
 ]
