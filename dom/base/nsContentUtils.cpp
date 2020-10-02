@@ -9860,3 +9860,17 @@ nsContentUtils::IsLocalRefURL(const nsString& aString)
 
   return false;
 }
+
+/* static */ uint32_t
+nsContentUtils::GetNodeDepth(nsINode* aNode)
+{
+  uint32_t depth = 1;
+
+  MOZ_ASSERT(aNode, "Node shouldn't be null");
+
+  while ((aNode = aNode->GetParentNode())) {
+    ++depth;
+  }
+
+  return depth;
+}
