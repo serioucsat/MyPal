@@ -20,13 +20,8 @@ SOURCES += [
 ]
 LOCAL_INCLUDES += [
     '..',
-    '../ffmpeg57/include',
+    '../ffmpeg58/include',
 ]
-
-if CONFIG['OS_ARCH'] == 'WINNT':
-    LOCAL_INCLUDES += [
-        '../ffmpeg57/include',
-    ]
 
 if CONFIG['GNU_CXX']:
   CXXFLAGS += [ '-Wno-deprecated-declarations' ]
