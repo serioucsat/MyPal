@@ -423,6 +423,10 @@ FFmpegVideoDecoder<LIBAV_VER>::~FFmpegVideoDecoder()
 AVCodecID
 FFmpegVideoDecoder<LIBAV_VER>::GetCodecId(const nsACString& aMimeType)
 {
+  if (aMimeType.EqualsLiteral("video/hevc")) {
+    return AV_CODEC_ID_HEVC;
+  }
+
   if (MP4Decoder::IsH264(aMimeType)) {
     return AV_CODEC_ID_H264;
   }

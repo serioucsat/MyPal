@@ -167,6 +167,7 @@ av_frame_is_writable
 av_frame_make_writable
 av_frame_move_ref
 av_frame_new_side_data
+av_frame_new_side_data_from_buf
 av_frame_ref
 av_frame_remove_side_data
 av_frame_set_best_effort_timestamp
@@ -238,6 +239,7 @@ av_hwdevice_ctx_alloc
 av_hwdevice_ctx_create
 av_hwdevice_ctx_init
 av_hwdevice_get_hwframe_constraints
+av_hwdevice_get_type_name
 av_hwdevice_hwconfig_alloc
 av_hwframe_constraints_free
 av_hwframe_ctx_alloc
@@ -271,11 +273,14 @@ av_log_format_line
 av_log_format_line2
 av_log_get_flags
 av_log_get_level
+av_log_once
 av_log_set_callback
 av_log_set_flags
 av_log_set_level
 av_malloc
 av_mallocz
+av_malloc_array
+av_mallocz_array
 av_mastering_display_metadata_alloc
 av_mastering_display_metadata_create_side_data
 av_match_list
@@ -460,6 +465,7 @@ av_utf8_decode
 av_util_ffversion
 av_vbprintf
 av_version_info
+av_video_enc_params_create_side_data
 av_vlog
 av_write_image_line
 av_xtea_alloc
@@ -471,7 +477,6 @@ avpriv_alloc_fixed_dsp
 avpriv_cga_font
 avpriv_dict_set_timestamp
 avpriv_float_dsp_alloc
-avpriv_frame_get_metadatap
 avpriv_get_gamma_from_trc
 avpriv_get_trc_function_from_trc
 avpriv_init_lls

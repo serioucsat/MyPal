@@ -153,6 +153,12 @@ MP4Decoder::CanHandleMediaType(const MediaContentType& aType,
             NS_LITERAL_CSTRING("video/avc"), aType));
         continue;
       }
+      if(StringBeginsWith(codec, NS_LITERAL_STRING("hvc"))) {
+        trackInfos.AppendElement(
+          CreateTrackInfoWithMIMETypeAndContentTypeExtraParameters(
+            NS_LITERAL_CSTRING("video/hevc"), aType));
+        continue;
+      }
       // Some unsupported codec.
       return false;
     }
