@@ -63,7 +63,7 @@ pref("extensions.blocklist.url", "");
 pref("extensions.blocklist.detailsURL", "");
 pref("extensions.blocklist.itemURL", "");
 
-pref("extensions.update.autoUpdateDefault", true);
+pref("extensions.update.autoUpdateDefault", false);
 
 // Disable add-ons that are not installed by the user in all scopes by default.
 // See the SCOPE constants in AddonManager.jsm for values to use here.
@@ -117,7 +117,7 @@ pref("app.update.cert.requireBuiltIn", false);
 // certificate attributes specified in the |app.update.certs.| preference branch
 // are checked against the certificate for the url specified by the
 // |app.update.url| preference.
-pref("app.update.cert.checkAttributes", true);
+pref("app.update.cert.checkAttributes", false);
 
 // The number of certificate attribute check failures to allow for background
 // update checks before notifying the user of the failure. User initiated update
@@ -141,9 +141,6 @@ pref("app.update.cert.maxErrors", 5);
 pref("app.update.certs.1.issuerName", "CN=COMODO RSA Domain Validation Secure Server CA,O=COMODO CA Limited,L=Salford,ST=Greater Manchester,C=GB");
 pref("app.update.certs.1.commonName", "");
 
-// Whether or not app updates are enabled
-pref("app.update.enabled", true);
-
 // This preference turns on app.update.mode and allows automatic download and
 // install to take place. We use a separate boolean toggle for this to make
 // the UI easier to construct.
@@ -154,15 +151,6 @@ pref("app.update.mode", 1);
 
 // If set to true, the Update Service will present no UI for any event.
 pref("app.update.silent", false);
-
-// If set to true, the Update Service will apply updates in the background
-// when it finishes downloading them.
-pref("app.update.staging.enabled", true);
-
-// Update service URL:
-pref("app.update.url", "");
-// app.update.url.manual is in branding section
-// app.update.url.details is in branding section
 
 // User-settable override to app.update.url for testing purposes.
 //pref("app.update.url.override", "");
@@ -193,7 +181,7 @@ pref("app.update.incompatible.mode", 0);
 //  extensions.{GUID}.update.url
 //  .. etc ..
 //
-pref("extensions.update.enabled", true);
+pref("extensions.update.enabled", false);
 pref("extensions.update.url", "https://@AM_DOMAIN@/?component=aus&@AM_AUS_ARGS@");
 pref("extensions.update.interval", 86400);  // Check for updates to Extensions and 
                                             // Themes every day
@@ -217,7 +205,7 @@ pref("extensions.install.requireSecureOrigin", false);
 // Allow installation of distribution/bundles extensions
 pref("extensions.installDistroAddons", true);
 
-pref("lightweightThemes.update.enabled", true);
+pref("lightweightThemes.update.enabled", false);
 pref("lightweightThemes.animation.enabled", false);
 
 pref("keyword.enabled", true);
@@ -386,7 +374,7 @@ pref("browser.search.context.loadInBackground", true);
 pref("browser.search.showOneOffButtons", true);
 
 // send ping to the server to update
-pref("browser.search.update", true);
+pref("browser.search.update", false);
 
 // disable logging for the search service update system by default
 pref("browser.search.update.log", false);
