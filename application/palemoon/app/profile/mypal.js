@@ -37,20 +37,20 @@ pref("extensions.strictCompatibility", false);
 // for it to be compatible by default.
 pref("extensions.minCompatibleAppVersion", "1.5");
 
-#define AM_DOMAIN nothing.isnothing
+#define AM_DOMAIN www.mypal-browser.org
 #define AM_AUS_ARGS reqVersion=%REQ_VERSION%&id=%ITEM_ID%&version=%ITEM_VERSION%&maxAppVersion=%ITEM_MAXAPPVERSION%&status=%ITEM_STATUS%&appID=%APP_ID%&appVersion=%APP_VERSION%&appOS=%APP_OS%&appABI=%APP_ABI%&locale=%APP_LOCALE%&currentAppVersion=%CURRENT_APP_VERSION%&updateType=%UPDATE_TYPE%&compatMode=%COMPATIBILITY_MODE%
 
 // Preferences for AMO integration
 pref("extensions.getAddons.cache.enabled", false);
 pref("extensions.getAddons.maxResults", 10);
-pref("extensions.getAddons.get.url", "https://@AM_DOMAIN@/?component=integration&type=internal&request=get&addonguid=%IDS%&os=%OS%&version=%VERSION%");
-pref("extensions.getAddons.getWithPerformance.url", "https://@AM_DOMAIN@/?component=integration&type=internal&request=get&addonguid=%IDS%&os=%OS%&version=%VERSION%");
-pref("extensions.getAddons.search.browseURL", "https://@AM_DOMAIN@/search/?terms=%TERMS%");
-pref("extensions.getAddons.search.url", "https://@AM_DOMAIN@/?component=integration&type=internal&request=search&q=%TERMS%&locale=%LOCALE%&os=%OS%&version=%VERSION%");
-pref("extensions.webservice.discoverURL", "http://@AM_DOMAIN@/?component=discover");
-pref("extensions.getAddons.recommended.url", "https://@AM_DOMAIN@/?component=integration&type=internal&request=recommended&locale=%LOCALE%&os=%OS%");
-pref("extensions.getAddons.browseAddons", "http://@AM_DOMAIN@/");
-pref("extensions.getAddons.recommended.browseURL", "https://@AM_DOMAIN@/?component=integration&type=external&request=recommended");
+pref("extensions.getAddons.get.url", "https://www.mypal-browser.org/addons/");
+pref("extensions.getAddons.getWithPerformance.url", "https://www.mypal-browser.org/addons/");
+pref("extensions.getAddons.search.browseURL", "https://www.mypal-browser.org/addons/");
+pref("extensions.getAddons.search.url", "https://www.mypal-browser.org/addons/");
+pref("extensions.webservice.discoverURL", "https://www.mypal-browser.org/addons/");
+pref("extensions.getAddons.recommended.url", "https://www.mypal-browser.org/addons/");
+pref("extensions.getAddons.browseAddons", "https://www.mypal-browser.org/addons/");
+pref("extensions.getAddons.recommended.browseURL", "https://www.mypal-browser.org/addons/");
 
 // Blocklist preferences
 pref("extensions.blocklist.enabled", true);
@@ -70,7 +70,7 @@ pref("extensions.update.autoUpdateDefault", false);
 pref("extensions.autoDisableScopes", 15);
 
 // Dictionary download preference
-pref("browser.dictionaries.download.url", "https://@AM_DOMAIN@/dictionaries/");
+pref("browser.dictionaries.download.url", "https://www.mypal-browser.org/dictionaries/");
 
 // Get More Tools link URL
 pref("browser.getdevtools.url","https://@AM_DOMAIN@/?component=integration&type=external&request=devtools");
@@ -182,7 +182,7 @@ pref("app.update.incompatible.mode", 0);
 //  .. etc ..
 //
 pref("extensions.update.enabled", false);
-pref("extensions.update.url", "https://@AM_DOMAIN@/?component=aus&@AM_AUS_ARGS@");
+pref("extensions.update.url", "https://www.mypal-browser.org/addons/update.xml");
 pref("extensions.update.interval", 86400);  // Check for updates to Extensions and 
                                             // Themes every day
 // Non-symmetric (not shared by extensions) extension-specific [update] preferences

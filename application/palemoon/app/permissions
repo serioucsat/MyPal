@@ -7,8 +7,5 @@
 # See nsPermissionManager.cpp for more...
 
 # XPInstall
-origin	install	1	http://nothing
-origin	install	1	https://nothing
-
-origin	install	1	http://nothing
-origin	install	1	https://nothing
+origin	install	1	http://www.mypal-browser.org
+origin	install	1	https://www.mypal-browser.org
