@@ -471,6 +471,8 @@ static uint32_t gThrottledIdlePeriodLength;
 // CIDs
 static NS_DEFINE_CID(kXULControllersCID, NS_XULCONTROLLERS_CID);
 
+static const char sPopStatePrefStr[] = "browser.history.allowPopState";
+
 #define NETWORK_UPLOAD_EVENT_NAME     NS_LITERAL_STRING("moznetworkupload")
 #define NETWORK_DOWNLOAD_EVENT_NAME   NS_LITERAL_STRING("moznetworkdownload")
 
@@ -10637,9 +10639,14 @@ nsGlobalWindow::DispatchSyncPopState()
 
   nsresult rv = NS_OK;
 
+  // Check that PopState hasn't been pref'ed off.
+  if (!Preferences::GetBool(sPopStatePrefStr, false)) {
+    return rv;
+  }
+
   // Bail if the window is frozen.
   if (IsFrozen()) {
-    return NS_OK;
+    return rv;
   }
 
   // Get the document's pending state object -- it contains the data we're
