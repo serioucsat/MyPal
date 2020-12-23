@@ -121,6 +121,7 @@ nsSocketTransportService::nsSocketTransportService()
     , mServingPendingQueue(false)
     , mMaxTimePerPollIter(100)
     , mMaxTimeForPrClosePref(PR_SecondsToInterval(5))
+    , mSleepPhase(false)
     , mProbedMaxCount(false)
 #if defined(XP_WIN)
     , mPolling(false)
@@ -562,6 +563,8 @@ nsSocketTransportService::Init()
     if (obsSvc) {
         obsSvc->AddObserver(this, "profile-initial-state", false);
         obsSvc->AddObserver(this, "last-pb-context-exited", false);
+        obsSvc->AddObserver(this, NS_WIDGET_SLEEP_OBSERVER_TOPIC, true);
+        obsSvc->AddObserver(this, NS_WIDGET_WAKE_OBSERVER_TOPIC, true);
         obsSvc->AddObserver(this, "xpcom-shutdown-threads", false);
     }
 
@@ -628,7 +631,14 @@ nsSocketTransportService::ShutdownThread()
     if (obsSvc) {
         obsSvc->RemoveObserver(this, "profile-initial-state");
         obsSvc->RemoveObserver(this, "last-pb-context-exited");
+        obsSvc->RemoveObserver(this, NS_WIDGET_SLEEP_OBSERVER_TOPIC);
+        obsSvc->RemoveObserver(this, NS_WIDGET_WAKE_OBSERVER_TOPIC);
         obsSvc->RemoveObserver(this, "xpcom-shutdown-threads");
+    }
+
+    if (mAfterWakeUpTimer) {
+        mAfterWakeUpTimer->Cancel();
+        mAfterWakeUpTimer = nullptr;
     }
 
     NetworkActivityMonitor::Shutdown();
@@ -1228,6 +1238,10 @@ nsSocketTransportService::Observe(nsISupports *subject,
 
     if (!strcmp(topic, NS_TIMER_CALLBACK_TOPIC)) {
         nsCOMPtr<nsITimer> timer = do_QueryInterface(subject);
+        if (timer == mAfterWakeUpTimer) {
+            mAfterWakeUpTimer = nullptr;
+            mSleepPhase = false;
+        }
 
 #if defined(XP_WIN)
         if (timer == mPollRepairTimer) {
@@ -1235,6 +1249,19 @@ nsSocketTransportService::Observe(nsISupports *subject,
         }
 #endif
 
+    } else if (!strcmp(topic, NS_WIDGET_SLEEP_OBSERVER_TOPIC)) {
+        mSleepPhase = true;
+        if (mAfterWakeUpTimer) {
+            mAfterWakeUpTimer->Cancel();
+            mAfterWakeUpTimer = nullptr;
+        }
+    } else if (!strcmp(topic, NS_WIDGET_WAKE_OBSERVER_TOPIC)) {
+        if (mSleepPhase && !mAfterWakeUpTimer) {
+            mAfterWakeUpTimer = do_CreateInstance("@mozilla.org/timer;1");
+            if (mAfterWakeUpTimer) {
+                mAfterWakeUpTimer->Init(this, 2000, nsITimer::TYPE_ONE_SHOT);
+            }
+        }
     } else if (!strcmp(topic, "xpcom-shutdown-threads")) {
         ShutdownThread();
     }
