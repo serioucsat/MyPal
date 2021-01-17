@@ -24,6 +24,12 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 
+static const char* sAllowPushStatePrefStr =
+  "browser.history.allowPushState";
+static const char* sAllowReplaceStatePrefStr =
+  "browser.history.allowReplaceState";
+static const char* sAllowOtherStuffPrefStr =
+  "browser.history.allowOtherStuff";
 //
 //  History class implementation
 //
@@ -62,6 +68,11 @@ nsHistory::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 uint32_t
 nsHistory::GetLength(ErrorResult& aRv) const
 {
+
+  if (!Preferences::GetBool(sAllowOtherStuffPrefStr, false)) {
+    return 0;
+  }
+
   nsCOMPtr<nsPIDOMWindowInner> win(do_QueryReferent(mInnerWindow));
   if (!win || !win->HasActiveDocument()) {
     aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
@@ -92,6 +103,10 @@ nsHistory::GetLength(ErrorResult& aRv) const
 ScrollRestoration
 nsHistory::GetScrollRestoration(mozilla::ErrorResult& aRv)
 {
+  if (!Preferences::GetBool(sAllowOtherStuffPrefStr, false)) {
+    return mozilla::dom::ScrollRestoration::Auto;
+  }
+
   nsCOMPtr<nsPIDOMWindowInner> win(do_QueryReferent(mInnerWindow));
   if (!win || !win->HasActiveDocument() || !win->GetDocShell()) {
     aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
@@ -110,6 +125,11 @@ void
 nsHistory::SetScrollRestoration(mozilla::dom::ScrollRestoration aMode,
                                 mozilla::ErrorResult& aRv)
 {
+
+  if (!Preferences::GetBool(sAllowOtherStuffPrefStr, false)) {
+    return;
+  }
+
   nsCOMPtr<nsPIDOMWindowInner> win(do_QueryReferent(mInnerWindow));
   if (!win || !win->HasActiveDocument() || !win->GetDocShell()) {
     aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
@@ -125,6 +145,12 @@ void
 nsHistory::GetState(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
                     ErrorResult& aRv) const
 {
+
+  if (!Preferences::GetBool(sAllowOtherStuffPrefStr, false)) {
+    aResult.setNull();
+    return;
+  }
+
   nsCOMPtr<nsPIDOMWindowInner> win(do_QueryReferent(mInnerWindow));
   if (!win) {
     aRv.Throw(NS_ERROR_NOT_AVAILABLE);
@@ -166,6 +192,11 @@ nsHistory::GetState(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
 void
 nsHistory::Go(int32_t aDelta, ErrorResult& aRv)
 {
+
+  if (!Preferences::GetBool(sAllowOtherStuffPrefStr, false)) {
+    return;
+  }
+
   nsCOMPtr<nsPIDOMWindowInner> win(do_QueryReferent(mInnerWindow));
   if (!win || !win->HasActiveDocument()) {
     aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
@@ -225,6 +256,11 @@ nsHistory::Go(int32_t aDelta, ErrorResult& aRv)
 void
 nsHistory::Back(ErrorResult& aRv)
 {
+
+  if (!Preferences::GetBool(sAllowOtherStuffPrefStr, false)) {
+    return;
+  }
+
   nsCOMPtr<nsPIDOMWindowInner> win(do_QueryReferent(mInnerWindow));
   if (!win || !win->HasActiveDocument()) {
     aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
@@ -246,6 +282,11 @@ nsHistory::Back(ErrorResult& aRv)
 void
 nsHistory::Forward(ErrorResult& aRv)
 {
+
+  if (!Preferences::GetBool(sAllowOtherStuffPrefStr, false)) {
+    return;
+  }
+
   nsCOMPtr<nsPIDOMWindowInner> win(do_QueryReferent(mInnerWindow));
   if (!win || !win->HasActiveDocument()) {
     aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
@@ -295,6 +336,13 @@ nsHistory::PushOrReplaceState(JSContext* aCx, JS::Handle<JS::Value> aData,
   if (!win->HasActiveDocument()) {
     aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
 
+    return;
+  }
+
+  // Check that PushState hasn't been pref'ed off.
+  if (!Preferences::GetBool(aReplace ? sAllowReplaceStatePrefStr :
+                            sAllowPushStatePrefStr, false)) {
+    aRv = NS_OK;
     return;
   }
 
