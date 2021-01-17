@@ -94,6 +94,9 @@
 #include "mozilla/DetailedPromise.h"
 #endif
 
+static const char* sBeaconEnabledStr =
+  "beacon.enabled";
+
 namespace mozilla {
 namespace dom {
 
@@ -861,6 +864,12 @@ Navigator::SendBeacon(const nsAString& aUrl,
                       const Nullable<ArrayBufferViewOrBlobOrStringOrFormData>& aData,
                       ErrorResult& aRv)
 {
+
+  if (!Preferences::GetBool(sBeaconEnabledStr, false)) {
+    aRv = NS_OK;
+    return true;
+  }
+
   if (!mWindow) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return false;
