@@ -292,7 +292,7 @@ partial interface Navigator {
 };
 
 partial interface Navigator {
-  [Throws, Pref="beacon.enabled"]
+  [Throws]
   boolean sendBeacon(DOMString url,
                      optional (ArrayBufferView or Blob or DOMString or FormData)? data = null);
 };
