@@ -23,7 +23,9 @@ Cu.import("resource://gre/modules/NotificationDB.jsm");
   ["Deprecated", "resource://gre/modules/Deprecated.jsm"],
   ["E10SUtils", "resource:///modules/E10SUtils.jsm"],
   ["FormValidationHandler", "resource:///modules/FormValidationHandler.jsm"],
+#ifdef THE_GMP
   ["GMPInstallManager", "resource://gre/modules/GMPInstallManager.jsm"],
+#endif
   ["LightweightThemeManager", "resource://gre/modules/LightweightThemeManager.jsm"],
   ["Log", "resource://gre/modules/Log.jsm"],
   ["LoginManagerParent", "resource://gre/modules/LoginManagerParent.jsm"],
@@ -1338,7 +1340,7 @@ var gBrowserInit = {
     } catch (ex) {
       Cu.reportError("Could not end startup crash tracking: " + ex);
     }
-
+#ifdef THE_GMP
     // Delay this a minute because there's no rush
     setTimeout(() => {
       this.gmpInstallManager = new GMPInstallManager();
@@ -1346,7 +1348,7 @@ var gBrowserInit = {
       // can check the log.
       this.gmpInstallManager.simpleCheckAndInstall().then(null, () => {});
     }, 1000 * 60);
-
+#endif
     // Report via telemetry whether we're able to play MP4/H.264/AAC video.
     // We suspect that some Windows users have a broken or have not installed
     // Windows Media Foundation, and we'd like to know how many. We'd also like
@@ -1514,11 +1516,11 @@ var gBrowserInit = {
       } catch (ex) {
         Cu.reportError(ex);
       }
-
+#ifdef THE_GMP
       if (this.gmpInstallManager) {
         this.gmpInstallManager.uninit();
       }
-
+#endif
       BrowserOffline.uninit();
       IndexedDBPromptHelper.uninit();
       LightweightThemeListener.uninit();

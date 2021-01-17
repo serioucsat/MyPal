@@ -1118,7 +1118,6 @@ PluginContent.prototype = {
       // TODO: Throw exception? How did we get here?
       return;
     }
-#endif
 
     let messageString =
       gNavigatorBundle.formatStringFromName("crashedpluginsMessage.title",
@@ -1132,4 +1131,5 @@ PluginContent.prototype = {
       this.hideNotificationBar("plugin-crashed");
     }, false);
   },
+#endif
 };
