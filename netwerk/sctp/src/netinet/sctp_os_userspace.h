@@ -77,18 +77,7 @@ typedef HANDLE userland_thread_t;
 #define ADDRESS_FAMILY	unsigned __int8
 #define IPVERSION  4
 #define MAXTTL     255
-/* VS2010 comes with stdint.h */
-#if _MSC_VER >= 1600
 #include <stdint.h>
-#else
-#define uint64_t   unsigned __int64
-#define uint32_t   unsigned __int32
-#define int32_t    __int32
-#define uint16_t   unsigned __int16
-#define int16_t    __int16
-#define uint8_t    unsigned __int8
-#define int8_t     __int8
-#endif
 #ifndef _SIZE_T_DEFINED
 #define size_t     __int32
 #endif
@@ -218,9 +207,6 @@ typedef char* caddr_t;
 
 #define bzero(buf, len) memset(buf, 0, len)
 #define bcopy(srcKey, dstKey, len) memcpy(dstKey, srcKey, len)
-#if _MSC_VER < 1900
-#define snprintf(data, size, format, ...) _snprintf_s(data, size, _TRUNCATE, format, __VA_ARGS__)
-#endif
 #define inline __inline
 #define __inline__ __inline
 #define	MSG_EOR		0x8		/* data completes record */
