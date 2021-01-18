@@ -10,6 +10,7 @@
 #include "mozilla/Poison.h"
 #include "mozilla/SharedThreadPool.h"
 #include "mozilla/XPCOM.h"
+#include "mozilla/Preferences.h"
 #include "nsXULAppAPI.h"
 
 #include "nsXPCOMPrivate.h"
@@ -570,11 +571,18 @@ NS_InitXPCOM2(nsIServiceManager** aResult,
   }
 
 #ifndef ANDROID
+
   // If the locale hasn't already been setup by our embedder,
-  // get us out of the "C" locale and into the system
-  if (strcmp(setlocale(LC_ALL, nullptr), "C") == 0) {
-    setlocale(LC_ALL, "");
+  // get us out of the "C" locale and into the system,
+  // but only do so if we aren't force using english locale
+  if (mozilla::Preferences::GetBool("javascript.use_us_english_locale", false)) {
+    setlocale(LC_ALL, "C.UTF-8") || setlocale(LC_ALL, "C");
+  } else {
+    if (strcmp(setlocale(LC_ALL, nullptr), "C") == 0) {
+      setlocale(LC_ALL, "");
+    }
   }
+
 #endif
 
 #if defined(XP_UNIX)
