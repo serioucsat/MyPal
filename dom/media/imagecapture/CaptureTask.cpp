@@ -139,6 +139,7 @@ CaptureTask::SetCurrentFrames(const VideoSegment& aSegment)
                                 options,
                                 false,
                                 image,
+                                  false,
                                 new EncodeComplete(this));
       if (NS_FAILED(rv)) {
         PostTrackEndEvent();

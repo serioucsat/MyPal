@@ -210,6 +210,7 @@ browser.jar:
   skin/classic/browser/yosemite/tab-stroke-end-inactive@2x.png         (tabbrowser/tab-stroke-end-yosemite-inactive@2x.png)
   skin/classic/browser/yosemite/tab-stroke-start-inactive.png          (tabbrowser/tab-stroke-start-yosemite-inactive.png)
   skin/classic/browser/yosemite/tab-stroke-start-inactive@2x.png       (tabbrowser/tab-stroke-start-yosemite-inactive@2x.png)
+  skin/classic/browser/canvas-popup.svg
 
 [extensions/{972ce4c6-7e08-4474-a285-3208198ce6fd}] chrome.jar:
 % override chrome://browser/skin/feeds/audioFeedIcon.png                   chrome://browser/skin/feeds/feedIcon.png
