@@ -137,7 +137,10 @@ DEFINES['MOZ_APP_BASENAME'] = '"%s"' % CONFIG['MOZ_APP_BASENAME']
 if CONFIG['OS_ARCH'] == 'Linux' and 'lib64' in CONFIG['libdir']:
     DEFINES['HAVE_USR_LIB64_DIR'] = True
 
-LOCAL_INCLUDES += ['!..']
+LOCAL_INCLUDES += [
+    '!..',
+    '../build',
+]
 
 if CONFIG['_MSC_VER']:
     # This is intended as a temporary hack to support building with VS2015.
