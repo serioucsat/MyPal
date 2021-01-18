@@ -54,8 +54,8 @@ pref("extensions.getAddons.recommended.browseURL", "https://@AM_DOMAIN@/addons/"
 pref("extensions.update.autoUpdateDefault", false);
 
 // Also, leave this for the moment...
-// Check AUS for system add-on updates.
-pref("extensions.systemAddon.update.url", "https://@AM_DOMAIN@/addons/update.xml");
+// No AUS check for system add-on updates for Tor Browser users.
+pref("extensions.systemAddon.update.url", "");
 
 // Disable add-ons that are not installed by the user in all scopes by default.
 // See the SCOPE constants in AddonManager.jsm for values to use here.
