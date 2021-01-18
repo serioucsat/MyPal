@@ -1355,9 +1355,7 @@ TSFTextStore::Init(nsWindowBase* aWidget,
     return false;
   }
 
-  SetInputScope(aContext.mHTMLInputType,
-                aContext.mHTMLInputInputmode,
-                aContext.mInPrivateBrowsing);
+  SetInputScope(aContext.mHTMLInputType, aContext.mHTMLInputInputmode);
 
   // Create document manager
   RefPtr<ITfThreadMgr> threadMgr = sThreadMgr;
@@ -3207,15 +3205,9 @@ TSFTextStore::InsertEmbedded(DWORD dwFlags,
 
 void
 TSFTextStore::SetInputScope(const nsString& aHTMLInputType,
-                            const nsString& aHTMLInputInputMode,
-                            bool aInPrivateBrowsing)
+                            const nsString& aHTMLInputInputMode)
 {
   mInputScopes.Clear();
-  
-  if (aInPrivateBrowsing) {
-    mInputScopes.AppendElement(IS_PRIVATE);
-  }
-  
   if (aHTMLInputType.IsEmpty() || aHTMLInputType.EqualsLiteral("text")) {
     if (aHTMLInputInputMode.EqualsLiteral("url")) {
       mInputScopes.AppendElement(IS_URL);
@@ -5696,8 +5688,7 @@ TSFTextStore::SetInputContext(nsWindowBase* aWidget,
     if (sEnabledTextStore) {
       RefPtr<TSFTextStore> textStore(sEnabledTextStore);
       textStore->SetInputScope(aContext.mHTMLInputType,
-                               aContext.mHTMLInputInputmode,
-                               aContext.mInPrivateBrowsing);
+                               aContext.mHTMLInputInputmode);
     }
     return;
   }
