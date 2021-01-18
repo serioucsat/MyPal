@@ -3096,6 +3096,26 @@ PathMatches(nsCookie* aCookie, const nsACString& aPath) {
   return true;
 }
 
+static bool
+IsSecureHost(nsIURI *aHostURI) {
+  bool isSecure = true;
+  // If SchemeIs fails, assume an insecure connection, to be on the safe side.
+  if (aHostURI && NS_FAILED(aHostURI->SchemeIs("https", &isSecure))) {
+    isSecure = false;
+  }
+  // In case HTTPS is not used check whether we have a .onion host in which
+  // case the cookie is secure, too.
+  if (aHostURI && !isSecure) {
+    nsresult rv;
+    nsAutoCString hostFromURI;
+    rv = aHostURI->GetAsciiHost(hostFromURI);
+    if (NS_SUCCEEDED(rv)) {
+      isSecure = StringEndsWith(hostFromURI, NS_LITERAL_CSTRING(".onion"));
+    }
+  }
+  return isSecure;
+}
+
 void
 nsCookieService::GetCookieStringInternal(nsIURI *aHostURI,
                                          bool aIsForeign,
@@ -3148,13 +3168,10 @@ nsCookieService::GetCookieStringInternal(nsIURI *aHostURI,
   // If it changes, please update that function, or file a bug for someone
   // else to do so.
 
-  // check if aHostURI is using an https secure protocol.
-  // if it isn't, then we can't send a secure cookie over the connection.
-  // if SchemeIs fails, assume an insecure connection, to be on the safe side
-  bool isSecure;
-  if (NS_FAILED(aHostURI->SchemeIs("https", &isSecure))) {
-    isSecure = false;
-  }
+  // Check if aHostURI is using the HTTPS protocol or if the domain is a
+  // .onion. If it isn't, then we can't send a secure cookie over the
+  // connection.
+  bool isSecure = IsSecureHost(aHostURI);
 
   nsCookie *cookie;
   AutoTArray<nsCookie*, 8> foundCookieList;
@@ -3300,8 +3317,10 @@ nsCookieService::SetCookieInternal(nsIURI                        *aHostURI,
   // so we can handle them separately.
   bool newCookie = ParseAttributes(aCookieHeader, cookieAttributes);
 
-  bool isHTTPS;
-  nsresult rv = aHostURI->SchemeIs("https", &isHTTPS);
+  // Check if aHostURI is using the HTTPS protocol or if the domain is a
+  // .onion. If it isn't, then we can't send a secure cookie over the
+  // connection.
+  bool isSecure = IsSecureHost(aHostURI);
 
   int64_t currentTimeInUsec = PR_Now();
 
@@ -3345,7 +3364,7 @@ nsCookieService::SetCookieInternal(nsIURI                        *aHostURI,
     return newCookie;
   }
   // magic prefix checks. MUST be run after CheckDomain() and CheckPath()
-  if (!CheckPrefixes(cookieAttributes, isHTTPS)) {
+  if (!CheckPrefixes(cookieAttributes, isSecure)) {
     COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader, "failed the prefix tests");
     return newCookie;
   }
@@ -3441,13 +3460,10 @@ nsCookieService::AddInternal(const nsCookieKey             &aKey,
     return;
   }
 
-  bool isSecure = true;
-  if (aHostURI && NS_FAILED(aHostURI->SchemeIs("https", &isSecure))) {
-    isSecure = false;
-  }
+  bool isSecure = IsSecureHost(aHostURI);
 
-  // If the new cookie is non-https and wants to set secure flag,
-  // browser have to ignore this new cookie.
+  // If the new cookie is non-https or not set by a .onion domain, and wants to
+  // set secure flag, browser have to ignore this new cookie.
   // (draft-ietf-httpbis-cookie-alone section 3.1)
   if (mLeaveSecureAlone && aCookie->IsSecure() && !isSecure) {
     COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader,
