@@ -27,6 +27,10 @@
 <!ENTITY  doNotTrack.settings.label     "manage your Do Not Track settings">
 <!ENTITY  doNotTrack.post.label         ".">
 #else
+<!ENTITY firstpartyIsolate.label "Restrict third party cookies and other tracking data">
+<!ENTITY firstpartyIsolate.accesskey "R">
+<!ENTITY resistFingerprinting.label "Change details that distinguish you from other Tor Browser users">
+<!ENTITY resistFingerprinting.accesskey "F">
 <!ENTITY doNotTrack.label               "Send a signal that you don’t want to be tracked">
 <!ENTITY doNotTrack.accesskey           "T">
 <!ENTITY doNotTrackLearnMore.label      "Learn More">
