@@ -3978,6 +3978,8 @@ XREMain::XRE_mainRun()
 
   OverrideDefaultLocaleIfNeeded();
 
+  UseUTCTimeZoneIfNeeded();
+
   appStartup->GetShuttingDown(&mShuttingDown);
 
   nsCOMPtr<nsICommandLineRunner> cmdLine;
@@ -4657,5 +4659,12 @@ void
 XRE_EnableSameExecutableForContentProc() {
   if (!PR_GetEnv("MOZ_SEPARATE_CHILD_PROCESS")) {
     mozilla::ipc::GeckoChildProcessHost::EnableSameExecutableForContentProc();
+  }
+}
+
+void
+UseUTCTimeZoneIfNeeded() {
+  if (mozilla::Preferences::GetBool("privacy.use_utc_timezone", false)) {
+    SaveToEnv("TZ=UTC");
   }
 }
