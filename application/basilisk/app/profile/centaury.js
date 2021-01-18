@@ -328,7 +328,7 @@ pref("browser.helperApps.deleteTempFileOnExit", true);
 #endif
 
 // search engines URL
-pref("browser.search.searchEnginesURL",      "https://@AM_DOMAIN@/search-plugins/");
+pref("browser.search.searchEnginesURL",      "https://mycroftproject.com/search-engines.html");
 
 // pointer to the default engine name
 pref("browser.search.defaultenginename",      "chrome://browser-region/locale/region.properties");
