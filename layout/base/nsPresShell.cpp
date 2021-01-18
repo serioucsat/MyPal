@@ -240,6 +240,8 @@ static nsClassHashtable<nsUint32HashKey,
 static nsClassHashtable<nsUint32HashKey,
                         nsIPresShell::PointerInfo>* sActivePointersIds;
 
+bool nsIPresShell::sSuppressModifierKeyEvents = false;
+
 // RangePaintInfo is used to paint ranges to offscreen buffers
 struct RangePaintInfo {
   RefPtr<nsRange> mRange;
@@ -7080,6 +7082,16 @@ PresShell::HandleKeyboardEvent(nsINode* aTarget,
                                nsEventStatus* aStatus,
                                EventDispatchingCallback* aEventCB)
 {
+  if (nsContentUtils::ResistFingerprinting() && sSuppressModifierKeyEvents) {
+    nsString keyName;
+    aEvent.GetDOMKeyName(keyName);
+    if (keyName.Equals(NS_LITERAL_STRING("Shift")) ||
+        keyName.Equals(NS_LITERAL_STRING("Alt")) ||
+        keyName.Equals(NS_LITERAL_STRING("AltGraph"))) {
+      aEvent.mFlags.mOnlyChromeDispatch = true;
+    }
+  }
+
   MOZ_ASSERT(aTarget);
   
   // return true if the event target is in its child process
@@ -10741,6 +10753,9 @@ void nsIPresShell::InitializeStatics()
   sPointerCaptureList =
     new nsClassHashtable<nsUint32HashKey, PointerCaptureInfo>;
   sActivePointersIds = new nsClassHashtable<nsUint32HashKey, PointerInfo>;
+  Preferences::AddBoolVarCache(&sSuppressModifierKeyEvents,
+                               "privacy.suppressModifierKeyEvents", false);
+
 }
 
 void nsIPresShell::ReleaseStatics()
