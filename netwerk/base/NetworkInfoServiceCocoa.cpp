@@ -16,6 +16,8 @@
 
 #include "NetworkInfoServiceImpl.h"
 
+#include "nsContentUtils.h"
+
 namespace mozilla {
 namespace net {
 
@@ -25,6 +27,10 @@ ListInterfaceAddresses(int aFd, const char* aIface, AddrMapType& aAddrMap);
 nsresult
 DoListAddresses(AddrMapType& aAddrMap)
 {
+    if (nsContentUtils::ResistFingerprinting()) {
+        return NS_ERROR_FAILURE;
+    }
+
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd < 0) {
         return NS_ERROR_FAILURE;
