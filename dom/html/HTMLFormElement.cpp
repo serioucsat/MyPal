@@ -13,6 +13,7 @@
 #include "mozilla/dom/AutocompleteErrorEvent.h"
 #include "mozilla/dom/nsCSPUtils.h"
 #include "mozilla/dom/nsCSPContext.h"
+#include "mozilla/dom/nsMixedContentBlocker.h"
 #include "mozilla/dom/HTMLFormControlsCollection.h"
 #include "mozilla/dom/HTMLFormElementBinding.h"
 #include "mozilla/Move.h"
@@ -907,6 +908,10 @@ HTMLFormElement::DoSecureToInsecureSubmitCheck(nsIURI* aActionURL,
   }
 
   if (!formIsHTTPS || actionIsHTTPS || actionIsJS) {
+    return NS_OK;
+  }
+
+  if (nsMixedContentBlocker::IsPotentiallyTrustworthyOnion(aActionURL)) {
     return NS_OK;
   }
 
