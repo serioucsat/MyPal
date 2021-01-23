@@ -19,6 +19,7 @@
 #include "nsIDocument.h"
 #include "nsString.h"
 #include "mozilla/dom/NodeInfo.h"
+#include "nsSVGUtils.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/dom/XBLChildrenElement.h"
 #include "mozilla/dom/Element.h"
@@ -195,7 +196,7 @@ NS_NewElement(Element** aResult,
         kNameSpaceID_disabled_MathML, ni->NodeType(), ni->GetExtraName());
     return NS_NewXMLElement(aResult, genericXMLNI.forget());
   }
-  if (ns == kNameSpaceID_SVG) {
+  if (ns == kNameSpaceID_SVG && NS_SVGEnabled(ni->GetDocument())) {
     return NS_NewSVGElement(aResult, ni.forget(), aFromParser);
   }
   if (ns == kNameSpaceID_XBL && ni->Equals(nsGkAtoms::children)) {
