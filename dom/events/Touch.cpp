@@ -187,5 +187,12 @@ Touch::GetParentObject()
   return mTarget->GetOwnerGlobal();
 }
 
+bool
+Touch::ResistFingerprinting() const
+{
+  return !nsContentUtils::LegacyIsCallerChromeOrNativeCode() &&
+         nsContentUtils::ResistFingerprinting();
+}
+
 } // namespace dom
 } // namespace mozilla
