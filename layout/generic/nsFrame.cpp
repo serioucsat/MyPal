@@ -1831,6 +1831,11 @@ nsIFrame::DisplayCaret(nsDisplayListBuilder* aBuilder,
 nscolor
 nsIFrame::GetCaretColorAt(int32_t aOffset)
 {
+  nscolor color = NS_RGB(0, 0, 0);
+  if (nsLayoutUtils::GetNativeTextColor(this, color))
+    return color;
+
+  // Use CSS text color.
   return nsLayoutUtils::GetColor(this, eCSSProperty_caret_color);
 }
 
