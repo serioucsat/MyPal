@@ -125,9 +125,6 @@ GetOriginFromPrincipal(nsIPrincipal* aPrincipal, nsACString& aOrigin)
   // any knowledge of private browsing. Allowing it to be true changes the suffix being hashed.
   attrs.mPrivateBrowsingId = 0;
 
-  // Disable userContext and firstParty isolation for permissions.
-  attrs.StripUserContextIdAndFirstPartyDomain();
-
   attrs.CreateSuffix(suffix);
   aOrigin.Append(suffix);
   return NS_OK;
@@ -141,9 +138,6 @@ GetPrincipalFromOrigin(const nsACString& aOrigin, nsIPrincipal** aPrincipal)
   if (!attrs.PopulateFromOrigin(aOrigin, originNoSuffix)) {
     return NS_ERROR_FAILURE;
   }
-
-  // Disable userContext and firstParty isolation for permissions.
-  attrs.StripUserContextIdAndFirstPartyDomain();
 
   nsCOMPtr<nsIURI> uri;
   nsresult rv = NS_NewURI(getter_AddRefs(uri), originNoSuffix);
@@ -2144,9 +2138,6 @@ nsPermissionManager::GetPermissionHashKey(nsIPrincipal* aPrincipal,
     // Copy the attributes over
     mozilla::PrincipalOriginAttributes attrs =
       mozilla::BasePrincipal::Cast(aPrincipal)->OriginAttributesRef();
-
-    // Disable userContext and firstParty isolation for permissions.
-    attrs.StripUserContextIdAndFirstPartyDomain();
 
     nsCOMPtr<nsIPrincipal> principal =
       mozilla::BasePrincipal::CreateCodebasePrincipal(newURI, attrs);
