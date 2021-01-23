@@ -167,7 +167,7 @@ public:
       return 0;
     }
     mozilla::TimeDuration duration = aStamp - mNavigationStart;
-    return duration.ToMilliseconds();
+    return floor(duration.ToMilliseconds()); // Clamp to milliseconds at least
   }
 
 private:

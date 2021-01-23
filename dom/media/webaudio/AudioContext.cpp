@@ -42,7 +42,6 @@
 #include "nsNetUtil.h"
 #include "nsPIDOMWindow.h"
 #include "nsPrintfCString.h"
-#include "mozilla/TimerClamping.h"
 #include "OscillatorNode.h"
 #include "PannerNode.h"
 #include "PeriodicWave.h"
@@ -738,7 +737,9 @@ double
 AudioContext::CurrentTime() const
 {
   MediaStream* stream = Destination()->Stream();
-  return TimerClamping::ReduceSTimeValue(stream->StreamTimeToSeconds(stream->GetCurrentTime()));
+  double currentTime = stream->StreamTimeToSeconds(stream->GetCurrentTime());
+  // Round to the latest 100 ms.
+  return floor(10 * currentTime) / 10;
 }
 
 void

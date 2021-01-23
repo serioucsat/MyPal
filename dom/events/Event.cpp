@@ -1073,6 +1073,8 @@ Event::DefaultPrevented(JSContext* aCx) const
   return mEvent->DefaultPreventedByContent() || IsChrome(aCx);
 }
 
+// XXX: We could change this resolution in other subclasses..
+// Keypress in particular...
 double
 Event::TimeStamp() const
 {
@@ -1101,14 +1103,14 @@ Event::TimeStampImpl() const
       return 0.0;
     }
 
-    return perf->GetDOMTiming()->TimeStampToDOMHighRes(mEvent->mTimeStamp);
+    return floor(perf->GetDOMTiming()->TimeStampToDOMHighRes(mEvent->mTimeStamp) / 100.0) * 100.0;
   }
 
   workers::WorkerPrivate* workerPrivate =
     workers::GetCurrentThreadWorkerPrivate();
   MOZ_ASSERT(workerPrivate);
 
-  return workerPrivate->TimeStampToDOMHighRes(mEvent->mTimeStamp);
+  return floor(workerPrivate->TimeStampToDOMHighRes(mEvent->mTimeStamp) / 100.0) * 100.0;
 }
 
 bool
