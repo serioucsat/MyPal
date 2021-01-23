@@ -2738,6 +2738,13 @@ public:
                                         nsContentPolicyType& aContentPolicyType);
 
   /**
+   * If aElement has a "loadprincipal" attribute, apply the origin attributes
+   * to the loadInfo belonging to aChannel.
+   */
+  static void
+  ApplyCustomLoadPrincipalToChannel(Element* aElement, nsIChannel* aChannel);
+
+  /**
    * Appends all "document level" native anonymous content subtree roots for
    * aDocument to aElements.  Document level NAC subtrees are those created
    * by ancestor frames of the document element's primary frame, such as
