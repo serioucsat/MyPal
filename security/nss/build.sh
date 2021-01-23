@@ -63,7 +63,7 @@ fuzz=0
 fuzz_tls=0
 fuzz_oss=0
 no_local_nspr=0
-sslkeylogfile=1
+sslkeylogfile=0
 
 gyp_params=(--depth="$cwd" --generator-output=".")
 ninja_params=()
