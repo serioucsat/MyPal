@@ -20,9 +20,8 @@ nsUserInfo::GetFullname(char16_t **aFullname)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT
   
-  NS_ConvertUTF8toUTF16 fullName([NSFullUserName() UTF8String]);
-  *aFullname = ToNewUnicode(fullName);
-  return NS_OK;
+  *aFullname = ToNewUnicode(NS_LITERAL_STRING(""));
+  return *aFullname ? NS_OK : NS_ERROR_FAILURE;
   
   NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT
 }
@@ -32,9 +31,8 @@ nsUserInfo::GetUsername(char **aUsername)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT
   
-  nsAutoCString username([NSUserName() UTF8String]);
-  *aUsername = ToNewCString(username);
-  return NS_OK;
+  *aUsername = ToNewUTF8String(NS_LITERAL_STRING(""));
+  return *aUsername ? NS_OK : NS_ERROR_FAILURE;
   
   NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT
 }
@@ -63,22 +61,13 @@ nsUserInfo::GetPrimaryEmailAddress(nsCString &aEmailAddress)
 NS_IMETHODIMP 
 nsUserInfo::GetEmailAddress(char **aEmailAddress)
 {
-  nsAutoCString email;
-  if (NS_SUCCEEDED(GetPrimaryEmailAddress(email))) 
-    *aEmailAddress = ToNewCString(email);
-  return NS_OK;
+  *aEmailAddress = ToNewUTF8String(NS_LITERAL_STRING(""));
+  return *aEmailAddress ? NS_OK : NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP 
 nsUserInfo::GetDomain(char **aDomain)
 {
-  nsAutoCString email;
-  if (NS_SUCCEEDED(GetPrimaryEmailAddress(email))) {
-    int32_t index = email.FindChar('@');
-    if (index != -1) {
-      // chop off everything before, and including the '@'
-      *aDomain = ToNewCString(Substring(email, index + 1));
-    }
-  }
-  return NS_OK;
+  *aDomain = ToNewUTF8String(NS_LITERAL_STRING(""));
+  return *aDomain ? NS_OK : NS_ERROR_FAILURE;
 }
