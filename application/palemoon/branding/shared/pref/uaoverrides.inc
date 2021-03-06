@@ -44,8 +44,8 @@ pref("@GUAO_PREF@.web.de","Mozilla/5.0 (@OS_SLICE@ rv:@GK_VERSION@) @GK_SLICE@ @
 pref("@GUAO_PREF@.yahoo.com","Mozilla/5.0 (@OS_SLICE@ rv:99.9) @GK_SLICE@ Firefox/99.9");
 pref("@GUAO_PREF@.calendar.yahoo.com","Mozilla/5.0 (@OS_SLICE@ rv:@GK_VERSION@) @GK_SLICE@ @FX_SLICE@");
 pref("@GUAO_PREF@.youtube.com","Mozilla/5.0 (@OS_SLICE@ rv:60.0) @GK_SLICE@ Firefox/60.0 @PM_SLICE@");
-pref("@GUAO_PREF@.studio.youtube.com","Mozilla/5.0 (@OS_SLICE@ rv:68.0) @GK_SLICE@ @GRE_VERSION_SLICE@ Firefox/68.0 @PM_SLICE@");
-pref("@GUAO_PREF@.gaming.youtube.com","Mozilla/5.0 (@OS_SLICE@ rv:71.0) @GK_SLICE@ Firefox/71.0");
+pref("@GUAO_PREF@.studio.youtube.com","Googlebot/2.1 (+http://www.google.com/bot.html)");
+pref("@GUAO_PREF@.gaming.youtube.com","Mozilla/5.0 (@OS_SLICE@ rv:85.0) @GK_SLICE@ Firefox/85.0");
 
 // For Amazon Prime videos
 pref("@GUAO_PREF@.www.amazon.com","Mozilla/5.0 (@OS_SLICE@ rv:45.9) @GK_SLICE@ Firefox/45.9");
