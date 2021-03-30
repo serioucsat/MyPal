@@ -140,6 +140,16 @@ ifeq ($(OS_ARCH),OS_2)
 endif
 
 #######################################################################
+# Master "Core Components" macros for Hardware features               #
+#######################################################################
+
+# NSS Build system does not properly support MozillaBuild 2 MSYS1
+# So we simply aren't going to enable AVX2 at all
+# Plus there seems to be an issue with it anyway for other reasons
+NSS_DISABLE_AVX2 = 1
+export NSS_DISABLE_AVX2
+
+#######################################################################
 # Master "Core Components" macros for getting the OS target           #
 #######################################################################
 
