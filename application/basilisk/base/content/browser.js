@@ -4432,38 +4432,6 @@ var CombinedStopReload = {
 };
 
 var TabsProgressListener = {
-  // Keep track of which browsers we've started load timers for, since
-  // we won't see STATE_START events for pre-rendered tabs.
-  _startedLoadTimer: new WeakSet(),
-
-  onStateChange: function (aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
-
-    // We used to listen for clicks in the browser here, but when that
-    // became unnecessary, removing the code below caused focus issues.
-    // This code should be removed. Tracked in bug 1337794.
-    let isRemoteBrowser = aBrowser.isRemoteBrowser;
-    // We check isRemoteBrowser here to avoid requesting the doc CPOW
-    let doc = isRemoteBrowser ? null : aWebProgress.DOMWindow.document;
-
-    if (!isRemoteBrowser &&
-        aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
-        Components.isSuccessCode(aStatus) &&
-        doc.documentURI.startsWith("about:") &&
-        !doc.documentURI.toLowerCase().startsWith("about:blank") &&
-        !doc.documentURI.toLowerCase().startsWith("about:home") &&
-        !doc.documentElement.hasAttribute("hasBrowserHandlers")) {
-      // STATE_STOP may be received twice for documents, thus store an
-      // attribute to ensure handling it just once.
-      doc.documentElement.setAttribute("hasBrowserHandlers", "true");
-      aBrowser.addEventListener("pagehide", function onPageHide(event) {
-        if (event.target.defaultView.frameElement)
-          return;
-        aBrowser.removeEventListener("pagehide", onPageHide, true);
-        if (event.target.documentElement)
-          event.target.documentElement.removeAttribute("hasBrowserHandlers");
-      }, true);
-    }
-  },
 
   onLocationChange: function (aBrowser, aWebProgress, aRequest, aLocationURI,
                               aFlags) {
