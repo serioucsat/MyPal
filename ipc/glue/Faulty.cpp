@@ -488,25 +488,6 @@ Faulty::FuzzULong(unsigned long* aValue, unsigned int aProbability)
 }
 
 void
-Faulty::MutateSize(size_t* aValue)
-{
-  FuzzIntegralType<size_t>(aValue, mUseLargeValues);
-}
-
-void
-Faulty::FuzzSize(size_t* aValue, unsigned int aProbability)
-{
-  if (mIsValidProcessType) {
-    if (mFuzzPickle && GetChance(aProbability)) {
-      size_t oldValue = *aValue;
-      MutateSize(aValue);
-      FAULTY_LOG("pickle field {size_t} of value: %zu changed to: %zu",
-                 oldValue, *aValue);
-    }
-  }
-}
-
-void
 Faulty::MutateUInt64(uint64_t* aValue)
 {
   FuzzIntegralType<uint64_t>(aValue, mUseLargeValues);

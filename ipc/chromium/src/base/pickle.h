@@ -99,7 +99,6 @@ class Pickle {
   MOZ_MUST_USE bool ReadInt(PickleIterator* iter, int* result) const;
   MOZ_MUST_USE bool ReadLong(PickleIterator* iter, long* result) const;
   MOZ_MUST_USE bool ReadULong(PickleIterator* iter, unsigned long* result) const;
-  MOZ_MUST_USE bool ReadSize(PickleIterator* iter, size_t* result) const;
   MOZ_MUST_USE bool ReadInt32(PickleIterator* iter, int32_t* result) const;
   MOZ_MUST_USE bool ReadUInt32(PickleIterator* iter, uint32_t* result) const;
   MOZ_MUST_USE bool ReadInt64(PickleIterator* iter, int64_t* result) const;
@@ -169,14 +168,6 @@ class Pickle {
     // differ between architectures.
 #ifdef MOZ_FAULTY
     Singleton<mozilla::ipc::Faulty>::get()->FuzzULong(&value);
-#endif
-    return WriteUInt64(uint64_t(value));
-  }
-  bool WriteSize(size_t value) {
-    // Always written as a 64-bit value since the size for this type can
-    // differ between architectures.
-#ifdef MOZ_FAULTY
-    Singleton<mozilla::ipc::Faulty>::get()->FuzzSize(&value);
 #endif
     return WriteUInt64(uint64_t(value));
   }

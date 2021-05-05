@@ -141,7 +141,7 @@ protected:
     virtual bool
     RecvPluginShowWindow(const uint32_t& aWindowId, const bool& aModal,
                          const int32_t& aX, const int32_t& aY,
-                         const size_t& aWidth, const size_t& aHeight) override;
+                         const double& aWidth, const double& aHeight) override;
 
     virtual bool
     RecvPluginHideWindow(const uint32_t& aWindowId) override;

@@ -47,7 +47,6 @@ class Faulty
     void FuzzULong(unsigned long* aValue, unsigned int aProbability=sDefaultProbability);
     void FuzzInt64(int64_t* aValue, unsigned int aProbability=sDefaultProbability);
     void FuzzUInt64(uint64_t* aValue, unsigned int aProbability=sDefaultProbability);
-    void FuzzSize(size_t* aValue, unsigned int aProbability=sDefaultProbability);
     void FuzzFloat(float* aValue, unsigned int aProbability=sDefaultProbability);
     void FuzzDouble(double* aValue, unsigned int aProbability=sDefaultProbability);
     void FuzzString(std::string& aValue, unsigned int aProbability=sDefaultProbability);
@@ -88,7 +87,6 @@ class Faulty
     void MutateULong(unsigned long* aValue);
     void MutateInt64(int64_t* aValue);
     void MutateUInt64(uint64_t* aValue);
-    void MutateSize(size_t* aValue);
     void MutateFloat(float* aValue);
     void MutateDouble(double* aValue);
 };
