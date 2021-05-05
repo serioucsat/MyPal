@@ -1440,6 +1440,12 @@ VARIABLES = {
         added to the application's chrome manifest. Most XPIDL modules should
         not use this flag.
         """),
+    'PREPROCESSED_IPDL_SOURCES': (StrictOrderingOnAppendList, list,
+        """Preprocessed IPDL source files.
+
+        These files will be preprocessed, then parsed and converted to
+        ``.cpp`` files.
+        """),
 
     'IPDL_SOURCES': (StrictOrderingOnAppendList, list,
         """IPDL source files.
