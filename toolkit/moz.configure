@@ -653,3 +653,15 @@ def skia_includes(skia, skia_gpu):
     return includes
 
 set_config('SKIA_INCLUDES', skia_includes)
+
+@depends(check_build_environment)
+def webidl_root(build_env):
+     return os.path.join(build_env.topobjdir,'dom', 'bindings')
+
+set_config('WEBIDL_ROOT', webidl_root)
+
+@depends(check_build_environment)
+def ipdl_root(build_env):
+     return os.path.join(build_env.topobjdir, 'ipc', 'ipdl')
+
+set_config('IPDL_ROOT', ipdl_root)
