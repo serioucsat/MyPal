@@ -299,9 +299,11 @@ public:
 
   virtual bool RecvNotifyEmptyHTTPCache() override;
 
+#ifdef MOZ_WEBSPEECH
   virtual PSpeechSynthesisChild* AllocPSpeechSynthesisChild() override;
 
   virtual bool DeallocPSpeechSynthesisChild(PSpeechSynthesisChild* aActor) override;
+#endif
 
   virtual bool RecvRegisterChrome(InfallibleTArray<ChromePackage>&& packages,
                                   InfallibleTArray<SubstitutionMapping>&& resources,
@@ -529,9 +531,11 @@ public:
   virtual bool
   DeallocPOfflineCacheUpdateChild(POfflineCacheUpdateChild* offlineCacheUpdate) override;
 
+#ifdef MOZ_WEBRTC
   virtual PWebrtcGlobalChild* AllocPWebrtcGlobalChild() override;
 
   virtual bool DeallocPWebrtcGlobalChild(PWebrtcGlobalChild *aActor) override;
+#endif
 
   virtual PContentPermissionRequestChild*
   AllocPContentPermissionRequestChild(const InfallibleTArray<PermissionRequest>& aRequests,

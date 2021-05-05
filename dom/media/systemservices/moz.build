@@ -79,10 +79,12 @@ SOURCES += [
 ]
 
 IPDL_SOURCES += [
-    'PCameras.ipdl',
     'PMedia.ipdl',
     'PMediaSystemResourceManager.ipdl',
 ]
+
+if CONFIG['MOZ_WEBRTC']:
+    IPDL_SOURCES += ['PCameras.ipdl',]
 
 # /dom/base needed for nsGlobalWindow.h in MediaChild.cpp
 LOCAL_INCLUDES += [

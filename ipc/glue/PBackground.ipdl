@@ -16,7 +16,9 @@ include protocol PFileSystemRequest;
 include protocol PGamepadEventChannel;
 include protocol PGamepadTestChannel;
 include protocol PMessagePort;
+#ifdef MOZ_WEBRTC
 include protocol PCameras;
+#endif
 include protocol PQuota;
 include protocol PSendStream;
 include protocol PServiceWorkerManager;
@@ -59,7 +61,9 @@ sync protocol PBackground
   manages PGamepadEventChannel;
   manages PGamepadTestChannel;
   manages PMessagePort;
+#ifdef MOZ_WEBRTC
   manages PCameras;
+#endif
   manages PQuota;
   manages PSendStream;
   manages PServiceWorkerManager;
@@ -79,7 +83,9 @@ parent:
 
   async PVsync();
 
+#ifdef MOZ_WEBRTC
   async PCameras();
+#endif
 
   async PUDPSocket(OptionalPrincipalInfo pInfo, nsCString filter);
   async PBroadcastChannel(PrincipalInfo pInfo, nsCString origin, nsString channel);

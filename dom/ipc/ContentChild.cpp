@@ -1636,49 +1636,37 @@ ContentChild::DeallocPStorageChild(PStorageChild* aActor)
   return true;
 }
 
+#ifdef MOZ_WEBSPEECH
 PSpeechSynthesisChild*
 ContentChild::AllocPSpeechSynthesisChild()
 {
-#ifdef MOZ_WEBSPEECH
   MOZ_CRASH("No one should be allocating PSpeechSynthesisChild actors");
-#else
-  return nullptr;
-#endif
 }
 
 bool
 ContentChild::DeallocPSpeechSynthesisChild(PSpeechSynthesisChild* aActor)
 {
-#ifdef MOZ_WEBSPEECH
   delete aActor;
   return true;
-#else
-  return false;
-#endif
 }
+#endif
 
+#ifdef MOZ_WEBRTC
 PWebrtcGlobalChild *
 ContentChild::AllocPWebrtcGlobalChild()
 {
-#ifdef MOZ_WEBRTC
   WebrtcGlobalChild *child = new WebrtcGlobalChild();
   return child;
-#else
-  return nullptr;
-#endif
 }
 
 bool
 ContentChild::DeallocPWebrtcGlobalChild(PWebrtcGlobalChild *aActor)
 {
-#ifdef MOZ_WEBRTC
   delete static_cast<WebrtcGlobalChild*>(aActor);
   return true;
-#else
-  return false;
-#endif
-}
 
+}
+#endif
 
 bool
 ContentChild::RecvRegisterChrome(InfallibleTArray<ChromePackage>&& packages,

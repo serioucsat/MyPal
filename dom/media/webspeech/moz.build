@@ -4,8 +4,3 @@
 
 if CONFIG['MOZ_WEBSPEECH']:
     DIRS += ['synth']
-else:
-    IPDL_SOURCES += [
-        'synth/ipc/PSpeechSynthesis.ipdl',
-        'synth/ipc/PSpeechSynthesisRequest.ipdl',
-    ]

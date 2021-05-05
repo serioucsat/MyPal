@@ -112,11 +112,13 @@ protected:
   virtual bool
   DeallocPServiceWorkerManagerParent(PServiceWorkerManagerParent* aActor) override;
 
+#ifdef MOZ_WEBRTC
   virtual PCamerasParent*
   AllocPCamerasParent() override;
 
   virtual bool
   DeallocPCamerasParent(PCamerasParent* aActor) override;
+#endif
 
   virtual bool
   RecvShutdownServiceWorkerRegistrar() override;

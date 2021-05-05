@@ -332,19 +332,16 @@ BackgroundParentImpl::DeallocPVsyncParent(PVsyncParent* aActor)
   return true;
 }
 
+#ifdef MOZ_WEBRTC
 camera::PCamerasParent*
 BackgroundParentImpl::AllocPCamerasParent()
 {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
-#ifdef MOZ_WEBRTC
   RefPtr<mozilla::camera::CamerasParent> actor =
       mozilla::camera::CamerasParent::Create();
   return actor.forget().take();
-#else
-  return nullptr;
-#endif
 }
 
 bool
@@ -354,12 +351,11 @@ BackgroundParentImpl::DeallocPCamerasParent(camera::PCamerasParent *aActor)
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aActor);
 
-#ifdef MOZ_WEBRTC
   RefPtr<mozilla::camera::CamerasParent> actor =
       dont_AddRef(static_cast<mozilla::camera::CamerasParent*>(aActor));
-#endif
   return true;
 }
+#endif
 
 namespace {
 

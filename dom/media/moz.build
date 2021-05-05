@@ -160,9 +160,10 @@ if not CONFIG['MOZ_WEBRTC']:
       '../../media/mtransport/runnable_utils.h',
   ]
 
-IPDL_SOURCES += [
-    'webrtc/PWebrtcGlobal.ipdl'
-]
+if CONFIG['MOZ_WEBRTC']:
+  IPDL_SOURCES += [
+      'webrtc/PWebrtcGlobal.ipdl'
+  ]
 
 EXPORTS.mozilla.dom += [
     'AudioStreamTrack.h',
