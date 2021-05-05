@@ -165,7 +165,6 @@ LOCAL_INCLUDES += [
 IPDL_SOURCES = [
     'InputStreamParams.ipdlh',
     'IPCStream.ipdlh',
-    'PBackground.ipdl',
     'PBackgroundSharedTypes.ipdlh',
     'PBackgroundTest.ipdl',
     'PFileDescriptorSet.ipdl',
@@ -173,6 +172,8 @@ IPDL_SOURCES = [
     'PSendStream.ipdl',
     'URIParams.ipdlh',
 ]
+
+PREPROCESSED_IPDL_SOURCES = ['PBackground.ipdl',]
 
 LOCAL_INCLUDES += [
     '/dom/ipc',

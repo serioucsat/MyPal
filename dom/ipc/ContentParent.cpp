@@ -3109,36 +3109,26 @@ ContentParent::DeallocPStorageParent(PStorageParent* aActor)
   return true;
 }
 
+#ifdef MOZ_WEBSPEECH
 PSpeechSynthesisParent*
 ContentParent::AllocPSpeechSynthesisParent()
 {
-#ifdef MOZ_WEBSPEECH
   return new mozilla::dom::SpeechSynthesisParent();
-#else
-  return nullptr;
-#endif
 }
 
 bool
 ContentParent::DeallocPSpeechSynthesisParent(PSpeechSynthesisParent* aActor)
 {
-#ifdef MOZ_WEBSPEECH
   delete aActor;
   return true;
-#else
-  return false;
-#endif
 }
 
 bool
 ContentParent::RecvPSpeechSynthesisConstructor(PSpeechSynthesisParent* aActor)
 {
-#ifdef MOZ_WEBSPEECH
   return true;
-#else
-  return false;
-#endif
 }
+#endif
 
 bool
 ContentParent::RecvSpeakerManagerGetSpeakerStatus(bool* aValue)
@@ -4098,26 +4088,20 @@ ContentParent::DeallocPOfflineCacheUpdateParent(POfflineCacheUpdateParent* aActo
   return true;
 }
 
+#ifdef MOZ_WEBRTC
 PWebrtcGlobalParent *
 ContentParent::AllocPWebrtcGlobalParent()
 {
-#ifdef MOZ_WEBRTC
   return WebrtcGlobalParent::Alloc();
-#else
-  return nullptr;
-#endif
 }
 
 bool
 ContentParent::DeallocPWebrtcGlobalParent(PWebrtcGlobalParent *aActor)
 {
-#ifdef MOZ_WEBRTC
   WebrtcGlobalParent::Dealloc(static_cast<WebrtcGlobalParent*>(aActor));
   return true;
-#else
-  return false;
-#endif
 }
+#endif
 
 bool
 ContentParent::RecvSetOfflinePermission(const Principal& aPrincipal)

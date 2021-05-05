@@ -26,22 +26,30 @@ include protocol PNecko;
 //       bridging PContent and PGMP. As soon as it registers the bridge between
 //       PContent and PPluginModule it seems to think that PContent's parent and
 //       child live in the same process!
+#ifdef THE_GMP
 include protocol PGMPContent;
 include protocol PGMPService;
+#endif
 include protocol PPluginModule;
+#ifdef THE_GMP
 include protocol PGMP;
+#endif
 include protocol PPrinting;
 include protocol PSendStream;
 include protocol POfflineCacheUpdate;
 include protocol PRenderFrame;
 include protocol PScreenManager;
+#ifdef MOZ_WEBSPEECH
 include protocol PSpeechSynthesis;
+#endif
 include protocol PStorage;
 include protocol PTestShell;
 include protocol PJavaScript;
 include protocol PRemoteSpellcheckEngine;
 include protocol PWebBrowserPersistDocument;
+#ifdef MOZ_WEBRTC
 include protocol PWebrtcGlobal;
+#endif
 include protocol PVideoDecoderManager;
 include DOMTypes;
 include JavaScriptTypes;
@@ -211,6 +219,7 @@ struct BlobURLRegistrationData
     Principal principal;
 };
 
+#ifdef THE_GMP
 struct GMPAPITags
 {
     nsCString api;
@@ -223,13 +232,16 @@ struct GMPCapabilityData
     nsCString version;
     GMPAPITags[] capabilities;
 };
+#endif
 
 nested(upto inside_cpow) sync protocol PContent
 {
     parent spawns PPluginModule;
 
     parent opens PProcessHangMonitor;
+#ifdef THE_GMP
     parent opens PGMPService;
+#endif
     child opens PBackground;
 
     manages PBlob;
@@ -249,13 +261,17 @@ nested(upto inside_cpow) sync protocol PContent
     manages PPrinting;
     manages PSendStream;
     manages PScreenManager;
+#ifdef MOZ_WEBSPEECH
     manages PSpeechSynthesis;
+#endif
     manages PStorage;
     manages PTestShell;
     manages PJavaScript;
     manages PRemoteSpellcheckEngine;
     manages PWebBrowserPersistDocument;
+#ifdef MOZ_WEBRTC
     manages PWebrtcGlobal;
+#endif
 
 both:
     // Depending on exactly how the new browser is being created, it might be
@@ -515,8 +531,9 @@ child:
 
     async BlobURLUnregistration(nsCString aURI);
 
-
+#ifdef THE_GMP
     async GMPsChanged(GMPCapabilityData[] capabilities);
+#endif
 
 parent:
     /**
@@ -549,8 +566,9 @@ parent:
         returns (ContentParentId cpId, bool isForApp, bool isForBrowser, TabId tabId);
     sync BridgeToChildProcess(ContentParentId cpId);
 
+#ifdef THE_GMP
     async CreateGMPService();
-
+#endif
     /**
      * This call connects the content process to a plugin process. While this
      * call runs, a new PluginModuleParent will be created in the ContentChild
@@ -655,13 +673,17 @@ parent:
                  float systemDefaultScale,
                  bool success);
 
+#ifdef MOZ_WEBSPEECH
     async PSpeechSynthesis();
+#endif
 
     nested(inside_cpow) async PStorage();
 
     async PMedia();
 
+#ifdef MOZ_WEBRTC
     async PWebrtcGlobal();
+#endif
 
     // Services remoting
 

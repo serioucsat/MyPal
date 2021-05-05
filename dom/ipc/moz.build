@@ -89,10 +89,7 @@ IPDL_SOURCES += [
     'ServiceWorkerConfiguration.ipdlh',
 ]
 
-if CONFIG['THE_GMP']:
-  IPDL_SOURCES += ['gmp/PContent.ipdl',]
-else:
-  IPDL_SOURCES += ['nogmp/PContent.ipdl',]
+PREPROCESSED_IPDL_SOURCES += ['PContent.ipdl',]
 
 include('/ipc/chromium/chromium-config.mozbuild')
 

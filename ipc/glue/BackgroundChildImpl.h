@@ -82,11 +82,13 @@ protected:
   virtual bool
   DeallocPFileDescriptorSetChild(PFileDescriptorSetChild* aActor) override;
 
+#ifdef MOZ_WEBRTC
   virtual PCamerasChild*
   AllocPCamerasChild() override;
 
   virtual bool
   DeallocPCamerasChild(PCamerasChild* aActor) override;
+#endif
 
   virtual PVsyncChild*
   AllocPVsyncChild() override;

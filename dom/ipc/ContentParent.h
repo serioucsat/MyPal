@@ -800,6 +800,7 @@ private:
 
   virtual bool DeallocPStorageParent(PStorageParent* aActor) override;
 
+#ifdef MOZ_WEBSPEECH
   virtual PSpeechSynthesisParent* AllocPSpeechSynthesisParent() override;
 
   virtual bool
@@ -807,6 +808,7 @@ private:
 
   virtual bool
   RecvPSpeechSynthesisConstructor(PSpeechSynthesisParent* aActor) override;
+#endif
 
   virtual PWebBrowserPersistDocumentParent*
   AllocPWebBrowserPersistDocumentParent(PBrowserParent* aBrowser,
@@ -992,9 +994,10 @@ private:
   virtual bool
   DeallocPFileDescriptorSetParent(PFileDescriptorSetParent*) override;
 
+#ifdef MOZ_WEBRTC
   virtual PWebrtcGlobalParent* AllocPWebrtcGlobalParent() override;
   virtual bool DeallocPWebrtcGlobalParent(PWebrtcGlobalParent *aActor) override;
-
+#endif
 
   virtual bool RecvUpdateDropEffect(const uint32_t& aDragAction,
                                     const uint32_t& aDropEffect) override;

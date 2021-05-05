@@ -292,29 +292,25 @@ BackgroundChildImpl::DeallocPBroadcastChannelChild(
   return true;
 }
 
+#ifdef MOZ_WEBRTC
 camera::PCamerasChild*
 BackgroundChildImpl::AllocPCamerasChild()
 {
-#ifdef MOZ_WEBRTC
   RefPtr<camera::CamerasChild> agent =
     new camera::CamerasChild();
   return agent.forget().take();
-#else
-  return nullptr;
-#endif
 }
 
 bool
 BackgroundChildImpl::DeallocPCamerasChild(camera::PCamerasChild *aActor)
 {
-#ifdef MOZ_WEBRTC
   RefPtr<camera::CamerasChild> child =
       dont_AddRef(static_cast<camera::CamerasChild*>(aActor));
   MOZ_ASSERT(aActor);
   camera::Shutdown();
-#endif
   return true;
 }
+#endif
 
 // -----------------------------------------------------------------------------
 // ServiceWorkerManager
