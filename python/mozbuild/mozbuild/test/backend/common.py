@@ -99,6 +99,15 @@ CONFIGS = defaultdict(lambda: {
             'MOZ_APP_NAME': 'my_app',
         },
     },
+    'ipdl_sources': {
+        'defines': {},
+        'non_global_defines': [],
+        'substs': {
+            'COMPILE_ENVIRONMENT': '1',
+            'LIB_SUFFIX': '.a',
+            'BIN_SUFFIX': '',
+        },
+    },
 })
 
 
