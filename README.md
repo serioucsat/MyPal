@@ -4,6 +4,8 @@ Mypal is a current and maintained Windows XP web browser. Mypal is based on Moon
 
 The goal of Mypal is to provide a current, secure, and reliable web browser for Windows XP. Mypal operates identically to Pale Moon with some minor exceptions. Introduced new portable system and certain settings, including unused legacy Mozilla code, have been removed.
 
+**Pay attention** though Mypal keeps updating many modern sites wont work without hassle, some sites wont work at all.
+
 ### Download / Updates
 
 [Download](https://github.com/Feodor2/Mypal/releases) Mypal at GitHub. Automatic updates are disabled by default, but you can enable them in Tools/Preferences/Advanced, on the Update tab. Updates can be installed over existing Mypal installations without loss of data and settings.
