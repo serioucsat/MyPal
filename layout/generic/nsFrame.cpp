@@ -2055,6 +2055,7 @@ CheckForApzAwareEventHandlers(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
 static bool
 FrameParticipatesIn3DContext(nsIFrame* aAncestor, nsIFrame* aDescendant) {
   MOZ_ASSERT(aAncestor != aDescendant);
+  MOZ_ASSERT(aAncestor->GetContent() != aDescendant->GetContent());
   MOZ_ASSERT(aAncestor->Extend3DContext());
   nsIFrame* frame;
   for (frame = nsLayoutUtils::GetCrossDocParentFrame(aDescendant);
@@ -2071,15 +2072,13 @@ FrameParticipatesIn3DContext(nsIFrame* aAncestor, nsIFrame* aDescendant) {
 static bool
 ItemParticipatesIn3DContext(nsIFrame* aAncestor, nsDisplayItem* aItem)
 {
-  nsIFrame* transformFrame;
-  if (aItem->GetType() == nsDisplayItem::TYPE_TRANSFORM) {
-    transformFrame = aItem->Frame();
-  } else if (aItem->GetType() == nsDisplayItem::TYPE_PERSPECTIVE) {
-    transformFrame = static_cast<nsDisplayPerspective*>(aItem)->TransformFrame();
-  } else {
+  auto type = aItem->GetType();
+  if (type != nsDisplayItem::TYPE_TRANSFORM &&
+      type != nsDisplayItem::TYPE_PERSPECTIVE) {
     return false;
   }
-  if (aAncestor == transformFrame) {
+  nsIFrame* transformFrame = aItem->Frame();
+  if (aAncestor->GetContent() == transformFrame->GetContent()) {
     return true;
   }
   return FrameParticipatesIn3DContext(aAncestor, transformFrame);
