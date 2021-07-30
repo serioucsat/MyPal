@@ -10,6 +10,11 @@
 #include "GMPSharedMemManager.h"
 #include "nsISupportsImpl.h"
 
+
+#undef LoadImage
+#undef PostMessage
+#undef _WINDOWS_
+
 namespace mozilla {
 namespace gmp {
 
@@ -58,7 +63,27 @@ public:
     return mPluginId;
   }
 
+  class CloseBlocker {
+  public:
+    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CloseBlocker)
+
+    explicit CloseBlocker(GMPContentParent* aParent)
+      : mParent(aParent)
+    {
+      mParent->AddCloseBlocker();
+    }
+    RefPtr<GMPContentParent> mParent;
+  private:
+    ~CloseBlocker() {
+      mParent->RemoveCloseBlocker();
+    }
+  };
+
 private:
+
+  void AddCloseBlocker();
+  void RemoveCloseBlocker();
+
   ~GMPContentParent();
 
   void ActorDestroy(ActorDestroyReason aWhy) override;
@@ -87,6 +112,7 @@ private:
   RefPtr<GMPParent> mParent;
   nsCString mDisplayName;
   uint32_t mPluginId;
+  uint32_t mCloseBlockerCount = 0;
 };
 
 } // namespace gmp
