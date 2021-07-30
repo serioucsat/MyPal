@@ -2895,6 +2895,9 @@ pref("svg.new-getBBox.enabled", false);
 // Is support for the transform-box property of SVG enabled?
 pref("svg.transform-box.enabled", true);
 
+// [TB] Bug 12827
+pref("svg.in-content.enabled", true);
+
 // Default font types and sizes by locale
 pref("font.default.ar", "sans-serif");
 pref("font.minimum-size.ar", 0);
