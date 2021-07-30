@@ -12,10 +12,6 @@ XPIDL_SOURCES += [
 
 EXPORTS += [
     'gmp-api/gmp-async-shutdown.h',
-    'gmp-api/gmp-audio-codec.h',
-    'gmp-api/gmp-audio-decode.h',
-    'gmp-api/gmp-audio-host.h',
-    'gmp-api/gmp-audio-samples.h',
     'gmp-api/gmp-decryption.h',
     'gmp-api/gmp-entrypoints.h',
     'gmp-api/gmp-errors.h',
@@ -29,10 +25,6 @@ EXPORTS += [
     'gmp-api/gmp-video-frame.h',
     'gmp-api/gmp-video-host.h',
     'gmp-api/gmp-video-plane.h',
-    'GMPAudioDecoderChild.h',
-    'GMPAudioDecoderParent.h',
-    'GMPAudioDecoderProxy.h',
-    'GMPAudioHost.h',
     'GMPCallbackBase.h',
     'GMPChild.h',
     'GMPContentChild.h',
@@ -87,9 +79,6 @@ if CONFIG['OS_TARGET'] == 'Android':
     ]
 
 SOURCES += [
-    'GMPAudioDecoderChild.cpp',
-    'GMPAudioDecoderParent.cpp',
-    'GMPAudioHost.cpp',
     'GMPChild.cpp',
     'GMPContentChild.cpp',
     'GMPContentParent.cpp',
@@ -135,7 +124,6 @@ if CONFIG['MOZ_EME']:
 IPDL_SOURCES += [
   'GMPTypes.ipdlh',
   'PGMP.ipdl',
-  'PGMPAudioDecoder.ipdl',
   'PGMPContent.ipdl',
   'PGMPDecryptor.ipdl',
   'PGMPService.ipdl',

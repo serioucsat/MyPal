@@ -21,7 +21,6 @@
 #include "nsIConsoleService.h"
 #include "mozilla/Unused.h"
 #include "GMPDecryptorParent.h"
-#include "GMPAudioDecoderParent.h"
 #include "nsComponentManagerUtils.h"
 #include "runnable_utils.h"
 #include "VideoUtils.h"
@@ -314,33 +313,6 @@ private:
   UniquePtr<GetGMPAudioDecoderCallback> mCallback;
   RefPtr<GMPCrashHelper> mHelper;
 };
-
-NS_IMETHODIMP
-GeckoMediaPluginService::GetGMPAudioDecoder(GMPCrashHelper* aHelper,
-                                            nsTArray<nsCString>* aTags,
-                                            const nsACString& aNodeId,
-                                            UniquePtr<GetGMPAudioDecoderCallback>&& aCallback)
-{
-  MOZ_ASSERT(NS_GetCurrentThread() == mGMPThread);
-  NS_ENSURE_ARG(aTags && aTags->Length() > 0);
-  NS_ENSURE_ARG(aCallback);
-
-  if (mShuttingDownOnGMPThread) {
-    return NS_ERROR_FAILURE;
-  }
-
-  UniquePtr<GetGMPContentParentCallback> callback(
-    new GetGMPContentParentForAudioDecoderDone(Move(aCallback), aHelper));
-  if (!GetContentParentFrom(aHelper,
-                            aNodeId,
-                            NS_LITERAL_CSTRING(GMP_API_AUDIO_DECODER),
-                            *aTags,
-                            Move(callback))) {
-    return NS_ERROR_FAILURE;
-  }
-
-  return NS_OK;
-}
 
 class GetGMPContentParentForVideoDecoderDone : public GetGMPContentParentCallback
 {
