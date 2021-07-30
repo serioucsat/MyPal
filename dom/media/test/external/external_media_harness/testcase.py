@@ -216,7 +216,7 @@ navigator.requestMediaKeySystemAccess('com.widevine.alpha',
 class EMESetupMixin(object):
 
     """
-    An object that needs to use the Adobe or Widevine GMP system must inherit
+    An object that needs to use the Widevine GMP system must inherit
     from this class, and then call check_eme_system() to insure that everything
     is setup correctly.
     """
@@ -225,7 +225,7 @@ class EMESetupMixin(object):
 
     def check_eme_system(self):
         """
-        Download the most current version of the Adobe and Widevine GMP
+        Download the most current version of the Widevine GMP
         Plugins. Verify that all MSE and EME prefs are set correctly. Raises
         if things are not OK.
         """

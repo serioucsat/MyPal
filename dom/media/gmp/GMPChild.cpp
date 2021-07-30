@@ -9,7 +9,6 @@
 #include "GMPLoader.h"
 #include "GMPVideoDecoderChild.h"
 #include "GMPVideoEncoderChild.h"
-#include "GMPAudioDecoderChild.h"
 #include "GMPDecryptorChild.h"
 #include "GMPVideoHost.h"
 #include "nsDebugImpl.h"
@@ -28,8 +27,6 @@
 #include "utils.h"
 
 using namespace mozilla::ipc;
-
-static const int MAX_VOUCHER_LENGTH = 500000;
 
 #ifdef XP_WIN
 #include <stdlib.h> // for _exit()
@@ -97,15 +94,6 @@ GetFileBase(const nsAString& aPluginPath,
 }
 
 static bool
-GetFileBase(const nsAString& aPluginPath,
-            nsCOMPtr<nsIFile>& aFileBase,
-            nsAutoString& aBaseName)
-{
-  nsCOMPtr<nsIFile> unusedLibDir;
-  return GetFileBase(aPluginPath, unusedLibDir, aFileBase, aBaseName);
-}
-
-static bool
 GetPluginFile(const nsAString& aPluginPath,
               nsCOMPtr<nsIFile>& aLibDirectory,
               nsCOMPtr<nsIFile>& aLibFile)
@@ -136,7 +124,6 @@ GetPluginFile(const nsAString& aPluginPath,
 
 bool
 GMPChild::Init(const nsAString& aPluginPath,
-               const nsAString& aVoucherPath,
                base::ProcessId aParentPid,
                MessageLoop* aIOLoop,
                IPC::Channel* aChannel)
@@ -148,7 +135,6 @@ GMPChild::Init(const nsAString& aPluginPath,
   }
 
   mPluginPath = aPluginPath;
-  mSandboxVoucherPath = aVoucherPath;
 
   return true;
 }
@@ -235,12 +221,6 @@ bool
 GMPChild::AnswerStartPlugin(const nsString& aAdapter)
 {
   LOGD("%s", __FUNCTION__);
-
-  if (!PreLoadPluginVoucher()) {
-    NS_WARNING("Plugin voucher failed to load!");
-    return false;
-  }
-  PreLoadSandboxVoucher();
 
   nsCString libPath;
   if (!GetUTF8LibPath(libPath)) {
@@ -426,47 +406,6 @@ GMPChild::ShutdownComplete()
   MOZ_ASSERT(mGMPMessageLoop == MessageLoop::current());
   mAsyncShutdown = nullptr;
   SendAsyncShutdownComplete();
-}
-
-static void
-GetPluginVoucherFile(const nsAString& aPluginPath,
-                     nsCOMPtr<nsIFile>& aOutVoucherFile)
-{
-  nsAutoString baseName;
-  GetFileBase(aPluginPath, aOutVoucherFile, baseName);
-  nsAutoString infoFileName = baseName + NS_LITERAL_STRING(".voucher");
-  aOutVoucherFile->AppendRelativePath(infoFileName);
-}
-
-bool
-GMPChild::PreLoadPluginVoucher()
-{
-  nsCOMPtr<nsIFile> voucherFile;
-  GetPluginVoucherFile(mPluginPath, voucherFile);
-  if (!FileExists(voucherFile)) {
-    // Assume missing file is not fatal; that would break OpenH264.
-    return true;
-  }
-  return ReadIntoArray(voucherFile, mPluginVoucher, MAX_VOUCHER_LENGTH);
-}
-
-void
-GMPChild::PreLoadSandboxVoucher()
-{
-  nsCOMPtr<nsIFile> f;
-  nsresult rv = NS_NewLocalFile(mSandboxVoucherPath, true, getter_AddRefs(f));
-  if (NS_FAILED(rv)) {
-    NS_WARNING("Can't create nsIFile for sandbox voucher");
-    return;
-  }
-  if (!FileExists(f)) {
-    // Assume missing file is not fatal; that would break OpenH264.
-    return;
-  }
-
-  if (!ReadIntoArray(f, mSandboxVoucher, MAX_VOUCHER_LENGTH)) {
-    NS_WARNING("Failed to read sandbox voucher");
-  }
 }
 
 PGMPContentChild*

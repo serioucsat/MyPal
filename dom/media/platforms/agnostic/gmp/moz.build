@@ -4,14 +4,12 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 EXPORTS += [
-    'GMPAudioDecoder.h',
     'GMPDecoderModule.h',
     'GMPVideoDecoder.h',
     'MediaDataDecoderProxy.h',
 ]
 
 SOURCES += [
-    'GMPAudioDecoder.cpp',
     'GMPDecoderModule.cpp',
     'GMPVideoDecoder.cpp',
     'MediaDataDecoderProxy.cpp',

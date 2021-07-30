@@ -411,7 +411,7 @@ extern "C" {
       return GMPNoErr;
 #if defined(GMP_FAKE_SUPPORT_DECRYPT)
     } else if (!strcmp (aApiName, GMP_API_DECRYPTOR)) {
-      *aPluginApi = new FakeDecryptor(static_cast<GMPDecryptorHost*> (aHostAPI));
+      *aPluginApi = new FakeDecryptor();
       return GMPNoErr;
     } else if (!strcmp (aApiName, GMP_API_ASYNC_SHUTDOWN)) {
       *aPluginApi = new TestAsyncShutdown(static_cast<GMPAsyncShutdownHost*> (aHostAPI));
