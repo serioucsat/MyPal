@@ -408,15 +408,13 @@ GMPChild::ShutdownComplete()
   SendAsyncShutdownComplete();
 }
 
-PGMPContentChild*
-GMPChild::AllocPGMPContentChild(Transport* aTransport,
-                                ProcessId aOtherPid)
+bool
+GMPChild::RecvInitGMPContentChild(Endpoint<PGMPContentChild>&& aEndpoint)
 {
   GMPContentChild* child =
     mGMPContentChildren.AppendElement(new GMPContentChild(this))->get();
-  child->Open(aTransport, aOtherPid, XRE_GetIOMessageLoop(), ipc::ChildSide);
-
-  return child;
+  aEndpoint.Bind(child);
+  return true;
 }
 
 void
