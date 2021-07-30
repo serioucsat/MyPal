@@ -10,7 +10,6 @@ FINAL_TARGET = 'dist/bin/gmp-clearkey/0.1'
 FINAL_TARGET_PP_FILES += ['clearkey.info.in']
 
 UNIFIED_SOURCES += [
-    'ClearKeyAsyncShutdown.cpp',
     'ClearKeyBase64.cpp',
     'ClearKeyDecryptionManager.cpp',
     'ClearKeyPersistence.cpp',

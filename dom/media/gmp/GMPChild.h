@@ -10,7 +10,6 @@
 #include "GMPTimerChild.h"
 #include "GMPStorageChild.h"
 #include "GMPLoader.h"
-#include "gmp-async-shutdown.h"
 #include "gmp-entrypoints.h"
 #include "prlink.h"
 
@@ -20,7 +19,7 @@ namespace gmp {
 class GMPContentChild;
 
 class GMPChild : public PGMPChild
-               , public GMPAsyncShutdownHost
+
 {
 public:
   GMPChild();
@@ -35,9 +34,6 @@ public:
   // Main thread only.
   GMPTimerChild* GetGMPTimers();
   GMPStorageChild* GetGMPStorage();
-
-  // GMPAsyncShutdownHost
-  void ShutdownComplete() override;
 
 private:
   friend class GMPContentChild;
@@ -57,7 +53,6 @@ private:
   void GMPContentChildActorDestroy(GMPContentChild* aGMPContentChild);
 
   bool RecvCrashPluginNow() override;
-  bool RecvBeginAsyncShutdown() override;
   bool RecvCloseActive() override;
 
   bool RecvInitGMPContentChild(Endpoint<PGMPContentChild>&& aEndpoint) override;
@@ -69,7 +64,6 @@ private:
 
   nsTArray<UniquePtr<GMPContentChild>> mGMPContentChildren;
 
-  GMPAsyncShutdown* mAsyncShutdown;
   RefPtr<GMPTimerChild> mTimerChild;
   RefPtr<GMPStorageChild> mStorage;
 
