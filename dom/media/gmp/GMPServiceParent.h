@@ -50,10 +50,6 @@ public:
   NS_DECL_MOZIGECKOMEDIAPLUGINCHROMESERVICE
   NS_DECL_NSIOBSERVER
 
-  void AsyncShutdownNeeded(GMPParent* aParent);
-  void AsyncShutdownComplete(GMPParent* aParent);
-
-  int32_t AsyncShutdownTimeoutMs();
   RefPtr<GenericPromise> EnsureInitialized();
   RefPtr<GenericPromise> AsyncAddPluginDirectory(const nsAString& aDirectory);
 
@@ -93,15 +89,12 @@ private:
   void UnloadPlugins();
   void CrashPlugins();
   void NotifySyncShutdownComplete();
-  void NotifyAsyncShutdownComplete();
 
   void ProcessPossiblePlugin(nsIFile* aDir);
 
   void RemoveOnGMPThread(const nsAString& aDirectory,
                          const bool aDeleteFromDisk,
                          const bool aCanDefer);
-
-  nsresult SetAsyncShutdownTimeout();
 
   struct DirectoryFilter {
     virtual bool operator()(nsIFile* aPath) = 0;
@@ -165,7 +158,6 @@ private:
   // Protected by mMutex from the base class.
   nsTArray<RefPtr<GMPParent>> mPlugins;
   bool mShuttingDown;
-  nsTArray<RefPtr<GMPParent>> mAsyncShutdownPlugins;
 
   // True if we've inspected MOZ_GMP_PATH on the GMP thread and loaded any
   // plugins found there into mPlugins.

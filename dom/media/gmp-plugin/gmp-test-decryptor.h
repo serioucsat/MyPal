@@ -7,7 +7,6 @@
 #define FAKE_DECRYPTOR_H__
 
 #include "gmp-decryption.h"
-#include "gmp-async-shutdown.h"
 #include <string>
 #include "mozilla/Attributes.h"
 
@@ -88,17 +87,6 @@ private:
   void TestStorage();
 
   GMPDecryptorCallback* mCallback;
-};
-
-class TestAsyncShutdown : public GMPAsyncShutdown {
-public:
-  explicit TestAsyncShutdown(GMPAsyncShutdownHost* aHost)
-    : mHost(aHost)
-  {
-  }
-  void BeginShutdown() override;
-private:
-  GMPAsyncShutdownHost* mHost;
 };
 
 #endif
