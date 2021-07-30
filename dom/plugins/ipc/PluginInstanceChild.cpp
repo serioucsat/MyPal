@@ -124,7 +124,7 @@ CreateDrawTargetForSurface(gfxASurface *aSurface)
                                              aSurface->GetSize(),
                                              &format);
   if (!drawTarget) {
-    NS_RUNTIMEABORT("CreateDrawTargetForSurface failed in plugin");
+    MOZ_CRASH("CreateDrawTargetForSurface failed in plugin");
   }
   return drawTarget;
 }
@@ -1048,7 +1048,7 @@ PluginInstanceChild::AnswerNPP_HandleEvent_Shmem(const NPRemoteEvent& event,
                                                  int16_t* handled,
                                                  Shmem* rtnmem)
 {
-    NS_RUNTIMEABORT("not reached.");
+    MOZ_CRASH("not reached.");
     *rtnmem = mem;
     return true;
 }
@@ -2888,7 +2888,7 @@ PluginInstanceChild::AllocPPluginStreamChild(const nsCString& mimeType,
                                              const nsCString& target,
                                              NPError* result)
 {
-    NS_RUNTIMEABORT("not callable");
+    MOZ_CRASH("not callable");
     return nullptr;
 }
 
@@ -2909,7 +2909,7 @@ PluginInstanceChild::AllocPStreamNotifyChild(const nsCString& url,
                                              NPError* result)
 {
     AssertPluginThread();
-    NS_RUNTIMEABORT("not reached");
+    MOZ_CRASH("not reached");
     return nullptr;
 }
 
@@ -3451,7 +3451,7 @@ PluginInstanceChild::CreateOptSurface(void)
         return true;
     }
 
-    NS_RUNTIMEABORT("Shared-memory drawing not expected on Windows.");
+    MOZ_CRASH("Shared-memory drawing not expected on Windows.");
 #endif
 
     // Make common shmem implementation working for any platform
@@ -3649,7 +3649,7 @@ PluginInstanceChild::UpdateWindowAttributes(bool aForceSetWindow)
 
     if (curSurface) {
         if (!SharedDIBSurface::IsSharedDIBSurface(curSurface))
-            NS_RUNTIMEABORT("Expected SharedDIBSurface!");
+            MOZ_CRASH("Expected SharedDIBSurface!");
 
         SharedDIBSurface* dibsurf = static_cast<SharedDIBSurface*>(curSurface.get());
         dc = dibsurf->GetHDC();
@@ -3772,7 +3772,7 @@ PluginInstanceChild::PaintRectToPlatformSurface(const nsIntRect& aRect,
     ::IntersectClipRect((HDC) mWindow.window, rect.left, rect.top, rect.right, rect.bottom);
     mPluginIface->event(&mData, reinterpret_cast<void*>(&paintEvent));
 #else
-    NS_RUNTIMEABORT("Surface type not implemented.");
+    MOZ_CRASH("Surface type not implemented.");
 #endif
 }
 
@@ -3888,7 +3888,7 @@ PluginInstanceChild::PaintRectWithAlphaExtraction(const nsIntRect& aRect,
     // vanilla image surfaces.  Bifurcate this painting code so that
     // we don't accidentally attempt that.
     if (!SharedDIBSurface::IsSharedDIBSurface(aSurface))
-        NS_RUNTIMEABORT("Expected SharedDIBSurface!");
+        MOZ_CRASH("Expected SharedDIBSurface!");
 
     // Paint the plugin directly onto the target, with a white
     // background and copy the result
@@ -4161,7 +4161,7 @@ PluginInstanceChild::ShowPluginFrame()
     if (gfxSharedImageSurface::IsSharedImage(mCurrentSurface)) {
         currSurf = static_cast<gfxSharedImageSurface*>(mCurrentSurface.get())->GetShmem();
     } else {
-        NS_RUNTIMEABORT("Surface type is not remotable");
+        MOZ_CRASH("Surface type is not remotable");
         return false;
     }
 
@@ -4323,7 +4323,7 @@ PluginInstanceChild::RecvUpdateBackground(const SurfaceDescriptor& aBackground,
             break;
         }
         default:
-            NS_RUNTIMEABORT("Unexpected background surface descriptor");
+            MOZ_CRASH("Unexpected background surface descriptor");
         }
 
         if (!mBackground) {
@@ -4580,7 +4580,7 @@ PluginInstanceChild::Destroy()
         return;
     }
     if (mStackDepth != 0) {
-        NS_RUNTIMEABORT("Destroying plugin instance on the stack.");
+        MOZ_CRASH("Destroying plugin instance on the stack.");
     }
     mDestroyed = true;
 

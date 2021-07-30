@@ -1145,7 +1145,7 @@ nsCacheService::Init()
     rv = NS_NewNamedThread("Cache I/O",
                            getter_AddRefs(mCacheIOThread));
     if (NS_FAILED(rv)) {
-        NS_RUNTIMEABORT("Can't create cache IO thread");
+        MOZ_CRASH("Can't create cache IO thread");
     }
 
     rv = nsDeleteDir::Init();
@@ -1179,7 +1179,7 @@ nsCacheService::Shutdown()
     // This method must be called on the main thread because mCacheIOThread must
     // only be modified on the main thread.
     if (!NS_IsMainThread()) {
-        NS_RUNTIMEABORT("nsCacheService::Shutdown called off the main thread");
+        MOZ_CRASH("nsCacheService::Shutdown called off the main thread");
     }
 
     nsCOMPtr<nsIThread> cacheIOThread;

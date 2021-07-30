@@ -47,7 +47,7 @@ public:
   {
     mLock = PR_NewLock();
     if (!mLock) {
-      NS_RUNTIMEABORT("Can't allocate mozilla::Mutex");
+      MOZ_CRASH("Can't allocate mozilla::Mutex");
     }
   }
 

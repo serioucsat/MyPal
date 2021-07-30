@@ -480,12 +480,21 @@ ContentChild::ContentChild()
   nsDebugImpl::SetMultiprocessMode("Child");
 }
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4722) /* Silence "destructor never returns" warning */
+#endif
+
 ContentChild::~ContentChild()
 {
 #ifndef NS_FREE_PERMANENT_DATA
-  NS_RUNTIMEABORT("Content Child shouldn't be destroyed.");
+  MOZ_CRASH("Content Child shouldn't be destroyed.");
 #endif
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 NS_INTERFACE_MAP_BEGIN(ContentChild)
   NS_INTERFACE_MAP_ENTRY(nsIContentChild)
@@ -1802,10 +1811,10 @@ ContentChild::ProcessingError(Result aCode, const char* aReason)
       break;
 
     default:
-      NS_RUNTIMEABORT("not reached");
+      MOZ_CRASH("not reached");
   }
 
-  NS_RUNTIMEABORT("Content child abort due to IPC error");
+  MOZ_CRASH("Content child abort due to IPC error");
 }
 
 nsresult
@@ -2295,7 +2304,7 @@ ContentChild::AllocPOfflineCacheUpdateChild(const URIParams& manifestURI,
                                             const PrincipalInfo& aLoadingPrincipalInfo,
                                             const bool& stickDocument)
 {
-  NS_RUNTIMEABORT("unused");
+  MOZ_CRASH("unused");
   return nullptr;
 }
 
@@ -2509,7 +2518,7 @@ ContentChild::AllocPContentPermissionRequestChild(const InfallibleTArray<Permiss
                                                   const IPC::Principal& aPrincipal,
                                                   const TabId& aTabId)
 {
-  NS_RUNTIMEABORT("unused");
+  MOZ_CRASH("unused");
   return nullptr;
 }
 

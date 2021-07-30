@@ -78,7 +78,7 @@ Crash()
   }
 #endif
 
-  NS_RUNTIMEABORT("HangMonitor triggered");
+  MOZ_CRASH("HangMonitor triggered");
 }
 
 void
