@@ -54,13 +54,13 @@ private:
   PGMPStorageChild* AllocPGMPStorageChild() override;
   bool DeallocPGMPStorageChild(PGMPStorageChild* aActor) override;
 
-  PGMPContentChild* AllocPGMPContentChild(Transport* aTransport,
-                                          ProcessId aOtherPid) override;
   void GMPContentChildActorDestroy(GMPContentChild* aGMPContentChild);
 
   bool RecvCrashPluginNow() override;
   bool RecvBeginAsyncShutdown() override;
   bool RecvCloseActive() override;
+
+  bool RecvInitGMPContentChild(Endpoint<PGMPContentChild>&& aEndpoint) override;
 
   void ActorDestroy(ActorDestroyReason aWhy) override;
   void ProcessingError(Result aCode, const char* aReason) override;

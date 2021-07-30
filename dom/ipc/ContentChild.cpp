@@ -1127,11 +1127,13 @@ ContentChild::AllocPContentBridgeParent(mozilla::ipc::Transport* aTransport,
   return mLastBridge;
 }
 #ifdef THE_GMP
-PGMPServiceChild*
-ContentChild::AllocPGMPServiceChild(mozilla::ipc::Transport* aTransport,
-                                    base::ProcessId aOtherProcess)
-{
-  return GMPServiceChild::Create(aTransport, aOtherProcess);
+bool
+ContentChild::RecvInitGMPService(Endpoint<PGMPServiceChild>&& aGMPService)
+ {
+  if (!GMPServiceChild::Create(Move(aGMPService))) {
+    return false;
+  }
+  return true;
 }
 
 bool

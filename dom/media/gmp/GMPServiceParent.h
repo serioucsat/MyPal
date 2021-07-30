@@ -236,7 +236,7 @@ public:
                         nsCString* aID) override;
   void ActorDestroy(ActorDestroyReason aWhy) override;
 
-  static PGMPServiceParent* Create(Transport* aTransport, ProcessId aOtherPid);
+  static bool Create(Endpoint<PGMPServiceParent>&& aGMPService);
 
   bool RecvLaunchGMP(const nsCString& aNodeId,
                      const nsCString& aAPI,
@@ -245,6 +245,7 @@ public:
                      uint32_t* aOutPluginId,
                      ProcessId* aOutID,
                      nsCString* aOutDisplayName,
+                                        Endpoint<PGMPContentParent>* aOutEndpoint,
                      nsresult* aOutRv) override;
 
 private:
