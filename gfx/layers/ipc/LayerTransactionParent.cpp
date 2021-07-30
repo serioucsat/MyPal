@@ -504,7 +504,7 @@ LayerTransactionParent::RecvUpdate(InfallibleTArray<Edit>&& cset,
         break;
       }
       default:
-        NS_RUNTIMEABORT("not reached");
+        MOZ_CRASH("not reached");
       }
 
       updateHitTestingTree = true;
@@ -667,7 +667,7 @@ LayerTransactionParent::RecvUpdate(InfallibleTArray<Edit>&& cset,
       break;
     }
     default:
-      NS_RUNTIMEABORT("not reached");
+      MOZ_CRASH("not reached");
     }
   }
 

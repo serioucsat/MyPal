@@ -50,7 +50,7 @@ GetContentChild()
   if (XRE_IsContentProcess()) {
     ContentChild* cpc = ContentChild::GetSingleton();
     if (!cpc) {
-      NS_RUNTIMEABORT("Content Protocol is NULL!  We're going to crash!");
+      MOZ_CRASH("Content Protocol is NULL!  We're going to crash!");
     }
     return cpc;
   }
@@ -387,7 +387,7 @@ NS_IMETHODIMP nsPrefBranch::GetComplexValue(const char *aPrefName, const nsIID &
       // some addons, see bug 836263.
       nsAutoString wdata;
       if (!AppendUTF8toUTF16(utf8String, wdata, mozilla::fallible)) {
-        NS_RUNTIMEABORT("bug836263");
+        MOZ_CRASH("bug836263");
       }
       theString->SetData(wdata);
       theString.forget(reinterpret_cast<nsISupportsString**>(_retval));

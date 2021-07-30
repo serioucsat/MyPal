@@ -206,19 +206,19 @@ DisableSystemTimezoneChangeNotifications()
 void
 Reboot()
 {
-  NS_RUNTIMEABORT("Reboot() can't be called from sandboxed contexts.");
+  MOZ_CRASH("Reboot() can't be called from sandboxed contexts.");
 }
 
 void
 PowerOff()
 {
-  NS_RUNTIMEABORT("PowerOff() can't be called from sandboxed contexts.");
+  MOZ_CRASH("PowerOff() can't be called from sandboxed contexts.");
 }
 
 void
 StartForceQuitWatchdog(ShutdownMode aMode, int32_t aTimeoutSecs)
 {
-  NS_RUNTIMEABORT("StartForceQuitWatchdog() can't be called from sandboxed contexts.");
+  MOZ_CRASH("StartForceQuitWatchdog() can't be called from sandboxed contexts.");
 }
 
 void
@@ -262,40 +262,40 @@ GetWakeLockInfo(const nsAString &aTopic, WakeLockInformation *aWakeLockInfo)
 bool
 EnableAlarm()
 {
-  NS_RUNTIMEABORT("Alarms can't be programmed from sandboxed contexts.  Yet.");
+  MOZ_CRASH("Alarms can't be programmed from sandboxed contexts.  Yet.");
   return false;
 }
 
 void
 DisableAlarm()
 {
-  NS_RUNTIMEABORT("Alarms can't be programmed from sandboxed contexts.  Yet.");
+  MOZ_CRASH("Alarms can't be programmed from sandboxed contexts.  Yet.");
 }
 
 bool
 SetAlarm(int32_t aSeconds, int32_t aNanoseconds)
 {
-  NS_RUNTIMEABORT("Alarms can't be programmed from sandboxed contexts.  Yet.");
+  MOZ_CRASH("Alarms can't be programmed from sandboxed contexts.  Yet.");
   return false;
 }
 
 void
 SetProcessPriority(int aPid, ProcessPriority aPriority, uint32_t aLRU)
 {
-  NS_RUNTIMEABORT("Only the main process may set processes' priorities.");
+  MOZ_CRASH("Only the main process may set processes' priorities.");
 }
 
 void
 SetCurrentThreadPriority(ThreadPriority aThreadPriority)
 {
-  NS_RUNTIMEABORT("Setting current thread priority cannot be called from sandboxed contexts.");
+  MOZ_CRASH("Setting current thread priority cannot be called from sandboxed contexts.");
 }
 
 void
 SetThreadPriority(PlatformThreadId aThreadId,
                   ThreadPriority aThreadPriority)
 {
-  NS_RUNTIMEABORT("Setting thread priority cannot be called from sandboxed contexts.");
+  MOZ_CRASH("Setting thread priority cannot be called from sandboxed contexts.");
 }
 
 void
@@ -312,24 +312,24 @@ FactoryReset(FactoryResetReason& aReason)
 
 bool IsHeadphoneEventFromInputDev()
 {
-  NS_RUNTIMEABORT("IsHeadphoneEventFromInputDev() cannot be called from sandboxed contexts.");
+  MOZ_CRASH("IsHeadphoneEventFromInputDev() cannot be called from sandboxed contexts.");
   return false;
 }
 
 nsresult StartSystemService(const char* aSvcName, const char* aArgs)
 {
-  NS_RUNTIMEABORT("System services cannot be controlled from sandboxed contexts.");
+  MOZ_CRASH("System services cannot be controlled from sandboxed contexts.");
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 void StopSystemService(const char* aSvcName)
 {
-  NS_RUNTIMEABORT("System services cannot be controlled from sandboxed contexts.");
+  MOZ_CRASH("System services cannot be controlled from sandboxed contexts.");
 }
 
 bool SystemServiceIsRunning(const char* aSvcName)
 {
-  NS_RUNTIMEABORT("System services cannot be controlled from sandboxed contexts.");
+  MOZ_CRASH("System services cannot be controlled from sandboxed contexts.");
   return false;
 }
 

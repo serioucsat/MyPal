@@ -129,7 +129,7 @@ public:
   {
     mLock = PR_NewLock();
     if (!mLock) {
-      NS_RUNTIMEABORT("couldn't allocate deadlock detector lock");
+      MOZ_CRASH("couldn't allocate deadlock detector lock");
     }
   }
 
@@ -243,7 +243,7 @@ public:
       // not applicable here.
       ResourceAcquisitionArray* cycle = new ResourceAcquisitionArray();
       if (!cycle) {
-        NS_RUNTIMEABORT("can't allocate dep. cycle array");
+        MOZ_CRASH("can't allocate dep. cycle array");
       }
       cycle->AppendElement(current->mResource);
       cycle->AppendElement(aProposed);
@@ -319,7 +319,7 @@ public:
   {
     ResourceAcquisitionArray* chain = new ResourceAcquisitionArray();
     if (!chain) {
-      NS_RUNTIMEABORT("can't allocate dep. cycle array");
+      MOZ_CRASH("can't allocate dep. cycle array");
     }
     chain->AppendElement(aStart->mResource);
 

@@ -1993,7 +1993,7 @@ TabChild::DeallocPDocAccessibleChild(a11y::PDocAccessibleChild* aChild)
 PColorPickerChild*
 TabChild::AllocPColorPickerChild(const nsString&, const nsString&)
 {
-  NS_RUNTIMEABORT("unused");
+  MOZ_CRASH("unused");
   return nullptr;
 }
 
@@ -2008,7 +2008,7 @@ TabChild::DeallocPColorPickerChild(PColorPickerChild* aColorPicker)
 PFilePickerChild*
 TabChild::AllocPFilePickerChild(const nsString&, const int16_t&)
 {
-  NS_RUNTIMEABORT("unused");
+  MOZ_CRASH("unused");
   return nullptr;
 }
 

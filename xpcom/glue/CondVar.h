@@ -45,7 +45,7 @@ public:
     // |aLock| must necessarily already be known to the deadlock detector
     mCvar = PR_NewCondVar(mLock->mLock);
     if (!mCvar) {
-      NS_RUNTIMEABORT("Can't allocate mozilla::CondVar");
+      MOZ_CRASH("Can't allocate mozilla::CondVar");
     }
   }
 
