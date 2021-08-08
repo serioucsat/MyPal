@@ -1256,6 +1256,9 @@ pref("dom.cycle_collector.incremental", true);
 pref("content.sink.pending_event_mode", 0);
 #endif
 
+pref("privacy.firstparty.isolate", false);
+pref("privacy.resistFingerprinting", false);
+
 // Disable popups from plugins by default
 //   0 = openAllowed
 //   1 = openControlled
