@@ -5,6 +5,11 @@
 var Cu = Components.utils;
 Cu.import("resource://gre/modules/LoadContextInfo.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
+XPCOMUtils.defineLazyServiceGetter(this, "gSerializationHelper",
+                                   "@mozilla.org/network/serialization-helper;1",
+                                   "nsISerializationHelper");
 
 //******** define a js object to implement nsITreeView
 function pageInfoTreeView(treeid, copycol)
@@ -983,6 +988,8 @@ function makePreview(row)
 
     var newImage = new Image;
     newImage.id = "thepreviewimage";
+    let loadingPrincipalString = gSerializationHelper.serializeToString(gDocInfo.principal);
+    newImage.setAttribute("loadingprincipal", loadingPrincipalString);
     var physWidth = 0, physHeight = 0;
     var width = 0, height = 0;
 
@@ -1022,6 +1029,7 @@ function makePreview(row)
     else if (item instanceof HTMLVideoElement && isProtocolAllowed) {
       newImage = document.createElementNS("http://www.w3.org/1999/xhtml", "video");
       newImage.id = "thepreviewimage";
+      newImage.setAttribute("loadingprincipal", loadingPrincipalString);
       newImage.src = url;
       newImage.controls = true;
       width = physWidth = item.videoWidth;
@@ -1033,6 +1041,7 @@ function makePreview(row)
     else if (item instanceof HTMLAudioElement && isProtocolAllowed) {
       newImage = new Audio;
       newImage.id = "thepreviewimage";
+      newImage.setAttribute("loadingprincipal", loadingPrincipalString);
       newImage.src = url;
       newImage.controls = true;
       isAudio = true;
