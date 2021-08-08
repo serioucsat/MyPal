@@ -16,13 +16,13 @@ SOURCES += [
     'WebMDemuxer.cpp',
 ]
 
-if CONFIG['MOZ_WEBM_ENCODER']:
-    EXPORTS += ['WebMWriter.h']
-
-    SOURCES += [
-        'EbmlComposer.cpp',
-        'WebMWriter.cpp',
-    ]
+#if CONFIG['MOZ_WEBM_ENCODER']:
+#    EXPORTS += ['WebMWriter.h']
+#
+#    SOURCES += [
+#        'EbmlComposer.cpp',
+#        'WebMWriter.cpp',
+#    ]
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
