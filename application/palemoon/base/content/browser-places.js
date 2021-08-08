@@ -568,6 +568,10 @@ HistoryMenu.prototype = {
     // enable menu
     undoMenu.removeAttribute("disabled");
 
+    let sh = Cc["@mozilla.org/network/serialization-helper;1"]
+               .getService(Ci.nsISerializationHelper);
+    let loadingPrincipal = sh.serializeToString(document.nodePrincipal);
+
     // populate menu
     var undoItems = JSON.parse(this._ss.getClosedTabData(window));
     for (var i = 0; i < undoItems.length; i++) {
@@ -580,6 +584,7 @@ HistoryMenu.prototype = {
           iconURL = "moz-anno:favicon:" + iconURL;
         }
         m.setAttribute("image", iconURL);
+        m.setAttribute("loadingprincipal", loadingPrincipal);
       }
       m.setAttribute("class", "menuitem-iconic bookmark-item menuitem-with-favicon");
       m.setAttribute("value", i);
@@ -651,6 +656,11 @@ HistoryMenu.prototype = {
 
     // populate menu
     let undoItems = JSON.parse(this._ss.getClosedWindowData());
+
+    let sh = Cc["@mozilla.org/network/serialization-helper;1"]
+               .getService(Ci.nsISerializationHelper);
+    let loadingPrincipal = sh.serializeToString(document.nodePrincipal);
+
     for (let i = 0; i < undoItems.length; i++) {
       let undoItem = undoItems[i];
       let otherTabsCount = undoItem.tabs.length - 1;
@@ -668,6 +678,7 @@ HistoryMenu.prototype = {
           iconURL = "moz-anno:favicon:" + iconURL;
         }
         m.setAttribute("image", iconURL);
+        m.setAttribute("loadingprincipal", loadingPrincipal);
       }
       m.setAttribute("class", "menuitem-iconic bookmark-item menuitem-with-favicon");
       m.setAttribute("oncommand", "undoCloseWindow(" + i + ");");
