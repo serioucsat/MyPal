@@ -43,7 +43,7 @@ bool BlockDifference(const uint8_t* image1,
     // TODO(hclam): Implement a NEON version.
     diff_proc = &BlockDifference_C;
 #else
-    bool have_sse2 = WebRtc_GetCPUInfo(kSSE2) != 0;
+/*    bool have_sse2 = WebRtc_GetCPUInfo(kSSE2) != 0;
     // For x86 processors, check if SSE2 is supported.
     if (have_sse2 && kBlockSize == 32) {
       diff_proc = &BlockDifference_SSE2_W32;
@@ -51,7 +51,7 @@ bool BlockDifference(const uint8_t* image1,
       diff_proc = &BlockDifference_SSE2_W16;
     } else {
       diff_proc = &BlockDifference_C;
-    }
+    }*/
 #endif
   }
 
