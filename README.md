@@ -6,6 +6,11 @@ The goal of Mypal is to provide a current, secure, and reliable web browser for 
 
 **Pay attention** though Mypal keeps updating many modern sites wont work without hassle, some sites wont work at all.
 
+### Requirements
+
+1) SEE2 CPU (Pentium4+), thoug i do on ocassion special SSE builds (Pentium3, AtlonXP) look [here](https://github.com/Feodor2/Mypal/issues/126)
+2) Windows XP SP3 or 64 SP2
+
 ### Download / Updates
 
 [Download](https://github.com/Feodor2/Mypal/releases) Mypal at GitHub. Automatic updates are disabled by default, but you can enable them in Tools/Preferences/Advanced, on the Update tab. Updates can be installed over existing Mypal installations without loss of data and settings.
